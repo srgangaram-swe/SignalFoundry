@@ -58,6 +58,7 @@ test-cov: ## Run tests with coverage report
 .PHONY: build
 build: ## Build the source distribution and wheel
 	$(BIN)/python -m build
+	$(BIN)/python scripts/verify_distributions.py --dist-dir dist
 
 .PHONY: ci
 ci: quality test-cov build ## Reproduce the local CI quality, test, and package gates

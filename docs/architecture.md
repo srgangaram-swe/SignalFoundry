@@ -53,7 +53,9 @@ flowchart TD
   participation, warm inference benchmarks, and independent readiness criteria.
 - `quant_platform.risk`: performance, drawdown, VaR/CVaR, beta, exposures, correlations,
   and scenario calculations.
-- `quant_platform.tracking`: SQLite, JSON, MLflow, and no-op experiment backends.
+- `quant_platform.tracking`: backward-compatible SQLite, JSON, MLflow, and no-op experiment
+  adapters plus the explicit-bootstrap durable local job/run registry, append-only lifecycle
+  events, content-addressed evidence store, retention protocol, and framework-neutral read ports.
 - `quant_platform.reporting`: diagnostic figures and self-contained run reports.
 - `quant_platform.cli`: Typer commands for individual stages and full runs.
 
@@ -120,6 +122,10 @@ Typical outputs are:
 - report and figures: the configured `reports/` path; and
 - experiment metadata: SQLite, JSON, or MLflow according to configuration.
 
+The durable registry and CAS live under a separate ignored, owner-controlled local state root.
+Their database, lifecycle, publication, recovery, and rollback contracts are documented in the
+[registry operator guide](run_registry.md) and [ADR 0002](adr/0002-durable-local-registry.md).
+
 Data and model artifacts are ignored because public-vendor redistribution and stale binary
 outputs are poor reproducibility mechanisms. The repository commits only a documented
 example report that can be regenerated from its config and seed.
@@ -128,7 +134,8 @@ example report that can be regenerated from its config and seed.
 
 Signalattice stops at research decision-readiness. It now implements a bounded historical
 Nasdaq Data Link adapter, a versioned as-of dataset exchange contract, and a local offline
-feature store. These are not a real-time feed handler, online/distributed feature service,
+feature store. Its durable registry is a single-host, at-least-once research control plane—not a
+distributed queue or authorization system. These are not a real-time feed handler, online/distributed feature service,
 or proof of complete point-in-time history. It does not implement a portfolio optimizer,
 broker adapter, order management system, pre-trade risk service, or post-trade ledger.
 Its inference and feature-store timings are laptop-scale local evidence. Its capacity
