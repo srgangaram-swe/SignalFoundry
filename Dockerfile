@@ -144,7 +144,17 @@ COPY --chown=0:0 --chmod=0444 \
 # The container verifier rejects any file under /opt/venv or /app/src whose
 # mode intersects 0o022; a writable path inside a read-only runtime is a
 # tampering surface, not a convenience.
-RUN --network=none chmod -R go-w /opt/venv /app/src
+# PEP 770 vendored SBOMs under third-party *.dist-info/sboms/ record the
+# upstream maintainer's own build machine -- ruff's ships /Users/runner/ and
+# pydantic-core's ships /home/runner/work/. They have no runtime purpose, and
+# the container verifier's property is that no build-host path appears in the
+# image. Removing them makes that property true; adding an exception to the
+# check would leave the paths in place and merely stop looking for them.
+#
+# Tradeoff: syft catalogs distributions from METADATA and RECORD, which remain,
+# but any vendored component detail these files carried is not in our SBOM.
+RUN --network=none find /opt/venv -type d -path "*.dist-info/sboms" -exec rm -rf {} + \
+    && chmod -R go-w /opt/venv /app/src
 
 USER 10001:10001
 
