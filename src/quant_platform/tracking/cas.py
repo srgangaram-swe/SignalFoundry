@@ -88,9 +88,16 @@ _UNIX_EPOCH: Final = datetime(1970, 1, 1, tzinfo=UTC)
 _DIRECTORY_FLAGS: Final = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_DIRECTORY", 0)
 _NOFOLLOW: Final = getattr(os, "O_NOFOLLOW", 0)
 
+
+def _is_darwin_runtime() -> bool:
+    """Return the host ACL ABI without platform-specific static type narrowing."""
+
+    return sys.platform == "darwin"
+
+
 _DARWIN_ACL_GET_FD_NP: Any | None = None
 _DARWIN_ACL_FREE: Any | None = None
-if sys.platform == "darwin":
+if _is_darwin_runtime():
     _darwin_libsystem = ctypes.CDLL("/usr/lib/libSystem.B.dylib", use_errno=True)
     _DARWIN_ACL_GET_FD_NP = _darwin_libsystem.acl_get_fd_np
     _DARWIN_ACL_GET_FD_NP.argtypes = [ctypes.c_int, ctypes.c_int]
@@ -638,7 +645,7 @@ def _parse_store_id_payload(payload: bytes) -> str:
 def _assert_no_darwin_extended_acl(descriptor: int, *, role: str) -> None:
     """Reject a macOS NFSv4-style ACL using only an open descriptor."""
 
-    if sys.platform != "darwin":
+    if not _is_darwin_runtime():
         return
     if _DARWIN_ACL_GET_FD_NP is None or _DARWIN_ACL_FREE is None:
         raise ArtifactBoundaryError("descriptor ACL inspection is unavailable")
