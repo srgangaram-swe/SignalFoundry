@@ -79,8 +79,11 @@ LABEL org.opencontainers.image.title="Signalattice" \
 
 # The runtime identity has neither a login shell nor a created home. Runtime
 # state is supplied through read-only mounts and bounded tmpfs volumes.
-RUN --network=none groupadd --gid 10001 signalattice \
-    && useradd --uid 10001 --gid 10001 --no-create-home \
+# groupadd and useradd are invoked by absolute path: the ENV PATH above
+# deliberately excludes /usr/sbin so the runtime identity cannot reach sbin
+# tooling, and widening it to make this layer build would give that back.
+RUN --network=none /usr/sbin/groupadd --gid 10001 signalattice \
+    && /usr/sbin/useradd --uid 10001 --gid 10001 --no-create-home \
         --home-dir /nonexistent --shell /usr/sbin/nologin signalattice \
     && install -d -o 10001 -g 10001 -m 0700 /run/signalattice \
     && install -d -o 0 -g 10001 -m 0550 \
