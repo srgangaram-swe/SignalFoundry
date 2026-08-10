@@ -1108,7 +1108,16 @@ def _verify_tar_end_padding(
         raise DistributionContractError(
             "source distribution tar terminator cannot be read"
         ) from None
-    if padding_size > tarfile.RECORDSIZE or expanded_size % tarfile.RECORDSIZE != 0:
+    # tarfile writes the two-block terminator and then zero-fills to the next
+    # RECORDSIZE boundary, so padding is 2*BLOCKSIZE plus a fill of up to
+    # RECORDSIZE - BLOCKSIZE (9728). Total padding therefore reaches 10752,
+    # above RECORDSIZE, for perfectly canonical archives -- roughly one archive
+    # size in twenty. The bound belongs on the fill, which must stay under a
+    # full record; an extra whole record of zeros is what non-canonical means.
+    if (
+        padding_size - minimum_padding >= tarfile.RECORDSIZE
+        or expanded_size % tarfile.RECORDSIZE != 0
+    ):
         raise DistributionContractError("source distribution tar end padding is not canonical")
 
 
