@@ -584,7 +584,10 @@ def test_dockerfile_uses_only_frozen_locked_installs_and_no_runtime_installer() 
     assert "rm -rf /usr/local/lib/python3.13/site-packages" in dockerfile
     assert "/usr/local/lib/python3.13/ensurepip" in dockerfile
     assert "/usr/local/bin/pip3.13" in dockerfile
-    assert "find / -xdev -type f -perm /6000 -exec chmod a-s {} +" in dockerfile
+    # Directories as well as files: the base image ships setgid directories
+    # (var/local, mode 2775), so a files-only strip left them in place.
+    assert "find / -xdev \\( -type f -o -type d \\) -perm /6000 -exec chmod a-s {} +" in dockerfile
+    assert "find / -xdev -type f -perm /6000" not in dockerfile
 
 
 def test_dockerfile_preserves_cli_and_minimizes_dedicated_service_target() -> None:
