@@ -129,7 +129,14 @@ def store(tmp_path: Path) -> ArtifactStore:
 
 @pytest.fixture
 def registry(tmp_path: Path, store: ArtifactStore) -> RunRegistry:
-    instance = _TestRegistry(tmp_path / "registry.sqlite", artifact_verifier=store)
+    # Concurrency tests exercise idempotency after a legitimate writer releases its lock. Give
+    # those tests the same bounded two-second scheduling allowance as the registry concurrency
+    # suite; zero-wait fail-closed behavior is covered independently below with an explicit limit.
+    instance = _TestRegistry(
+        tmp_path / "registry.sqlite",
+        artifact_verifier=store,
+        limits=RegistryLimits(busy_timeout_ms=2_000),
+    )
     instance.initialize()
     return instance
 
