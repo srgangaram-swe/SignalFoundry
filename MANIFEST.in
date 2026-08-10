@@ -1,0 +1,11 @@
+# The runtime wheel remains package-only.  The source distribution additionally carries the
+# operator-facing registry documents and the two bounded repository utilities needed to inspect
+# legacy experiments and verify release archives.
+include docs/adr/0002-durable-local-registry.md
+include docs/run_registry.md
+include scripts/summarize_experiments.py
+include scripts/verify_distributions.py
+
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude __pycache__

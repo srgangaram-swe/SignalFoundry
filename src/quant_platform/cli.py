@@ -241,7 +241,15 @@ def run_full_pipeline(
 
 @app.command("list-experiments")
 def list_experiments(
-    config: str = ConfigOpt, log_level: str | None = LogLevelOpt, limit: int = 10
+    config: str = ConfigOpt,
+    log_level: str | None = LogLevelOpt,
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        min=1,
+        max=1_000,
+        help="Maximum legacy experiment records to inspect.",
+    ),
 ) -> None:
     """List recorded experiment runs from the tracking backend."""
     from quant_platform.tracking import get_tracker
@@ -249,7 +257,7 @@ def list_experiments(
     cfg = AppConfig.from_yaml(config)
     configure_logging(log_level, force=log_level is not None)
     tracker = get_tracker(cfg.tracking)
-    runs = tracker.list_runs()[:limit]
+    runs = tracker.list_runs(limit=limit)
     if not runs:
         typer.echo("No experiment runs recorded yet.")
         raise typer.Exit()

@@ -88,7 +88,10 @@ Key capabilities include:
   no-trade bands, position and gross-exposure limits, causal volatility targeting, costs,
   and explicit execution lag;
 - cost, delay, break-even cost, dollar-volume participation, capacity-proxy, and warm
-  inference latency diagnostics; and
+  inference latency diagnostics;
+- an explicit-bootstrap, single-host durable research registry with idempotent submission,
+  leases, append-only lifecycle evidence, content-addressed artifacts, bounded retention, and
+  path-free framework-neutral reads; and
 - unit and integration tests for chronology, candidate/calibrator/weighting separation,
   portfolio invariants, missing-data failure modes, temporal tensor construction,
   persistence, and report inputs.
@@ -138,6 +141,16 @@ plots are supporting diagnostics; no single plot is treated as proof of tradabil
 
 Signalattice uses a standard `src/` package layout and exposes both `signalattice` and the
 legacy `quant-platform` console aliases.
+
+The commands and example YAML files below assume a repository checkout. Runtime wheels contain
+only importable package code and typing metadata; they do not depend on repository documentation,
+scripts, or example configs. Wheel users must supply their own explicit `--config` path. The source
+distribution additionally carries the durable-registry operator guide, its ADR, and the bounded
+legacy-experiment summarizer, while example configs remain repository-only to avoid presenting
+research fixtures as installed runtime policy. The release gate rejects archive-path aliases and
+file/directory collisions, bounds compressed and expanded archive bytes before semantic parsing,
+verifies every wheel `RECORD` hash and size against streamed member bytes, and installs both the
+wheel and source distribution in separate isolated environments.
 
 ```bash
 python3 -m venv .venv
@@ -253,6 +266,8 @@ tests/                      unit and integration contracts
 - [Backtesting contract](docs/backtesting.md)
 - [Risk metrics](docs/risk_metrics.md)
 - [ADR 0001: probabilistic ForecastOps](docs/adr/0001-probabilistic-forecastops.md)
+- [Durable registry operator guide](docs/run_registry.md)
+- [ADR 0002: durable local registry and CAS](docs/adr/0002-durable-local-registry.md)
 
 ## Known limitations
 
