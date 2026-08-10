@@ -1281,8 +1281,18 @@ def _member_bytes(
         remaining -= len(chunk)
         digest.update(chunk)
         window = previous + chunk
-        if canary in window or _WORKSTATION_PATH.search(window) is not None:
-            raise VerificationError("container filesystem contains private material")
+        if canary in window:
+            raise VerificationError(
+                f"container filesystem contains private material: {member.name} "
+                "contains the canary secret"
+            )
+        if _WORKSTATION_PATH.search(window) is not None:
+            # The offending path is deliberately not echoed: it is the private
+            # material. The member name is enough to locate it.
+            raise VerificationError(
+                f"container filesystem contains private material: {member.name} "
+                "embeds a build-host path"
+            )
         if len(captured) < 64 * 1024:
             captured.extend(chunk[: 64 * 1024 - len(captured)])
         previous = window[-max(len(canary), 128) :]
@@ -1404,7 +1414,10 @@ def _scan_exported_filesystem(image: str, *, canary: bytes) -> FilesystemSnapsho
                     raise VerificationError("container filesystem contains a file capability")
                 encoded_name = name.encode("utf-8", errors="strict")
                 if canary in encoded_name or _WORKSTATION_PATH.search(encoded_name) is not None:
-                    raise VerificationError("container filesystem contains private material")
+                    raise VerificationError(
+                        f"container filesystem contains private material: the member "
+                        f"path itself is disallowed ({len(name)} bytes)"
+                    )
 
                 # Scan regular bytes and link targets before applying artifact-type
                 # policy so a credential canary is never hidden behind a more
