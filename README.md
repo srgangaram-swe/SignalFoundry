@@ -181,10 +181,13 @@ Install optional model backends only when a config requests them:
 ```bash
 python -m pip install -e ".[dev,boost]"  # XGBoost / LightGBM
 python -m pip install -e ".[dev,torch]"  # causal TCN
+python -m pip install -e ".[dev,mlflow]"  # remote MLflow tracking client
 ```
 
 Requested optional backends fail closed when their dependency is absent. Signalattice does
-not silently replace an experiment's declared model with another estimator.
+not silently replace an experiment's declared model with another estimator. The MLflow extra uses
+the current lightweight client distribution and deliberately excludes MLflow's local server, UI,
+and SQL storage dependency surface; point it only at an operator-approved tracking service.
 
 ## Workflow
 

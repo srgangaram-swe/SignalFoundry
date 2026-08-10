@@ -810,6 +810,113 @@ def test_live_wal_open_may_create_only_private_runtime_sidecars(tmp_path: Path) 
         connection.close()
 
 
+def test_optional_sidecar_disappearance_between_stat_and_open_is_revalidated(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "sidecar-race.sqlite"
+    _initialize(path)
+    anchor = open_database(path, busy_timeout_ms=2_000)
+    original_open = migrations_module.os.open
+    simulated = False
+
+    def disappear_once(
+        name: str,
+        flags: int,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> int:
+        nonlocal simulated
+        if name == f"{path.name}-wal" and not simulated:
+            simulated = True
+            raise FileNotFoundError
+        return original_open(name, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(migrations_module.os, "open", disappear_once)
+    concurrent: sqlite3.Connection | None = None
+    try:
+        concurrent = open_database(path, busy_timeout_ms=2_000, readonly=True)
+        assert simulated
+        assert concurrent.execute("SELECT 1").fetchone()[0] == 1
+    finally:
+        if concurrent is not None:
+            concurrent.close()
+        anchor.close()
+
+
+def test_primary_database_disappearance_between_stat_and_open_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "primary-race.sqlite"
+    _initialize(path)
+    original_open = migrations_module.os.open
+
+    def disappear_primary(
+        name: str,
+        flags: int,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> int:
+        if name == path.name:
+            raise FileNotFoundError
+        return original_open(name, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(migrations_module.os, "open", disappear_primary)
+    with pytest.raises(IntegrityError, match="database could not be opened safely"):
+        open_database(path, busy_timeout_ms=2_000, readonly=True)
+
+
+def test_unlinked_open_sidecar_descriptor_is_treated_as_exact_absence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "unlinked-sidecar-race.sqlite"
+    _initialize(path)
+    anchor = open_database(path, busy_timeout_ms=2_000)
+    original_open = migrations_module.os.open
+    original_fstat = migrations_module.os.fstat
+    sidecar_descriptor: int | None = None
+    simulated = False
+
+    def capture_sidecar(
+        name: str,
+        flags: int,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> int:
+        nonlocal sidecar_descriptor
+        descriptor = original_open(name, flags, mode, dir_fd=dir_fd)
+        if name == f"{path.name}-shm" and sidecar_descriptor is None:
+            sidecar_descriptor = descriptor
+        return descriptor
+
+    def report_concurrent_unlink(descriptor: int) -> os.stat_result:
+        nonlocal simulated
+        observed = original_fstat(descriptor)
+        if descriptor == sidecar_descriptor and not simulated:
+            simulated = True
+            fields = list(observed)
+            fields[3] = 0
+            return os.stat_result(fields)
+        return observed
+
+    monkeypatch.setattr(migrations_module.os, "open", capture_sidecar)
+    monkeypatch.setattr(migrations_module.os, "fstat", report_concurrent_unlink)
+    concurrent: sqlite3.Connection | None = None
+    try:
+        concurrent = open_database(path, busy_timeout_ms=2_000, readonly=True)
+        assert simulated
+        assert concurrent.execute("SELECT 1").fetchone()[0] == 1
+    finally:
+        if concurrent is not None:
+            concurrent.close()
+        anchor.close()
+
+
 def test_retention_tombstones_are_monotonic_and_prevent_relink(tmp_path: Path) -> None:
     path = tmp_path / "retention-invariants.sqlite"
     _initialize(path)

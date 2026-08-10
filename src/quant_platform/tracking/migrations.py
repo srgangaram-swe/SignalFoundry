@@ -811,6 +811,16 @@ def _validate_private_file(
                 os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0),
                 dir_fd=parent,
             )
+        except FileNotFoundError:
+            # WAL and SHM files are lifecycle-managed by SQLite.  The last concurrent connection
+            # may remove either one after the no-follow stat but before this descriptor open.  Only
+            # that exact absence is benign for an optional companion; the primary database and all
+            # other open failures remain fail-closed.  ``open_database`` repeats this validation
+            # after its own connection is configured, so a recreated companion is checked before
+            # the connection escapes this boundary.
+            if not required:
+                return None
+            raise IntegrityError(f"{role} could not be opened safely") from None
         except OSError:
             raise IntegrityError(f"{role} could not be opened safely") from None
         opened = os.fstat(descriptor)
@@ -820,6 +830,12 @@ def _validate_private_file(
             raise IntegrityError(f"{role} must be owned by the effective user")
         if stat.S_IMODE(opened.st_mode) != 0o600:
             raise IntegrityError(f"{role} must have mode 0600")
+        if not required and opened.st_nlink == 0:
+            # A concurrent last-close can unlink SQLite's transient companion after this process
+            # has opened it but before ``fstat``.  The descriptor remains valid with a zero link
+            # count; treating it as absent is equivalent to the exact ENOENT case above.  A link
+            # count greater than one is never accepted, so attacker-created aliases still fail.
+            return None
         if opened.st_nlink != 1:
             raise IntegrityError(f"{role} must have exactly one filesystem link")
         _assert_no_extended_acl(descriptor, role=role)
