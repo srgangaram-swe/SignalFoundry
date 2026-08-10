@@ -58,13 +58,20 @@ _TRACKING_MODULES = (
 )
 _SERVICE_MODULES = (
     "__init__",
+    "admission",
     "api",
     "contracts",
+    "entrypoint",
+    "exporter",
+    "http_protocol",
     "manifests",
+    "metrics",
     "middleware",
     "models",
     "problems",
     "server",
+    "telemetry",
+    "telemetry_contracts",
 )
 _SERVICE_FRAMEWORK_DISTRIBUTIONS = frozenset({"fastapi", "starlette", "uvicorn"})
 _SERVICE_FRAMEWORK_MODULES = ("fastapi", "starlette", "uvicorn")
@@ -81,6 +88,7 @@ _EXPECTED_TRACKING_EXPORTS = [
 _REQUIRED_WHEEL_FILES = frozenset(
     {
         "quant_platform/py.typed",
+        "quant_platform/service/__main__.py",
         "quant_platform/tracking/__init__.py",
         "quant_platform/tracking/experiment.py",
         *{f"quant_platform/tracking/{module_name}.py" for module_name in _TRACKING_MODULES},
@@ -105,11 +113,19 @@ _REQUIRED_SDIST_FILES = frozenset(
         "pyproject.toml",
         "docs/adr/0002-durable-local-registry.md",
         "docs/adr/0003-local-read-only-evidence-api.md",
+        "docs/adr/0004-bounded-service-operability.md",
         "docs/api/openapi-v1.json",
+        "docs/assets/service_operability_2026-08-09.png",
         "docs/api_service.md",
+        "docs/benchmarks/service_operability_2026-08-09.json",
         "docs/run_registry.md",
+        "docs/service_operations.md",
+        "docs/threat_model.md",
+        "scripts/benchmark_service_operability.py",
         "scripts/generate_service_openapi.py",
+        "scripts/plot_service_operability.py",
         "scripts/summarize_experiments.py",
+        "scripts/verify_service_container.py",
         "scripts/verify_distributions.py",
     }
 )
@@ -1092,7 +1108,16 @@ def _verify_tar_end_padding(
         raise DistributionContractError(
             "source distribution tar terminator cannot be read"
         ) from None
-    if padding_size > tarfile.RECORDSIZE or expanded_size % tarfile.RECORDSIZE != 0:
+    # tarfile writes the two-block terminator and then zero-fills to the next
+    # RECORDSIZE boundary, so padding is 2*BLOCKSIZE plus a fill of up to
+    # RECORDSIZE - BLOCKSIZE (9728). Total padding therefore reaches 10752,
+    # above RECORDSIZE, for perfectly canonical archives -- roughly one archive
+    # size in twenty. The bound belongs on the fill, which must stay under a
+    # full record; an extra whole record of zeros is what non-canonical means.
+    if (
+        padding_size - minimum_padding >= tarfile.RECORDSIZE
+        or expanded_size % tarfile.RECORDSIZE != 0
+    ):
         raise DistributionContractError("source distribution tar end padding is not canonical")
 
 
@@ -1425,6 +1450,10 @@ def _verify_installed_service_asgi() -> None:
 
     async def smoke() -> None:
         live_status, live_headers, live_body = await _invoke_service_asgi(app, "/health/live")
+        metrics_status, metrics_headers, metrics_body = await _invoke_service_asgi(
+            app,
+            "/internal/metrics",
+        )
         schema_status, schema_headers, schema_body = await _invoke_service_asgi(
             app,
             "/api/v1/openapi.json",
@@ -1439,6 +1468,13 @@ def _verify_installed_service_asgi() -> None:
             raise DistributionContractError("installed service liveness smoke failed")
         if any(live_headers.get(name) != value for name, value in required_headers.items()):
             raise DistributionContractError("installed service omits required response hardening")
+        if (
+            metrics_status != 200
+            or len(metrics_body) > 256 * 1024
+            or metrics_headers.get(b"content-type") != b"text/plain; version=0.0.4; charset=utf-8"
+            or b"signalattice_http_requests_total" not in metrics_body
+        ):
+            raise DistributionContractError("installed service metrics boundary is invalid")
         if schema_status != 200 or schema_body != repeated_schema_body:
             raise DistributionContractError("installed service OpenAPI output is not deterministic")
         if any(schema_headers.get(name) != value for name, value in required_headers.items()):
@@ -1473,8 +1509,10 @@ def _verify_installed_service_asgi() -> None:
             raise DistributionContractError(
                 "installed OpenAPI operation IDs are not stable and unique"
             )
-        if {"/docs", "/redoc", "/openapi.json"}.intersection(paths):
-            raise DistributionContractError("installed service exposes interactive documentation")
+        if {"/docs", "/redoc", "/openapi.json", "/internal/metrics"}.intersection(paths):
+            raise DistributionContractError(
+                "installed service exposes interactive or internal documentation"
+            )
 
     try:
         asyncio.run(smoke())
@@ -1507,10 +1545,20 @@ def verify_installed_service_distribution(prefix: Path) -> None:
     from quant_platform.service.server import ServerConfig, build_uvicorn_config
 
     server = build_uvicorn_config(_ServiceSmokePorts(), ServerConfig())
+    configured_protocol = server.http
+    protocol_base = modules["http_protocol"].SignalatticeH11Protocol
+    if (
+        type(configured_protocol) is not type
+        or configured_protocol is protocol_base
+        or not issubclass(configured_protocol, protocol_base)
+        or configured_protocol.__module__ != "quant_platform.service.http_protocol"
+        or configured_protocol.__name__ != "ConfiguredSignalatticeH11Protocol"
+    ):
+        raise DistributionContractError("installed service Uvicorn protocol adapter weakened")
     observed_profile = (
         server.host,
         server.port,
-        server.http,
+        server.uds,
         server.ws,
         server.lifespan,
         server.loop,
@@ -1532,7 +1580,7 @@ def verify_installed_service_distribution(prefix: Path) -> None:
     expected_profile = (
         "127.0.0.1",
         8_765,
-        "h11",
+        None,
         "none",
         "on",
         "asyncio",
@@ -1544,7 +1592,7 @@ def verify_installed_service_distribution(prefix: Path) -> None:
         False,
         False,
         False,
-        64,
+        32,
         64,
         3,
         10,

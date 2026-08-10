@@ -104,6 +104,36 @@ benchmark-state-space: ## Regenerate state-space/risk JSON and Seaborn evidence
 		--output-json docs/benchmarks/state_space_baselines_2026-07-26.json \
 		--output-plot docs/assets/state_space_baselines_2026-07-26.png
 
+.PHONY: benchmark-service-operability
+benchmark-service-operability: ## Stage bounded-service JSON and Seaborn candidates for review
+	@set -eu; \
+	mkdir -p build; \
+	service_evidence_run="$$(mktemp -d build/service-operability.XXXXXX)"; \
+	$(BIN)/python scripts/benchmark_service_operability.py \
+		--output "$${service_evidence_run}/candidate.json"; \
+	$(BIN)/python scripts/plot_service_operability.py \
+		--input "$${service_evidence_run}/candidate.json" \
+		--output "$${service_evidence_run}/candidate.png"; \
+	shasum -a 256 \
+		"$${service_evidence_run}/candidate.json" \
+		docs/benchmarks/service_operability_2026-08-09.json \
+		"$${service_evidence_run}/candidate.png" \
+		docs/assets/service_operability_2026-08-09.png; \
+	echo "Review retained service-operability candidates in $${service_evidence_run}"; \
+	echo "After review, publish only to new empty dated reference paths on a dedicated work branch; never overwrite the current references."
+
+.PHONY: verify-service-operability
+verify-service-operability: ## Verify service evidence, API bounds, telemetry, and container policy
+	$(BIN)/python -m pytest -q \
+		tests/test_service_admission.py \
+		tests/test_service_middleware_limits.py \
+		tests/test_service_telemetry_contracts.py \
+		tests/test_service_telemetry_metrics.py \
+		tests/test_service_telemetry_exporter.py \
+		tests/test_service_telemetry_runtime.py \
+		tests/test_service_operability_evidence.py \
+		tests/test_service_container_contract.py
+
 .PHONY: clean
 clean: ## Remove caches and build artifacts
 	rm -rf build dist *.egg-info src/*.egg-info .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage

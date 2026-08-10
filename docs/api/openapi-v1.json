@@ -1261,7 +1261,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "Get Artifact",
@@ -1410,7 +1410,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "List Model Cards",
@@ -1537,7 +1537,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "Get Model Card",
@@ -1609,6 +1609,16 @@
               }
             },
             "description": "An unexpected failure was redacted at the service boundary."
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDocument"
+                }
+              }
+            },
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "Get Openapi",
@@ -1767,7 +1777,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "List Runs",
@@ -1882,7 +1892,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "Get Run",
@@ -2031,7 +2041,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "List Artifacts",
@@ -2180,7 +2190,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "List Diagnostics",
@@ -2329,7 +2339,7 @@
                 }
               }
             },
-            "description": "Verified evidence is busy, unavailable, or failed integrity verification."
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "List Forecast Summaries",
@@ -2401,6 +2411,16 @@
               }
             },
             "description": "An unexpected failure was redacted at the service boundary."
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDocument"
+                }
+              }
+            },
+            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
           }
         },
         "summary": "Liveness",
@@ -2478,6 +2498,11 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReadyResponse"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDocument"
                 }
               }
             },

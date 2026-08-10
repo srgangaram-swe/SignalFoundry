@@ -97,6 +97,28 @@ def serve_api(
         "--keychain-service",
         help="Public macOS Keychain service label for the registry HMAC credential.",
     ),
+    socket_path: Path | None = typer.Option(
+        None,
+        "--socket-path",
+        help="Private Unix-domain socket path; when set, no TCP listener is created.",
+        file_okay=True,
+        dir_okay=False,
+        # Preserve the caller's path identity so the server can reject a
+        # symlinked parent instead of receiving Click's resolved target.
+        resolve_path=False,
+    ),
+    digest_key_file: Path | None = typer.Option(
+        None,
+        "--digest-key-file",
+        help="Private runtime-mounted registry HMAC key file; never logged or persisted.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        # O_NOFOLLOW is meaningful only when Typer has not already followed
+        # the untrusted path during argument conversion.
+        resolve_path=False,
+    ),
 ) -> None:
     """Serve verified aggregate evidence through the local read-only API."""
 
@@ -118,7 +140,8 @@ def serve_api(
             registry_db,
             cas_root,
             keychain_service=keychain_service,
-            config=ServerConfig(port=port),
+            digest_key_file=digest_key_file,
+            config=ServerConfig(port=port, socket_path=socket_path),
         )
     except ServiceStartupError as exc:
         # ServiceStartupError messages are deliberately stable and contain no

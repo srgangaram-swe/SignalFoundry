@@ -9,7 +9,10 @@ select storage state or leak an internal exception, pathname, or artifact byte.
 from __future__ import annotations
 
 import asyncio
+import json
+import os
 import re
+import shutil
 import sqlite3
 import threading
 from collections.abc import Awaitable, Callable
@@ -38,7 +41,9 @@ from quant_platform.service.manifests import (
     ModelCardSection,
     ModelCardSectionName,
 )
+from quant_platform.service.metrics import ServiceMetrics
 from quant_platform.service.models import encode_run_reference
+from quant_platform.service.telemetry import LifecyclePhase, ServiceTelemetry
 from quant_platform.tracking.cas import ArtifactStore, PublishedArtifact
 from quant_platform.tracking.contracts import (
     ArtifactClass,
@@ -626,6 +631,11 @@ def test_route_and_openapi_inventory_is_exact_read_only_and_has_no_trading_autho
         for route in service_system.app.routes
         if hasattr(route, "methods")
     }
+    documented_routes = {
+        route.path
+        for route in service_system.app.routes
+        if hasattr(route, "methods") and getattr(route, "include_in_schema", False)
+    }
     assert all(methods == {"GET"} for methods in routes.values())
     forbidden_terms = {"order", "broker", "trade", "position", "execute", "write", "delete"}
     assert not any(term in path.lower() for term in forbidden_terms for path in routes)
@@ -634,7 +644,9 @@ def test_route_and_openapi_inventory_is_exact_read_only_and_has_no_trading_autho
 
     assert response.status_code == 200
     document = response.json()
-    assert set(document["paths"]) == set(routes)
+    assert set(document["paths"]) == documented_routes
+    assert "/internal/metrics" in routes
+    assert "/internal/metrics" not in document["paths"]
     assert all(set(path_item) == {"get"} for path_item in document["paths"].values())
     assert document.get("servers", []) == []
     schemas = document["components"]["schemas"]
@@ -1207,3 +1219,162 @@ def test_concurrency_saturation_returns_bounded_429_without_wall_clock_sleep(
     assert saturated.headers["retry-after"] == "1"
     assert completed.status_code == 200
     _assert_security_headers(completed)
+
+
+class _CanaryExceptionPorts(_DelegatingPorts):
+    """Inject one handled exception without retaining it outside this test adapter."""
+
+    def __init__(
+        self,
+        delegate: RegistryReadPorts,
+        *,
+        exception_run_id: str,
+        marker: str,
+    ) -> None:
+        super().__init__(delegate)
+        self._exception_run_id = exception_run_id
+        self._marker = marker
+
+    def get_run(self, run_id: str) -> RunReadModel:
+        if run_id == self._exception_run_id:
+            raise RuntimeError(self._marker)
+        return super().get_run(run_id)
+
+
+def _assert_marker_absent(marker: bytes, surfaces: dict[str, bytes]) -> None:
+    for name, surface in surfaces.items():
+        if marker in surface:
+            pytest.fail(f"unified canary appeared in {name}", pytrace=False)
+
+
+def test_one_marker_is_absent_across_full_app_disclosure_boundaries(tmp_path: Path) -> None:
+    """Exercise one synthetic marker through every reviewed app-level boundary."""
+
+    marker = os.environ.get(
+        "SERVICE_SECRET_CANARY",
+        "SIGNALATTICE-S5-UNIFIED-CANARY-20260809",
+    )
+    if re.fullmatch(r"[A-Za-z0-9._~-]{16,128}", marker) is None:
+        pytest.fail(
+            "SERVICE_SECRET_CANARY violates the bounded synthetic marker contract",
+            pytrace=False,
+        )
+    marker_bytes = marker.encode("ascii")
+    root = (tmp_path / "unified-canary-service").resolve()
+    root.mkdir(mode=0o700)
+
+    try:
+        store = ArtifactStore(root / "cas")
+        store.initialize()
+        registry = RunRegistry(
+            root / "registry.sqlite",
+            digest_secret=SECRET,
+            limits=RegistryLimits(busy_timeout_ms=2_000),
+            clock=_MutableClock(NOW),
+            artifact_verifier=store,
+        )
+        registry.initialize()
+        malformed_run_id = "unified-canary-malformed-row"
+        artifact_run_id = "unified-canary-artifact-row"
+        exception_run_id = "unified-canary-handled-exception"
+        artifact = _publish(
+            root,
+            registry,
+            store,
+            name="unified-canary-artifact.bin",
+            payload=b"synthetic aggregate artifact fixture",
+            artifact_class=ArtifactClass.OUTPUT,
+            media_type="application/octet-stream",
+        )
+        _complete_run(registry, run_id=malformed_run_id, ordinal=201, links=())
+        _complete_run(
+            registry,
+            run_id=artifact_run_id,
+            ordinal=202,
+            links=(ArtifactLink("aggregate_fixture", artifact.digest),),
+        )
+
+        # Create two independently malformed stored values after normal registry
+        # construction. The database is an ephemeral test-only root deleted in
+        # this function's finally block; the environment marker is never placed
+        # in repository output or a retained test artifact.
+        with closing(sqlite3.connect(registry.path)) as connection, connection:
+            connection.execute("PRAGMA ignore_check_constraints = ON")
+            connection.execute("DROP TRIGGER sl_registry_runs_no_update")
+            connection.execute(
+                "UPDATE sl_registry_runs SET status = ? WHERE run_id = ?",
+                (marker, malformed_run_id),
+            )
+            connection.execute("DROP TRIGGER sl_registry_artifacts_no_update")
+            connection.execute(
+                "UPDATE sl_registry_artifacts SET storage_relpath = ? WHERE digest = ?",
+                (marker, artifact.digest),
+            )
+
+        ports = RegistryReadPorts(registry, store)
+        telemetry = ServiceTelemetry(ServiceMetrics())
+        app = create_app(
+            _CanaryExceptionPorts(
+                ports,
+                exception_run_id=exception_run_id,
+                marker=marker,
+            ),
+            telemetry=telemetry,
+        )
+
+        async def scenario(client: httpx.AsyncClient) -> tuple[httpx.Response, ...]:
+            return (
+                await client.get("/health/live", headers={"x-synthetic-canary": marker}),
+                await client.get("/health/live", params={"synthetic_canary": marker}),
+                await client.get(f"/api/v1/runs/{encode_run_reference(malformed_run_id)}"),
+                await client.get(f"/api/v1/runs/{encode_run_reference(exception_run_id)}"),
+                await client.get(f"/api/v1/artifacts/{artifact.digest}"),
+            )
+
+        responses = _run_scenario(app, scenario)
+        assert [response.status_code for response in responses] == [200, 200, 503, 500, 503]
+        _assert_problem(responses[2], 503, "evidence_integrity_failed")
+        _assert_problem(responses[3], 500, "internal_error")
+        _assert_problem(responses[4], 503, "evidence_integrity_failed")
+
+        local = telemetry.local_snapshot()
+        parsed = tuple(json.loads(record) for record in local.records)
+        lifecycle = [
+            record["attributes"]["lifecycle"]
+            for record in parsed
+            if record["event"] == "service_lifecycle"
+        ]
+        request_records = tuple(
+            record for record in parsed if record["event"] != "service_lifecycle"
+        )
+        assert telemetry.lifecycle_phase is LifecyclePhase.CLOSED
+        assert lifecycle == ["starting", "ready", "draining", "stopping", "stopped"]
+        assert len(request_records) == 10
+        assert {record["channel"] for record in request_records} == {"log", "trace"}
+        assert {record["attributes"]["outcome"] for record in request_records} == {
+            "success",
+            "internal_error",
+            "unavailable",
+        }
+        assert all(len(record) <= 8 * 1_024 for record in local.records)
+        assert local.evicted_records == 0
+
+        response_surface = b"".join(
+            response.content
+            + b"\n"
+            + b"\n".join(
+                name.encode("ascii") + b":" + value.encode("ascii")
+                for name, value in response.headers.items()
+            )
+            for response in responses
+        )
+        _assert_marker_absent(
+            marker_bytes,
+            {
+                "response bytes and headers": response_surface,
+                "canonical local logs and spans": b"".join(local.records),
+                "fixed metric exposition": telemetry.metrics.snapshot().body,
+            },
+        )
+    finally:
+        shutil.rmtree(root)

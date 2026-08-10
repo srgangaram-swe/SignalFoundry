@@ -778,3 +778,63 @@ def test_distribution_directory_contains_only_the_verified_archive_pair(
 
     with pytest.raises(verifier.DistributionContractError, match="exactly the wheel"):
         verifier._distribution_pair(directory)
+
+
+def _canonical_padded_stream(logical_end: int) -> io.BytesIO:
+    """Return a stream padded exactly as tarfile pads a closed archive.
+
+    Two zero blocks for the terminator, then zero fill to the next RECORDSIZE
+    boundary. Content before ``logical_end`` is irrelevant to the padding check.
+    """
+    total = logical_end + 2 * tarfile.BLOCKSIZE
+    fill = (-total) % tarfile.RECORDSIZE
+    return io.BytesIO(b"\x00" * (total + fill))
+
+
+@pytest.mark.parametrize(
+    "logical_end",
+    [
+        0,
+        tarfile.BLOCKSIZE,
+        # 9728 makes tarfile emit its largest legitimate fill, pushing total
+        # padding to 10752 -- above RECORDSIZE. A bound of
+        # "padding_size > RECORDSIZE" rejected this canonical archive, so the
+        # sdist gate failed or passed purely on content size.
+        tarfile.RECORDSIZE - tarfile.BLOCKSIZE,
+        tarfile.RECORDSIZE,
+        2 * tarfile.RECORDSIZE - tarfile.BLOCKSIZE,
+    ],
+)
+def test_canonical_tar_padding_is_accepted_at_every_fill_width(logical_end: int) -> None:
+    stream = _canonical_padded_stream(logical_end)
+    verifier._verify_tar_end_padding(
+        stream,
+        logical_end=logical_end,
+        expanded_size=len(stream.getvalue()),
+    )
+
+
+def test_an_extra_whole_record_of_zeros_is_still_rejected() -> None:
+    """The bound moved to the fill; a surplus record must still fail."""
+    logical_end = tarfile.RECORDSIZE - tarfile.BLOCKSIZE
+    stream = _canonical_padded_stream(logical_end)
+    padded = stream.getvalue() + b"\x00" * tarfile.RECORDSIZE
+    with pytest.raises(verifier.DistributionContractError, match="not canonical"):
+        verifier._verify_tar_end_padding(
+            io.BytesIO(padded),
+            logical_end=logical_end,
+            expanded_size=len(padded),
+        )
+
+
+def test_hidden_nonzero_bytes_after_eof_are_still_rejected() -> None:
+    logical_end = tarfile.BLOCKSIZE
+    stream = _canonical_padded_stream(logical_end)
+    payload = bytearray(stream.getvalue())
+    payload[-1] = 0x01
+    with pytest.raises(verifier.DistributionContractError, match="hidden bytes"):
+        verifier._verify_tar_end_padding(
+            io.BytesIO(bytes(payload)),
+            logical_end=logical_end,
+            expanded_size=len(payload),
+        )

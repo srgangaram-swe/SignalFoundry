@@ -101,7 +101,10 @@ Key capabilities include:
 
 See [Architecture](docs/architecture.md), [Methodology](docs/methodology.md), the
 [Validation protocol](docs/validation_protocol.md), and the
-[local evidence-service guide](docs/api_service.md) for the contracts behind these claims.
+[local evidence-service guide](docs/api_service.md) for the contracts behind these claims. The
+[bounded service operator guide](docs/service_operations.md) and
+[service threat model](docs/threat_model.md) define the narrower deployable local profile and its
+explicit limitations.
 
 ## Evidence boundary
 
@@ -237,8 +240,16 @@ Docker:
 
 ```bash
 docker compose build
-docker compose run --rm platform run-full-pipeline --config configs/synthetic.yaml --force
+docker compose --profile cli run --rm platform \
+  run-full-pipeline --config configs/synthetic.yaml --force
 ```
+
+The dedicated, networkless evidence-service container has a stricter secret, storage, and Unix
+socket startup contract; follow the [bounded service operator guide](docs/service_operations.md)
+instead of improvising mounts or publishing a port. Its builder synchronizes only the locked
+`service-runtime` dependency group and starts the explicit
+`python -m quant_platform.service` boundary; the broad numerical research environment is not copied
+into that image.
 
 The CI workflow runs static checks, unit/integration tests across supported Python
 versions, and a deterministic end-to-end smoke test. Deep-learning tests are isolated

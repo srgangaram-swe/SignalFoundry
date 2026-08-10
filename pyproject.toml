@@ -104,6 +104,17 @@ dev = [
     "asgi-lifespan==2.1.0",
 ]
 
+[dependency-groups]
+# Container-only dependency closure. The service image syncs only this group
+# and runs the source tree through its narrow stdlib entry point, so the broad
+# numerical/research project dependencies never enter the service runtime.
+service-runtime = [
+    "pydantic>=2.13.4,<3",
+    "fastapi>=0.141.1,<0.142",
+    "starlette==1.3.1",
+    "uvicorn>=0.52.1,<0.53",
+]
+
 [tool.uv]
 # Security floors for transitive packages used only by optional integrations.  Keep these explicit
 # until every upstream resolver floor excludes the affected command-injection and oracle releases.

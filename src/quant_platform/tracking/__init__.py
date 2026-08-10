@@ -15,14 +15,16 @@ never initialized as a side effect of importing this package.
 
 from __future__ import annotations
 
-from quant_platform.tracking.experiment import (
-    ExperimentTracker,
-    LegacyTrackingError,
-    LegacyTrackingReadError,
-    LegacyTrackingWriteError,
-    RunContext,
-    get_tracker,
-)
+from typing import TYPE_CHECKING, Any, Final
+
+if TYPE_CHECKING:
+    from quant_platform.tracking.experiment import (
+        ExperimentTracker,
+        LegacyTrackingError,
+        LegacyTrackingReadError,
+        LegacyTrackingWriteError,
+        RunContext,
+    )
 
 __all__ = [
     "ExperimentTracker",
@@ -32,3 +34,29 @@ __all__ = [
     "RunContext",
     "get_tracker",
 ]
+
+_LEGACY_EXPORTS: Final = frozenset(__all__)
+
+
+def __getattr__(name: str) -> Any:
+    """Load legacy experiment adapters only when that public API is requested.
+
+    Durable registry/service imports must not initialize the numerical research
+    dependency graph as a package side effect. PEP 562 lazy attributes preserve
+    the historic ``quant_platform.tracking`` API for callers that explicitly use
+    it while keeping the read-only service dependency closure narrow.
+    """
+
+    if name not in _LEGACY_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    from quant_platform.tracking import experiment
+
+    value = getattr(experiment, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    """Expose stable lazy exports to introspection without importing them."""
+
+    return sorted(set(globals()).union(_LEGACY_EXPORTS))

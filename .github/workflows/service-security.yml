@@ -1,0 +1,835 @@
+name: Service container and supply chain
+
+on:
+  push:
+    branches: [main, prod, dev]
+  pull_request:
+    branches: [main, prod, dev]
+  schedule:
+    - cron: "41 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BUILDX_METADATA_PROVENANCE: max
+  DECLARED_PLATFORM: linux/amd64
+  SERVICE_IMAGE_A: signalattice-service:clean-a
+  SERVICE_IMAGE_B: signalattice-service:clean-b
+  CLI_IMAGE: signalattice-cli:baseline
+  TEST_IMAGE: signalattice-service:test-runner
+  # Official immutable scanner manifests, resolved from their GHCR releases on 2026-08-09.
+  # https://github.com/aquasecurity/trivy/releases/tag/v0.73.0
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.73.0@sha256:7cced7cae583819fc7806d4cbc0dbbc7cad18b99f7d3e235192e6da8c091045c
+  # https://github.com/anchore/syft/releases/tag/v1.50.0
+  SYFT_IMAGE: ghcr.io/anchore/syft:v1.50.0@sha256:1288ea4c8b38767b4e620c1e312c8cb26b6e887a99b4f07ab6cd19fc6f225026
+
+jobs:
+  service-supply-chain:
+    name: Reproducible hardened service image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      # https://github.com/actions/checkout/releases/tag/v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # https://github.com/docker/setup-buildx-action/releases/tag/v4.2.0
+      - name: Set up isolated Buildx builder
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          driver: docker-container
+          # https://github.com/moby/buildkit/releases/tag/v0.32.2
+          driver-opts: >-
+            image=moby/buildkit:v0.32.2@sha256:28a898719c18a33f4e8000685287fa36fd0dd9560c6440227d3a732d79bb41d8
+          install: true
+
+      # https://github.com/actions/setup-python/releases/tag/v7.0.0
+      - name: Set up verifier Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Establish deterministic build and secret-canary inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_date_epoch="$(git show -s --format=%ct HEAD)"
+          [[ "$source_date_epoch" =~ ^[0-9]{9,12}$ ]]
+          canary="SF_CONTAINER_CANARY_$(openssl rand -hex 32)"
+          echo "::add-mask::$canary"
+          echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> "$GITHUB_ENV"
+          echo "SERVICE_SECRET_CANARY=$canary" >> "$GITHUB_ENV"
+          evidence_dir="$RUNNER_TEMP/service-evidence"
+          mkdir -p "$evidence_dir"
+          chmod 0700 "$evidence_dir"
+          echo "EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+
+      - name: Validate Compose contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIGNALATTICE_REGISTRY_DIGEST_KEY="$SERVICE_SECRET_CANARY" \
+            docker compose config --quiet
+
+      - name: Build clean service image A without cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          # provenance=false matches the CLI and test builds. A max provenance
+          # attestation makes buildx emit an image index, which the docker
+          # exporter cannot --load; and its per-build startedOn/finishedOn
+          # timestamps would land in the index digest, making the A/B
+          # reproducibility comparison unable to pass by construction. Nothing
+          # consumes the attestation: verify_service_container.py reads build
+          # metadata digests and the benchmark's own provenance block.
+          docker buildx build \
+            --platform "$DECLARED_PLATFORM" \
+            --target service \
+            --pull \
+            --no-cache \
+            --provenance=false \
+            --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
+            --build-arg "VCS_REF=$GITHUB_SHA" \
+            --metadata-file "$EVIDENCE_DIR/build-a-metadata.json" \
+            --tag "$SERVICE_IMAGE_A" \
+            --load \
+            .
+
+      - name: Build clean service image B without cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          # provenance=false matches the CLI and test builds. A max provenance
+          # attestation makes buildx emit an image index, which the docker
+          # exporter cannot --load; and its per-build startedOn/finishedOn
+          # timestamps would land in the index digest, making the A/B
+          # reproducibility comparison unable to pass by construction. Nothing
+          # consumes the attestation: verify_service_container.py reads build
+          # metadata digests and the benchmark's own provenance block.
+          docker buildx build \
+            --platform "$DECLARED_PLATFORM" \
+            --target service \
+            --pull \
+            --no-cache \
+            --provenance=false \
+            --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
+            --build-arg "VCS_REF=$GITHUB_SHA" \
+            --metadata-file "$EVIDENCE_DIR/build-b-metadata.json" \
+            --tag "$SERVICE_IMAGE_B" \
+            --load \
+            .
+
+      - name: Build clean CLI compatibility and size reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform "$DECLARED_PLATFORM" \
+            --target cli \
+            --pull \
+            --no-cache \
+            --provenance=false \
+            --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
+            --build-arg "VCS_REF=$GITHUB_SHA" \
+            --tag "$CLI_IMAGE" \
+            --load \
+            .
+
+      - name: Build locked non-publishing canary test runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform "$DECLARED_PLATFORM" \
+            --target test-runner \
+            --pull \
+            --no-cache \
+            --provenance=false \
+            --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
+            --build-arg "VCS_REF=$GITHUB_SHA" \
+            --tag "$TEST_IMAGE" \
+            --load \
+            .
+
+      - name: Prove one marker absent across application disclosure boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 128 \
+            --memory 2g \
+            --cpus 2.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=134217728,mode=1777 \
+            --env SERVICE_SECRET_CANARY \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            "$TEST_IMAGE" \
+            -m pytest -q -p no:cacheprovider \
+            /workspace/tests/test_service_api.py::test_one_marker_is_absent_across_full_app_disclosure_boundaries
+
+      - name: Inject the same marker through bounded malformed-input benchmark evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user "$(id -u):$(id -g)" \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 128 \
+            --memory 2g \
+            --cpus 2.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=134217728,mode=1777 \
+            --env SERVICE_SECRET_CANARY \
+            --workdir /workspace \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --volume "$EVIDENCE_DIR:/evidence" \
+            "$TEST_IMAGE" \
+            scripts/benchmark_service_operability.py \
+            --output /evidence/service-canary-evidence.json
+
+      - name: Verify image parity, history, filesystem, and budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/verify_service_container.py container \
+            --service-image-a "$SERVICE_IMAGE_A" \
+            --service-image-b "$SERVICE_IMAGE_B" \
+            --cli-image "$CLI_IMAGE" \
+            --metadata-a "$EVIDENCE_DIR/build-a-metadata.json" \
+            --metadata-b "$EVIDENCE_DIR/build-b-metadata.json" \
+            --canary-env SERVICE_SECRET_CANARY \
+            --source-revision "$GITHUB_SHA" \
+            --summary "$EVIDENCE_DIR/container-summary.json"
+
+      - name: Exercise the exact default Compose service profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_root="$RUNNER_TEMP/signalattice-service-runtime"
+          compose_project="signalattice-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p \
+            "$runtime_root/registry" \
+            "$runtime_root/cas"
+          chmod 0700 "$runtime_root" "$runtime_root/registry" "$runtime_root/cas"
+          sudo chown -R 10001:10001 "$runtime_root"
+
+          compose() {
+            env \
+              SIGNALATTICE_REGISTRY_DIGEST_KEY="$SERVICE_SECRET_CANARY" \
+              SIGNALATTICE_REGISTRY_DIR="$runtime_root/registry" \
+              SIGNALATTICE_CAS_DIR="$runtime_root/cas" \
+              docker compose --project-name "$compose_project" "$@"
+          }
+          lock_container=""
+          lock_pid=""
+          cleanup() {
+            if [[ -n "$lock_container" ]]; then
+              docker container rm --force "$lock_container" >/dev/null 2>&1 || true
+            fi
+            if [[ -n "$lock_pid" ]]; then
+              wait "$lock_pid" >/dev/null 2>&1 || true
+            fi
+            compose down --remove-orphans >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          printf '%s' "$SERVICE_SECRET_CANARY" | docker run --rm --interactive \
+            --network none \
+            --read-only \
+            --user 10001:10001 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 32 \
+            --memory 768m \
+            --cpus 1.0 \
+            --ulimit nofile=256:256 \
+            --ulimit nproc=32:32 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16777216,mode=1770,uid=10001,gid=10001 \
+            --mount "type=bind,src=$runtime_root,dst=/state" \
+            --entrypoint python \
+            "$CLI_IMAGE" \
+            -c "import sys; from pathlib import Path; from quant_platform.tracking.cas import ArtifactStore; from quant_platform.tracking.registry import RunRegistry; secret=sys.stdin.buffer.read(); store=ArtifactStore(Path('/state/cas')); store.initialize(); registry=RunRegistry(Path('/state/registry/registry.sqlite3'), digest_secret=secret, artifact_verifier=store); registry.initialize()"
+
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 10001:10001 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 32 \
+            --memory 256m \
+            --cpus 0.5 \
+            --mount "type=bind,src=$runtime_root/registry,dst=/registry" \
+            --entrypoint python \
+            "$CLI_IMAGE" \
+            -c "import sqlite3; connection=sqlite3.connect('/registry/registry.sqlite3', isolation_level=None, timeout=2.0); mode=connection.execute('PRAGMA journal_mode=DELETE').fetchone()[0]; connection.close(); raise SystemExit(0 if mode == 'delete' else 1)"
+
+          docker image tag "$SERVICE_IMAGE_A" signalattice-service:local
+          compose up --no-build --detach --wait --wait-timeout 35 service
+          container_id="$(compose ps --quiet service)"
+          [[ "$container_id" =~ ^[0-9a-f]{64}$ ]]
+          baseline_health_end="$(
+            docker container inspect "$container_id" | python -c \
+              "import json,sys; health=json.load(sys.stdin)[0]['State']['Health']; logs=health.get('Log',[]); print(logs[-1]['End'] if logs else '')"
+          )"
+          [[ -n "$baseline_health_end" ]]
+
+          printf '%s' "$SERVICE_SECRET_CANARY" | \
+            docker exec --interactive "$container_id" python -c "import hmac,json,os,stat,sys; from pathlib import Path; secret_path=Path('/run/secrets/registry-digest-key'); socket_path=Path('/run/signalattice/api.sock'); secret=secret_path.read_bytes(); expected=sys.stdin.buffer.read(); secret_stat=secret_path.stat(); socket_stat=socket_path.stat(); parent_stat=socket_path.parent.stat(); result={'schema_version':1,'result':'passed','secret_environment_present':'SIGNALATTICE_REGISTRY_DIGEST_KEY' in os.environ,'secret_file':{'regular':stat.S_ISREG(secret_stat.st_mode),'uid':secret_stat.st_uid,'gid':secret_stat.st_gid,'mode':stat.S_IMODE(secret_stat.st_mode),'nlink':secret_stat.st_nlink,'matches_source':hmac.compare_digest(secret,expected)},'socket':{'socket':stat.S_ISSOCK(socket_stat.st_mode),'uid':socket_stat.st_uid,'gid':socket_stat.st_gid,'mode':stat.S_IMODE(socket_stat.st_mode)},'socket_parent':{'directory':stat.S_ISDIR(parent_stat.st_mode),'uid':parent_stat.st_uid,'gid':parent_stat.st_gid,'mode':stat.S_IMODE(parent_stat.st_mode)}}; print(json.dumps(result,sort_keys=True,separators=(',',':')))" \
+            > "$EVIDENCE_DIR/runtime-probe.json"
+
+          lock_container="${compose_project}-sqlite-lock"
+          docker run --rm --name "$lock_container" \
+            --network none \
+            --read-only \
+            --user 10001:10001 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 16 \
+            --memory 128m \
+            --cpus 0.25 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=1048576,mode=1770,uid=10001,gid=10001 \
+            --mount "type=bind,src=$runtime_root,dst=/state" \
+            --entrypoint python \
+            "$CLI_IMAGE" - > "$EVIDENCE_DIR/lock-helper.log" 2>&1 <<'PY' &
+          import sqlite3
+          import time
+          from pathlib import Path
+
+          root = Path("/state")
+          ready = root / "sqlite-lock-ready"
+          ready.unlink(missing_ok=True)
+          connection = sqlite3.connect(
+              root / "registry" / "registry.sqlite3",
+              isolation_level=None,
+              timeout=2.0,
+          )
+          try:
+              mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+              if mode != "delete":
+                  raise RuntimeError("unexpected journal mode")
+              connection.execute("PRAGMA locking_mode=EXCLUSIVE")
+              connection.execute("BEGIN EXCLUSIVE")
+              ready.write_text("locked\n", encoding="ascii")
+              ready.chmod(0o600)
+              time.sleep(5.0)
+          finally:
+              if connection.in_transaction:
+                  connection.rollback()
+              connection.close()
+              ready.unlink(missing_ok=True)
+          PY
+          lock_pid="$!"
+          lock_deadline="$((SECONDS + 8))"
+          while ! sudo test -f "$runtime_root/sqlite-lock-ready"; do
+            if ! kill -0 "$lock_pid" 2>/dev/null; then
+              echo "bounded SQLite lock helper failed" >&2
+              exit 1
+            fi
+            if (( SECONDS >= lock_deadline )); then
+              echo "bounded SQLite lock helper timed out" >&2
+              exit 1
+            fi
+            sleep 0.05
+          done
+
+          docker exec --interactive "$container_id" python - \
+            > "$EVIDENCE_DIR/runtime-saturation.json" <<'PY'
+          import asyncio
+          import collections
+          import json
+          import time
+          from pathlib import Path
+
+          SOCKET_PATH = "/run/signalattice/api.sock"
+          SUBMITTED = 48
+
+
+          def current_pids() -> tuple[int, int]:
+              for root in (Path("/sys/fs/cgroup"), Path("/sys/fs/cgroup/pids")):
+                  current_path = root / "pids.current"
+                  maximum_path = root / "pids.max"
+                  if current_path.is_file() and maximum_path.is_file():
+                      current = int(current_path.read_text(encoding="ascii").strip())
+                      maximum = int(maximum_path.read_text(encoding="ascii").strip())
+                      return current, maximum
+              raise RuntimeError("PID controller is unavailable")
+
+
+          async def request(
+              path: str,
+          ) -> tuple[int, str | None, bool | None, str | None, float]:
+              started = time.perf_counter_ns()
+              reader, writer = await asyncio.wait_for(
+                  asyncio.open_unix_connection(SOCKET_PATH), timeout=1.0
+              )
+              try:
+                  writer.write(
+                      f"GET {path} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n".encode(
+                          "ascii"
+                      )
+                  )
+                  await writer.drain()
+                  response = bytearray()
+                  while b"\r\n\r\n" not in response:
+                      chunk = await asyncio.wait_for(reader.read(4096), timeout=2.0)
+                      if not chunk:
+                          break
+                      response.extend(chunk)
+                      if len(response) > 65_536:
+                          raise RuntimeError("response header exceeded its test bound")
+                  header, separator, body = bytes(response).partition(b"\r\n\r\n")
+                  if not separator:
+                      raise RuntimeError("response header was truncated")
+                  lines = header.split(b"\r\n")
+                  first_line = lines[0].split()
+                  if len(first_line) < 2 or not first_line[1].isdigit():
+                      raise RuntimeError("response status line was invalid")
+                  headers: dict[bytes, bytes] = {}
+                  for line in lines[1:]:
+                      name, delimiter, value = line.partition(b":")
+                      normalized_name = name.strip().lower()
+                      if (
+                          not delimiter
+                          or not normalized_name
+                          or normalized_name in headers
+                      ):
+                          raise RuntimeError("response headers were invalid")
+                      headers[normalized_name] = value.strip()
+                  content_length = headers.get(b"content-length", b"")
+                  if not content_length.isdigit():
+                      raise RuntimeError("response content length was invalid")
+                  expected_body_bytes = int(content_length)
+                  if expected_body_bytes > 65_536:
+                      raise RuntimeError("response body exceeded its test bound")
+                  while len(body) < expected_body_bytes:
+                      chunk = await asyncio.wait_for(reader.read(4096), timeout=2.0)
+                      if not chunk:
+                          break
+                      body += chunk
+                      if len(body) > expected_body_bytes:
+                          raise RuntimeError("response body exceeded its declared length")
+                  if len(body) != expected_body_bytes:
+                      raise RuntimeError("response body was truncated")
+                  status = int(first_line[1])
+                  problem_code = None
+                  retryable = None
+                  if status in {429, 503}:
+                      try:
+                          problem = json.loads(body)
+                      except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                          raise RuntimeError("problem response was invalid") from exc
+                      if not isinstance(problem, dict) or not isinstance(
+                          problem.get("code"), str
+                      ):
+                          raise RuntimeError("problem response lacked a stable code")
+                      problem_code = problem["code"]
+                      retryable_value = problem.get("retryable")
+                      if retryable_value is not None and type(retryable_value) is not bool:
+                          raise RuntimeError("response retryability was invalid")
+                      retryable = retryable_value
+                  retry_after_bytes = headers.get(b"retry-after")
+                  try:
+                      retry_after = (
+                          None
+                          if retry_after_bytes is None
+                          else retry_after_bytes.decode("ascii")
+                      )
+                  except UnicodeDecodeError as exc:
+                      raise RuntimeError("Retry-After was invalid") from exc
+                  return (
+                      status,
+                      problem_code,
+                      retryable,
+                      retry_after,
+                      (time.perf_counter_ns() - started) / 1_000_000.0,
+                  )
+              finally:
+                  writer.close()
+                  await writer.wait_closed()
+
+
+          async def main() -> dict[str, object]:
+              tasks = [
+                  asyncio.create_task(request("/api/v1/runs?page_size=1"))
+                  for _ in range(SUBMITTED)
+              ]
+              peak, maximum = current_pids()
+              deadline = time.monotonic() + 1.0
+              saw_rejection = False
+              while time.monotonic() < deadline:
+                  peak = max(peak, current_pids()[0])
+                  for task in tasks:
+                      if task.done() and not task.cancelled():
+                          saw_rejection = saw_rejection or task.result()[0] == 429
+                  if saw_rejection and peak >= 26:
+                      break
+                  await asyncio.sleep(0.001)
+              if not saw_rejection or peak < 26 or maximum != 64:
+                  raise RuntimeError("container did not reach the bounded saturation profile")
+
+              (
+                  live_status,
+                  live_code,
+                  live_retryable,
+                  live_retry_after,
+                  live_latency,
+              ) = await request("/health/live")
+              (
+                  ready_status,
+                  ready_code,
+                  ready_retryable,
+                  ready_retry_after,
+                  ready_latency,
+              ) = await request("/health/ready")
+              results = await asyncio.wait_for(asyncio.gather(*tasks), timeout=3.0)
+              peak = max(peak, current_pids()[0])
+              counts = collections.Counter(str(status) for status, *_ in results)
+              problem_codes = collections.Counter(
+                  code for _, code, *_ in results if code is not None
+              )
+              if (
+                  set(counts) != {"429", "503"}
+                  or counts["429"] < 1
+                  or counts["503"] < 1
+                  or set(problem_codes)
+                  - {"evidence_unavailable", "service_saturated"}
+                  or problem_codes["service_saturated"] != counts["429"]
+                  or problem_codes["evidence_unavailable"] != counts["503"]
+                  or any(
+                      retryable is not None or retry_after != "1"
+                      for _, _, retryable, retry_after, _ in results
+                  )
+                  or live_status != 200
+                  or live_code is not None
+                  or live_retryable is not None
+                  or live_retry_after is not None
+                  or ready_status != 503
+                  or ready_code != "registry_busy"
+                  or ready_retryable is not True
+                  or ready_retry_after != "1"
+                  or live_latency > 250.0
+                  or ready_latency > 1_000.0
+                  or peak > 60
+              ):
+                  raise RuntimeError("container saturation or reserved probe contract failed")
+              return {
+                  "data_problem_code_counts": dict(sorted(problem_codes.items())),
+                  "data_status_counts": dict(sorted(counts.items())),
+                  "docker_healthcheck_recovered": False,
+                  "liveness_latency_ms": live_latency,
+                  "liveness_status": live_status,
+                  "pids_headroom": maximum - peak,
+                  "pids_limit": maximum,
+                  "pids_peak": peak,
+                  "readiness_code": ready_code,
+                  "readiness_latency_ms": ready_latency,
+                  "readiness_retry_after_seconds": int(ready_retry_after),
+                  "readiness_retryable": ready_retryable,
+                  "readiness_status": ready_status,
+                  "result": "passed",
+                  "schema_version": 1,
+                  "submitted_requests": SUBMITTED,
+              }
+
+
+          print(json.dumps(asyncio.run(main()), sort_keys=True, separators=(",", ":")))
+          PY
+          chmod 0600 "$EVIDENCE_DIR/runtime-saturation.json"
+          wait "$lock_pid"
+          lock_pid=""
+          lock_container=""
+
+          health_deadline="$((SECONDS + 30))"
+          health_recovered="false"
+          while (( SECONDS < health_deadline )); do
+            read -r health_status health_end health_exit < <(
+              docker container inspect "$container_id" | python -c \
+                "import json,sys; health=json.load(sys.stdin)[0]['State']['Health']; logs=health.get('Log',[]); last=logs[-1] if logs else {}; print(health.get('Status',''), last.get('End',''), last.get('ExitCode',''))"
+            )
+            if [[ "$health_status" == "healthy" && "$health_end" != "$baseline_health_end" && "$health_exit" == "0" ]]; then
+              health_recovered="true"
+              break
+            fi
+            sleep 1
+          done
+          [[ "$health_recovered" == "true" ]]
+
+          python - "$EVIDENCE_DIR/runtime-saturation.json" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          destination = Path(sys.argv[1])
+          document = json.loads(destination.read_text(encoding="utf-8"))
+          document["docker_healthcheck_recovered"] = True
+          temporary = destination.with_suffix(".tmp")
+          temporary.write_text(
+              json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          temporary.chmod(0o600)
+          os.replace(temporary, destination)
+          PY
+
+          python scripts/verify_service_container.py runtime \
+            --container-id "$container_id" \
+            --probe "$EVIDENCE_DIR/runtime-probe.json" \
+            --saturation "$EVIDENCE_DIR/runtime-saturation.json" \
+            --canary-env SERVICE_SECRET_CANARY \
+            --summary "$EVIDENCE_DIR/runtime-summary.json"
+
+          started="$(date +%s)"
+          compose stop --timeout 15 service >/dev/null
+          elapsed="$(( $(date +%s) - started ))"
+          [[ "$elapsed" -le 16 ]]
+          [[ "$(docker inspect --format '{{.State.ExitCode}}' "$container_id")" == 0 ]]
+
+      - name: Export one immutable scanner input without daemon delegation
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan_root="$RUNNER_TEMP/service-scan-input"
+          mkdir -p "$scan_root"
+          chmod 0700 "$scan_root"
+          docker image save --output "$scan_root/service-image.tar" "$SERVICE_IMAGE_A"
+          touch "$scan_root/empty.trivyignore"
+          chmod 0444 "$scan_root/service-image.tar" "$scan_root/empty.trivyignore"
+          archive_bytes="$(stat --format=%s "$scan_root/service-image.tar")"
+          [[ "$archive_bytes" =~ ^[0-9]+$ ]]
+          [[ "$archive_bytes" -le 1342177280 ]]
+          manifest_digest="$(python - "$EVIDENCE_DIR/container-summary.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          document = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          value = document["oci_manifest_digest"]
+          if not isinstance(value, str) or len(value) != 71 or not value.startswith("sha256:"):
+              raise SystemExit(1)
+          print(value)
+          PY
+          )"
+          echo "SCAN_ROOT=$scan_root" >> "$GITHUB_ENV"
+          echo "SERVICE_MANIFEST_DIGEST=$manifest_digest" >> "$GITHUB_ENV"
+          echo "SERVICE_SBOM_IDENTITY=$SERVICE_IMAGE_A@$manifest_digest" >> "$GITHUB_ENV"
+
+      - name: Generate source- and image-bound SPDX 2.3 SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 768m \
+            --cpus 1.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777 \
+            --env SYFT_CHECK_FOR_APP_UPDATE=false \
+            --env SYFT_CACHE_DIR=/tmp/syft \
+            --volume "$SCAN_ROOT:/scan:ro" \
+            "$SYFT_IMAGE" \
+            scan docker-archive:/scan/service-image.tar \
+            --scope all-layers \
+            --select-catalogers dpkg,python \
+            --source-name "$SERVICE_SBOM_IDENTITY" \
+            --source-version "$GITHUB_SHA" \
+            --output spdx-json \
+            > "$EVIDENCE_DIR/service.spdx.json"
+
+      - name: Acquire the pinned vulnerability database without daemon authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/trivy-cache"
+          sudo chown -R 65532:65532 "$RUNNER_TEMP/trivy-cache"
+          docker run --rm \
+            --network bridge \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 64 \
+            --memory 768m \
+            --cpus 1.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777 \
+            --volume "$RUNNER_TEMP/trivy-cache:/cache" \
+            "$TRIVY_IMAGE" \
+            image \
+            --cache-dir /cache \
+            --timeout 10m \
+            --disable-telemetry \
+            --no-progress \
+            --download-db-only
+
+      - name: Scan repository including fixed, unfixed, and suppressed findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 96 \
+            --memory 1g \
+            --cpus 1.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777 \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --volume "$RUNNER_TEMP/trivy-cache:/cache" \
+            --volume "$SCAN_ROOT:/scan:ro" \
+            "$TRIVY_IMAGE" \
+            filesystem \
+            --cache-dir /cache \
+            --timeout 15m \
+            --disable-telemetry \
+            --skip-version-check \
+            --skip-db-update \
+            --skip-java-db-update \
+            --skip-check-update \
+            --skip-vex-repo-update \
+            --offline-scan \
+            --ignorefile /scan/empty.trivyignore \
+            --show-suppressed \
+            --quiet \
+            --scanners vuln,secret,misconfig,license \
+            --license-full \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --format json \
+            /workspace \
+            > "$EVIDENCE_DIR/trivy-repository.json"
+
+      - name: Scan final image and config including fixed, unfixed, and suppressed findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 96 \
+            --memory 1g \
+            --cpus 1.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777 \
+            --volume "$RUNNER_TEMP/trivy-cache:/cache" \
+            --volume "$SCAN_ROOT:/scan:ro" \
+            "$TRIVY_IMAGE" \
+            image \
+            --cache-dir /cache \
+            --timeout 15m \
+            --disable-telemetry \
+            --skip-version-check \
+            --skip-db-update \
+            --skip-java-db-update \
+            --skip-check-update \
+            --skip-vex-repo-update \
+            --offline-scan \
+            --ignorefile /scan/empty.trivyignore \
+            --show-suppressed \
+            --quiet \
+            --input /scan/service-image.tar \
+            --scanners vuln,secret,misconfig \
+            --image-config-scanners misconfig,secret \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --format json \
+            > "$EVIDENCE_DIR/trivy-image.json"
+
+      - name: Scan the locked application dependency boundary for full licenses
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --user 65532:65532 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 96 \
+            --memory 1g \
+            --cpus 1.0 \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=67108864,mode=1777 \
+            --volume "$RUNNER_TEMP/trivy-cache:/cache" \
+            --volume "$SCAN_ROOT:/scan:ro" \
+            "$TRIVY_IMAGE" \
+            image \
+            --cache-dir /cache \
+            --timeout 15m \
+            --disable-telemetry \
+            --skip-version-check \
+            --skip-db-update \
+            --skip-java-db-update \
+            --skip-check-update \
+            --skip-vex-repo-update \
+            --offline-scan \
+            --ignorefile /scan/empty.trivyignore \
+            --show-suppressed \
+            --quiet \
+            --input /scan/service-image.tar \
+            --scanners license \
+            --pkg-types library \
+            --license-full \
+            --skip-dirs /bin \
+            --skip-dirs /etc \
+            --skip-dirs /home \
+            --skip-dirs /lib \
+            --skip-dirs /lib64 \
+            --skip-dirs /root \
+            --skip-dirs /run \
+            --skip-dirs /sbin \
+            --skip-dirs /tmp \
+            --skip-dirs /usr \
+            --skip-dirs /var \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --format json \
+            > "$EVIDENCE_DIR/trivy-image-license.json"
+
+      - name: Fail closed on SBOM and scanner evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/verify_service_container.py scans \
+            --sbom "$EVIDENCE_DIR/service.spdx.json" \
+            --repository-scan "$EVIDENCE_DIR/trivy-repository.json" \
+            --repository-root "$GITHUB_WORKSPACE" \
+            --image-scan "$EVIDENCE_DIR/trivy-image.json" \
+            --image-license-scan "$EVIDENCE_DIR/trivy-image-license.json" \
+            --container-summary "$EVIDENCE_DIR/container-summary.json" \
+            --runtime-summary "$EVIDENCE_DIR/runtime-summary.json" \
+            --benchmark-evidence "$EVIDENCE_DIR/service-canary-evidence.json" \
+            --image-name "$SERVICE_IMAGE_A" \
+            --source-revision "$GITHUB_SHA" \
+            --canary-env SERVICE_SECRET_CANARY \
+            --summary "$EVIDENCE_DIR/security-summary.json"
+
+      # https://github.com/actions/upload-artifact/releases/tag/v7.0.1
+      - name: Upload verified non-publishing supply-chain evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: service-supply-chain-evidence
+          path: ${{ env.EVIDENCE_DIR }}/*.json
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 14
+          compression-level: 9
