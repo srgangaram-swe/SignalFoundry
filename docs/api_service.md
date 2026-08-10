@@ -96,6 +96,11 @@ seconds for graceful shutdown. Do not kill the process during a diagnostic simpl
 integrity or readiness failure; preserve the redacted request ID and inspect local storage under the
 registry runbook.
 
+The hardened container profile documented in the
+[service operations guide](service_operations.md) uses an owner-permissioned Unix-domain socket
+instead of TCP, a read-only root filesystem, and a file-mounted runtime secret. The loopback command
+above remains the explicit workstation CLI profile; it is not the container default.
+
 ## Health and initial verification
 
 Use the numeric loopback listener for operator checks:
@@ -192,7 +197,7 @@ snapshot/keyset pagination:
 - `page_size` defaults to 25 and must be between 1 and 100; it is a requested upper bound, not a
   promise that every response contains that many records;
 - forecast-summary pages contain at most 7 manifests and diagnostics pages at most 1 manifest so
-  every maximum-shape legal page stays below the 1 MiB buffered-response boundary;
+  every maximum-shape legal page stays below the 2 MiB buffered-response boundary;
 - `cursor` is opaque and at most 1,024 characters;
 - `next_cursor: null` marks the end of the snapshot; and
 - no route computes a total count or accepts an offset.
@@ -246,14 +251,18 @@ hex values. A client-supplied `X-Request-ID` is rejected, not trusted.
 | 413 | `request_body_forbidden` | remove the request body and body transport metadata |
 | 422 | `request_validation_failed` | correct the typed query/path value |
 | 429 | `service_saturated` | honor `Retry-After: 1`; reduce local concurrency |
+| 429 | `rate_limited` | honor `Retry-After: 1`; reduce the request rate |
+| 503 | `service_draining` | stop new work and allow bounded shutdown to finish |
+| 503 | `response_limit_exceeded` | narrow the projection; do not raise the ceiling ad hoc |
 | 503 | `evidence_unavailable` | honor `Retry-After: 1`; inspect readiness and storage activity |
 | 503 | `evidence_integrity_failed` | stop consuming evidence; preserve state and investigate |
 | 500 | `internal_error` | record the request ID; inspect sanitized local logs |
 
 Problem details never echo request values, cursor contents, SQL, paths, credentials, manifest
-contents, exceptions, or stack traces. Unexpected-error logs contain only the server request ID and
-exception class. Ordinary Uvicorn access logs are disabled, so query strings are not retained by
-the service.
+contents, exceptions, or stack traces. Unexpected failures produce only the closed
+`internal_error` outcome and allowlisted route/operation attributes; exception classes and request
+IDs do not enter telemetry. Ordinary Uvicorn access logs are disabled, so query strings are not
+retained by the service. Every perimeter problem response closes its connection.
 
 ## Resource and transport bounds
 
@@ -261,14 +270,15 @@ the service.
 | --- | --- |
 | Bind | exactly `127.0.0.1` |
 | Workers / protocol | one / h11; WebSockets disabled |
-| Application concurrency | 32 active requests |
-| Transport concurrency / backlog | 64 / 64 |
+| Application concurrency | 32 globally / 24 data requests; probe headroom reserved |
+| Transport concurrency / backlog | 32 / 64 |
 | Keep-alive / graceful shutdown | 3 seconds / 10 seconds |
-| Headers | 64 entries and 8 KiB total |
+| Admission rate | API 20/s burst 40 / probes and metrics 2/s burst 4 |
+| Headers | 64 entries and 16 KiB total; RFC-token names and visible-ASCII values only |
 | Path / query | 512 ASCII bytes / 4 KiB and at most 32 components |
 | Incomplete h11 event | 16 KiB |
 | Request body | forbidden on every route |
-| Buffered response | 1 MiB |
+| Buffered response / metrics | 2 MiB / 256 KiB and fewer than 600 series |
 | Requested page / cursor | at most 100 records / 1,024 characters |
 | Effective manifest page | forecast 7 / diagnostics 1; continuation preserves the snapshot |
 | Forecast / diagnostics / model-card manifest | 128 KiB / 512 KiB / 96 KiB |
@@ -277,6 +287,10 @@ the service.
 Forwarding headers, transfer encoding, content encoding, `Expect`, noncanonical or hostile `Host`,
 client request IDs, CORS, proxy trust, reload, and WebSockets are not supported. Do not put this
 listener behind a proxy or tunnel; that changes the threat model even if the local bind remains.
+The stricter value grammar accepts space and visible ASCII and rejects HTAB, every other C0 byte,
+DEL, and non-ASCII `obs-text`; this removes parser-dependent whitespace/control ambiguity. The
+decoded path must equal its canonical ASCII wire spelling, so percent-encoded aliases cannot move
+fixed operations onto the larger data-route rate budget.
 
 ## Deterministic OpenAPI evidence
 
@@ -333,9 +347,9 @@ require preservation and investigation, not retry loops.
 ### Requests return 429
 
 Reduce client parallelism and honor the one-second retry instruction. Do not increase server limits
-without measured load evidence, memory accounting, and a reviewed configuration change. Production
-rate/load validation and telemetry belong to
-[#20](https://github.com/srgangaram-swe/Signalattice/issues/20).
+without measured load evidence, memory accounting, and a reviewed configuration change. The
+[bounded service operator guide](service_operations.md) defines measured synthetic load and
+telemetry evidence, candidate SLO semantics, containment, and residual limits.
 
 ### A cursor is rejected
 
@@ -361,8 +375,9 @@ Before each operator session:
 
 Loopback and browser same-origin policy are not authentication. Another process running as the same
 OS user can query this endpoint, and a compromised owner account can attack both service and local
-storage. Remote, multi-user, container, or same-origin console operation requires the superseding
-security and operability work in #20; do not weaken the bind check locally.
+storage. Remote, multi-user, or same-origin console operation requires a superseding authenticated
+transport design. The dedicated local container remains single-owner and socket-bound; do not
+weaken either transport profile locally.
 
 ## Rollback
 

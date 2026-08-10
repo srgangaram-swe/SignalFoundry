@@ -1,6 +1,7 @@
 # ADR 0003 — Local-only, read-only forecast-evidence API
 
-- **Status:** Accepted
+- **Status:** Accepted; operational limits and telemetry policy superseded by
+  [ADR 0004](0004-bounded-service-operability.md)
 - **Date:** 2026-08-09
 - **Work item:** SF-S5-SL-MR2 ([#17](https://github.com/srgangaram-swe/Signalattice/issues/17))
 - **Depends on:** [ADR 0002](0002-durable-local-registry.md)

@@ -57,9 +57,16 @@ flowchart TD
   adapters plus the explicit-bootstrap durable local job/run registry, append-only lifecycle
   events, content-addressed evidence store, retention protocol, and framework-neutral read ports.
 - `quant_platform.service`: strict aggregate evidence manifests, public projections, a bounded
-  read-port protocol, redacted RFC 9457 failures, a raw ASGI security envelope, and the fixed
-  loopback-only Uvicorn assembly. The optional adapter owns no SQL, filesystem path, mutation,
-  broker, order, or live-trading authority.
+  read-port protocol, redacted RFC 9457 failures, a raw ASGI security envelope, fixed-cardinality
+  metrics/local telemetry, a pinned h11 parser/admission adapter, and the fixed loopback-only
+  Uvicorn assembly. Uvicorn is configured at 32; the adapter corrects its inclusive decision and
+  emits structured transport saturation, while the outer controller independently mirrors the
+  global 32 ceiling and owns the 24-data split. The Unix profile passes a pre-bound, verified
+  mode-0600 descriptor so Uvicorn
+  cannot widen socket permissions. The optional adapter owns no SQL, filesystem mutation, broker,
+  order, or live-trading authority. The dedicated image uses the narrow stdlib
+  `python -m quant_platform.service` entry point plus the locked `service-runtime` group; lazy
+  tracking-package exports keep the numerical research dependency graph outside that process.
 - `quant_platform.reporting`: diagnostic figures and self-contained run reports.
 - `quant_platform.cli`: Typer commands for individual stages and full runs.
 
@@ -129,6 +136,9 @@ Typical outputs are:
 The durable registry and CAS live under a separate ignored, owner-controlled local state root.
 Their database, lifecycle, publication, recovery, and rollback contracts are documented in the
 [registry operator guide](run_registry.md) and [ADR 0002](adr/0002-durable-local-registry.md).
+The additive read-only service is qualified only inside the fixed local operating envelope in the
+[service operations guide](service_operations.md), [service threat model](threat_model.md), and
+[ADR 0004](adr/0004-bounded-service-operability.md).
 
 Data and model artifacts are ignored because public-vendor redistribution and stale binary
 outputs are poor reproducibility mechanisms. The repository commits only a documented

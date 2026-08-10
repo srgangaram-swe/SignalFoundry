@@ -92,6 +92,26 @@ SATURATED: Final = ProblemSpec(
     "The bounded local service has reached its concurrency limit.",
     1,
 )
+RATE_LIMITED: Final = ProblemSpec(
+    429,
+    "rate_limited",
+    "Request rate exceeded",
+    "The fixed local request budget is temporarily exhausted.",
+    1,
+)
+SERVICE_DRAINING: Final = ProblemSpec(
+    503,
+    "service_draining",
+    "Service draining",
+    "The local service is shutting down and is not accepting new work.",
+    1,
+)
+RESPONSE_LIMIT_EXCEEDED: Final = ProblemSpec(
+    503,
+    "response_limit_exceeded",
+    "Response limit exceeded",
+    "The projected response exceeded the local service byte ceiling.",
+)
 UNAVAILABLE: Final = ProblemSpec(
     503,
     "evidence_unavailable",

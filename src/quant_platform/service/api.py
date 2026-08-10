@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Annotated, Protocol, cast
 
 from fastapi import FastAPI, Query, Request
@@ -11,6 +13,10 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.responses import Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from quant_platform.service.admission import (
+    AdmissionController,
+    AdmissionLimits,
+)
 from quant_platform.service.manifests import (
     DiagnosticsManifest,
     ForecastSummaryManifest,
@@ -19,6 +25,7 @@ from quant_platform.service.manifests import (
     ModelCardManifest,
     parse_evidence_manifest,
 )
+from quant_platform.service.metrics import ServiceMetrics
 from quant_platform.service.middleware import SecurityBoundaryMiddleware
 from quant_platform.service.models import (
     DIAGNOSTICS_RESPONSE_PAGE_LIMIT,
@@ -50,6 +57,7 @@ from quant_platform.service.problems import (
     build_problem,
     problem_for_exception,
 )
+from quant_platform.service.telemetry import ServiceTelemetry
 from quant_platform.tracking.contracts import (
     ArtifactCursor,
     CapacityError,
@@ -85,11 +93,11 @@ _PROBLEM_DESCRIPTIONS = {
     405: "Only GET is supported.",
     413: "Request bodies are forbidden.",
     422: "A typed query or path value failed validation.",
-    429: "The bounded application concurrency limit was reached.",
+    429: "A bounded rate or concurrency admission limit was reached.",
     500: "An unexpected failure was redacted at the service boundary.",
-    503: "Verified evidence is busy, unavailable, or failed integrity verification.",
+    503: "The service is draining or a verified evidence or response boundary is unavailable.",
 }
-_COMMON_PROBLEM_STATUSES = frozenset({400, 405, 413, 429, 500})
+_COMMON_PROBLEM_STATUSES = frozenset({400, 405, 413, 429, 500, 503})
 _VALIDATED_PATHS = frozenset(
     {
         "/api/v1/runs",
@@ -305,7 +313,10 @@ def create_app(
     ports: EvidenceReadPort,
     *,
     max_concurrency: int = 32,
+    max_data_concurrency: int | None = None,
     allowed_port: int | None = None,
+    admission: AdmissionController | None = None,
+    telemetry: ServiceTelemetry | None = None,
 ) -> FastAPI:
     """Create a read-only app over already-initialized injected storage ports.
 
@@ -326,6 +337,35 @@ def create_app(
         )
     ):
         raise TypeError("ports must implement the bounded evidence read contract")
+    resolved_data_concurrency = (
+        min(24, max_concurrency) if max_data_concurrency is None else max_data_concurrency
+    )
+    resolved_admission = (
+        AdmissionController(
+            AdmissionLimits(
+                global_concurrency=max_concurrency,
+                data_concurrency=resolved_data_concurrency,
+            )
+        )
+        if admission is None
+        else admission
+    )
+    if type(resolved_admission) is not AdmissionController:
+        raise TypeError("admission must be an AdmissionController")
+    resolved_telemetry = ServiceTelemetry(ServiceMetrics()) if telemetry is None else telemetry
+    if type(resolved_telemetry) is not ServiceTelemetry:
+        raise TypeError("telemetry must be a ServiceTelemetry")
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        await resolved_telemetry.start()
+        try:
+            yield
+        finally:
+            resolved_admission.begin_shutdown()
+            resolved_telemetry.begin_draining()
+            await resolved_telemetry.stop()
+
     app = FastAPI(
         title="Signalattice Read-Only Evidence API",
         summary="Local aggregate forecast and governance evidence",
@@ -339,6 +379,7 @@ def create_app(
         openapi_url=None,
         servers=[],
         separate_input_output_schemas=False,
+        lifespan=lifespan,
     )
 
     @app.exception_handler(RequestValidationError)
@@ -416,6 +457,19 @@ def create_app(
             status_code=503,
             media_type="application/json",
             headers=headers,
+        )
+
+    @app.get(
+        "/internal/metrics",
+        operation_id="getInternalMetrics",
+        include_in_schema=False,
+        response_class=Response,
+    )
+    def internal_metrics() -> Response:
+        snapshot = resolved_telemetry.metrics.snapshot()
+        return Response(
+            content=snapshot.body,
+            headers={"content-type": snapshot.content_type},
         )
 
     @app.get(
@@ -675,7 +729,10 @@ def create_app(
     app.add_middleware(
         SecurityBoundaryMiddleware,
         max_concurrency=max_concurrency,
+        max_data_concurrency=resolved_data_concurrency,
         allowed_port=allowed_port,
+        admission=resolved_admission,
+        telemetry=resolved_telemetry,
     )
     return app
 
@@ -686,6 +743,7 @@ def assert_read_only_route_inventory(app: FastAPI) -> None:
     expected = {
         "/health/live",
         "/health/ready",
+        "/internal/metrics",
         "/api/v1/runs",
         "/api/v1/runs/{run_id}",
         "/api/v1/runs/{run_id}/forecast-summaries",
