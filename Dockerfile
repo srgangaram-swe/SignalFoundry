@@ -153,7 +153,11 @@ COPY --chown=0:0 --chmod=0444 \
 #
 # Tradeoff: syft catalogs distributions from METADATA and RECORD, which remain,
 # but any vendored component detail these files carried is not in our SBOM.
+# The runtime-base stage strips setuid/setgid across the base filesystem, but
+# that runs before this stage copies /opt/venv from the builder, so the venv
+# never passed through it. Strip again here, after every COPY.
 RUN --network=none find /opt/venv -type d -path "*.dist-info/sboms" -exec rm -rf {} + \
+    && find /opt/venv /app/src -type f -perm /6000 -exec chmod a-s {} + \
     && chmod -R go-w /opt/venv /app/src
 
 USER 10001:10001

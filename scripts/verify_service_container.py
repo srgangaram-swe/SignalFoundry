@@ -1406,7 +1406,12 @@ def _scan_exported_filesystem(image: str, *, canary: bytes) -> FilesystemSnapsho
                 if member.isdev() or member.isfifo():
                     raise VerificationError("container filesystem contains a special file")
                 if member.mode & 0o6000:
-                    raise VerificationError("container filesystem contains a privileged mode bit")
+                    bits = "setuid" if member.mode & 0o4000 else ""
+                    bits = f"{bits}+setgid" if member.mode & 0o2000 and bits else (bits or "setgid")
+                    raise VerificationError(
+                        f"container filesystem contains a privileged mode bit: "
+                        f"{member.name} has {bits} (mode {member.mode:04o})"
+                    )
                 if any(
                     "security.capability" in f"{key}={value}".lower()
                     for key, value in member.pax_headers.items()
