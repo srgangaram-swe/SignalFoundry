@@ -84,12 +84,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # provenance=false matches the CLI and test builds. A max provenance
+          # attestation makes buildx emit an image index, which the docker
+          # exporter cannot --load; and its per-build startedOn/finishedOn
+          # timestamps would land in the index digest, making the A/B
+          # reproducibility comparison unable to pass by construction. Nothing
+          # consumes the attestation: verify_service_container.py reads build
+          # metadata digests and the benchmark's own provenance block.
           docker buildx build \
             --platform "$DECLARED_PLATFORM" \
             --target service \
             --pull \
             --no-cache \
-            --provenance=mode=max \
+            --provenance=false \
             --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
             --build-arg "VCS_REF=$GITHUB_SHA" \
             --metadata-file "$EVIDENCE_DIR/build-a-metadata.json" \
@@ -101,12 +108,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # provenance=false matches the CLI and test builds. A max provenance
+          # attestation makes buildx emit an image index, which the docker
+          # exporter cannot --load; and its per-build startedOn/finishedOn
+          # timestamps would land in the index digest, making the A/B
+          # reproducibility comparison unable to pass by construction. Nothing
+          # consumes the attestation: verify_service_container.py reads build
+          # metadata digests and the benchmark's own provenance block.
           docker buildx build \
             --platform "$DECLARED_PLATFORM" \
             --target service \
             --pull \
             --no-cache \
-            --provenance=mode=max \
+            --provenance=false \
             --build-arg "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" \
             --build-arg "VCS_REF=$GITHUB_SHA" \
             --metadata-file "$EVIDENCE_DIR/build-b-metadata.json" \
