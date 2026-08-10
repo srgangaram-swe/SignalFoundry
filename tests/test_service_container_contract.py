@@ -926,7 +926,13 @@ def test_workflow_builds_two_clean_service_images_and_no_artifact_is_published()
     workflow = _text(".github/workflows/service-security.yml")
     assert workflow.count("--target service") == 2
     assert workflow.count("--metadata-file") == 2
-    assert workflow.count("--provenance=mode=max") == 2
+    # The A/B reproducibility builds must carry no provenance attestation.
+    # A max attestation makes buildx emit an image index that the docker
+    # exporter cannot --load, and its per-build startedOn/finishedOn timestamps
+    # would enter the index digest -- so two clean builds could never produce
+    # matching digests and the comparison below could never pass.
+    assert workflow.count("--provenance=mode=max") == 0
+    assert workflow.count("--provenance=false") == 4
     assert workflow.count("--no-cache") == 4
     assert workflow.count("signalattice-service:clean-") == 2
     assert "SOURCE_DATE_EPOCH" in workflow
