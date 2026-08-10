@@ -137,6 +137,15 @@ COPY --chown=0:0 --chmod=0444 \
     src/quant_platform/tracking/retention.py \
     /app/src/quant_platform/tracking/
 
+# The venv is copied wholesale from the builder, so it carries whatever modes
+# uv produced there. The application sources are pinned to 0444 at COPY time,
+# but a directory tree cannot be, so strip group and other write bits here.
+# Execute bits are preserved, which the interpreter and console scripts need.
+# The container verifier rejects any file under /opt/venv or /app/src whose
+# mode intersects 0o022; a writable path inside a read-only runtime is a
+# tampering surface, not a convenience.
+RUN --network=none chmod -R go-w /opt/venv /app/src
+
 USER 10001:10001
 
 # This probe crosses the real Unix socket and readiness route without adding a
