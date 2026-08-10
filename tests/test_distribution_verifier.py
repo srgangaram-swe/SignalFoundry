@@ -51,12 +51,31 @@ def _gzip_member(
     return header + bytes(optional) + compressed + trailer
 
 
-def _wheel_files() -> dict[str, bytes]:
+def _service_metadata(
+    *,
+    provides_service: bool = True,
+    service_dependencies: tuple[str, ...] = ("fastapi", "starlette", "uvicorn"),
+    unconditional_dependencies: tuple[str, ...] = (),
+) -> bytes:
+    lines = [
+        "Metadata-Version: 2.4",
+        "Name: signalattice",
+        "Version: 0.2.1",
+        "Provides-Extra: dev",
+    ]
+    if provides_service:
+        lines.append("Provides-Extra: service")
+    lines.extend(f'Requires-Dist: {name}>=1; extra == "service"' for name in service_dependencies)
+    lines.extend(f"Requires-Dist: {name}>=1" for name in unconditional_dependencies)
+    return ("\n".join(lines) + "\n").encode("ascii")
+
+
+def _wheel_files(*, metadata: bytes | None = None) -> dict[str, bytes]:
     files = {
         name: (b"" if name.endswith("py.typed") else b"# bounded package fixture\n")
         for name in verifier._REQUIRED_WHEEL_FILES
     }
-    files[f"{_DIST_INFO}/METADATA"] = b"Metadata-Version: 2.4\nName: signalattice\nVersion: 0.2.1\n"
+    files[f"{_DIST_INFO}/METADATA"] = _service_metadata() if metadata is None else metadata
     files[f"{_DIST_INFO}/WHEEL"] = b"Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n"
     files[f"{_DIST_INFO}/entry_points.txt"] = (
         b"[console_scripts]\nsignalattice = quant_platform.cli:main\n"
@@ -69,12 +88,13 @@ def _wheel_files() -> dict[str, bytes]:
 def _write_wheel(
     path: Path,
     *,
+    metadata: bytes | None = None,
     record_defect: str | None = None,
     recorded_extra_entries: tuple[tuple[str, bytes], ...] = (),
     extra_entries: tuple[tuple[str, bytes], ...] = (),
     explicit_directories: tuple[str, ...] = (),
 ) -> None:
-    files = _wheel_files()
+    files = _wheel_files(metadata=metadata)
     for name, payload in recorded_extra_entries:
         if name in files:
             raise AssertionError("recorded wheel fixture entries must be unique")
@@ -234,6 +254,41 @@ def test_valid_minimal_wheel_and_sdist_satisfy_the_contract(tmp_path: Path) -> N
 
     verifier.verify_wheel(wheel)
     verifier.verify_sdist(sdist)
+
+
+@pytest.mark.parametrize(
+    ("metadata", "message"),
+    [
+        (b"\xff", "core metadata is malformed"),
+        (_service_metadata(provides_service=False), "exactly one service extra"),
+        (
+            _service_metadata(unconditional_dependencies=("fastapi",)),
+            "not isolated behind one optional extra",
+        ),
+        (
+            _service_metadata(service_dependencies=("fastapi", "starlette")),
+            "omits a required framework dependency",
+        ),
+        (
+            _service_metadata(service_dependencies=("fastapi", "starlette", "uvicorn", "httpx")),
+            "outside its framework allowlist",
+        ),
+        (
+            _service_metadata(service_dependencies=("fastapi", "starlette", "uvicorn", "fastapi")),
+            "duplicate dependency",
+        ),
+    ],
+)
+def test_wheel_service_frameworks_are_confined_to_the_exact_optional_extra(
+    tmp_path: Path,
+    metadata: bytes,
+    message: str,
+) -> None:
+    wheel = tmp_path / "service-boundary.whl"
+    _write_wheel(wheel, metadata=metadata)
+
+    with pytest.raises(verifier.DistributionContractError, match=message):
+        verifier.verify_wheel(wheel)
 
 
 @pytest.mark.parametrize(

@@ -99,6 +99,12 @@ class IntegrityError(RegistryError):
     code = "integrity_error"
 
 
+class RegistryAuthorityMismatchError(IntegrityError):
+    """The supplied process secret does not authenticate this registry."""
+
+    code = "registry_authority_mismatch"
+
+
 class RetentionPlanAuthenticationError(IntegrityError):
     """A retention plan HMAC is invalid for the bound registry/CAS authority."""
 

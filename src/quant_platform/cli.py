@@ -63,6 +63,69 @@ def version() -> None:
     typer.echo(f"signalattice {__version__}")
 
 
+@app.command("serve-api")
+def serve_api(
+    registry_db: Path = typer.Option(
+        ...,
+        "--registry-db",
+        help="Existing durable registry SQLite file; never created or migrated.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    cas_root: Path = typer.Option(
+        ...,
+        "--cas-root",
+        help="Existing private content-addressed artifact-store root.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    port: int = typer.Option(
+        8765,
+        "--port",
+        min=1024,
+        max=65_535,
+        help="Loopback TCP port (the bind host is fixed to 127.0.0.1).",
+    ),
+    keychain_service: str = typer.Option(
+        "com.signal-foundry.signalattice-registry",
+        "--keychain-service",
+        help="Public macOS Keychain service label for the registry HMAC credential.",
+    ),
+) -> None:
+    """Serve verified aggregate evidence through the local read-only API."""
+
+    try:
+        from quant_platform.service.server import (
+            ServerConfig,
+            ServiceStartupError,
+            serve_existing_evidence,
+        )
+    except ModuleNotFoundError as exc:
+        if exc.name not in {"fastapi", "starlette", "uvicorn"}:
+            raise
+        raise typer.BadParameter(
+            "The local API requires the optional service dependencies; install "
+            "with `pip install 'signalattice[service]'`."
+        ) from None
+    try:
+        serve_existing_evidence(
+            registry_db,
+            cas_root,
+            keychain_service=keychain_service,
+            config=ServerConfig(port=port),
+        )
+    except ServiceStartupError as exc:
+        # ServiceStartupError messages are deliberately stable and contain no
+        # paths, credentials, SQL diagnostics, or underlying exception text.
+        raise typer.BadParameter(str(exc)) from None
+
+
 @app.command("ingest-data")
 def ingest_data(
     config: str = ConfigOpt, log_level: str | None = LogLevelOpt, force: bool = ForceOpt

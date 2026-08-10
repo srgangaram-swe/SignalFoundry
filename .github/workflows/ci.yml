@@ -179,6 +179,18 @@ jobs:
           cd /tmp/signalattice-sdist-smoke
           /tmp/signalattice-sdist/bin/python -I "$GITHUB_WORKSPACE/scripts/verify_distributions.py" \
             --installed-prefix /tmp/signalattice-sdist
+      - name: Install and inspect the optional service wheel
+        run: |
+          python -m venv /tmp/signalattice-service-wheel
+          /tmp/signalattice-service-wheel/bin/python -m pip install --upgrade pip
+          /tmp/signalattice-service-wheel/bin/python -m pip install \
+            "signalattice[service] @ file://${GITHUB_WORKSPACE}/dist/signalattice-0.2.1-py3-none-any.whl"
+          /tmp/signalattice-service-wheel/bin/python -m pip check
+          mkdir -p /tmp/signalattice-service-wheel-smoke
+          cd /tmp/signalattice-service-wheel-smoke
+          /tmp/signalattice-service-wheel/bin/python -I \
+            "$GITHUB_WORKSPACE/scripts/verify_distributions.py" \
+            --service-prefix /tmp/signalattice-service-wheel
       - name: Upload distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

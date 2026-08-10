@@ -16,6 +16,7 @@ rather than being promoted to terminal evidence.
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import hmac
 import math
@@ -27,9 +28,11 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Final, cast
+from typing import Final, Literal, cast
 
 from quant_platform.tracking.cas import (
+    ArtifactBoundaryError,
+    ArtifactIntegrityError,
     ArtifactStore,
     ArtifactStoreError,
     PublishedArtifact,
@@ -44,6 +47,7 @@ from quant_platform.tracking.contracts import (
     InvalidCursorError,
     NotFoundError,
     Page,
+    RegistryAuthorityMismatchError,
     RegistryError,
     RegistryReadiness,
     RunCursor,
@@ -98,6 +102,56 @@ class RunProvenance(StrEnum):
 
     REGISTRY_VERIFIED = "registry/verified"
     LEGACY_UNVERIFIED = "legacy/unverified"
+
+
+class EvidenceReadinessCode(StrEnum):
+    """Closed, redacted outcome taxonomy for the complete evidence boundary."""
+
+    READY = "ready"
+    REGISTRY_MISSING = "registry_missing"
+    REGISTRY_BUSY = "registry_busy"
+    REGISTRY_AUTHORITY_MISMATCH = "registry_authority_mismatch"
+    REGISTRY_INTEGRITY_FAILED = "registry_integrity_failed"
+    REGISTRY_NOT_READY = "registry_not_ready"
+    CAS_UNBOUND = "cas_unbound"
+    CAS_MISSING = "cas_missing"
+    CAS_NOT_INITIALIZED = "cas_not_initialized"
+    CAS_IDENTITY_MISMATCH = "cas_identity_mismatch"
+    CAS_INTEGRITY_FAILED = "cas_integrity_failed"
+    CAS_UNAVAILABLE = "cas_unavailable"
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceReadiness:
+    """Path-, secret-, and exception-free combined registry/CAS verdict."""
+
+    ready: bool
+    code: EvidenceReadinessCode
+    schema_version: int | None
+    journal_mode: Literal["wal", "delete"] | None
+
+    def __post_init__(self) -> None:
+        if type(self.ready) is not bool:
+            raise ValidationError("ready must be a boolean")
+        if type(self.code) is not EvidenceReadinessCode:
+            raise ValidationError("code must be an EvidenceReadinessCode")
+        if self.ready != (self.code is EvidenceReadinessCode.READY):
+            raise ValidationError("readiness boolean and code disagree")
+        if self.schema_version is not None and (
+            type(self.schema_version) is not int or not 0 <= self.schema_version <= 2**31 - 1
+        ):
+            raise ValidationError("schema_version is outside the supported range")
+        if self.journal_mode is not None and self.journal_mode not in {"wal", "delete"}:
+            raise ValidationError("journal_mode is unknown")
+
+    @property
+    def retryable(self) -> bool:
+        """Return whether an unchanged request may succeed after a bounded delay."""
+
+        return self.code in {
+            EvidenceReadinessCode.REGISTRY_BUSY,
+            EvidenceReadinessCode.CAS_UNAVAILABLE,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,6 +223,19 @@ class ArtifactPageRequest:
             raise ValidationError("page_size must be in [1, 1000]")
         if self.cursor is not None and type(self.cursor) is not ArtifactCursor:
             raise InvalidCursorError("artifact cursor has the wrong contract type")
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactQuery:
+    """Closed exact-role filter authenticated into artifact page cursors."""
+
+    role: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.role is not None and (
+            type(self.role) is not str or _ARTIFACT_ROLE.fullmatch(self.role) is None
+        ):
+            raise ValidationError("artifact role must be a path-free bounded identifier")
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,6 +357,90 @@ class RegistryReadPorts:
         """Inspect an existing database without creating or migrating any state."""
 
         return self._registry.probe_readiness()
+
+    def probe_evidence_readiness(self) -> EvidenceReadiness:
+        """Verify the existing registry, CAS, and immutable identity binding.
+
+        The probe invokes no initializer, migration, repair, write connection,
+        filesystem creation, or artifact traversal.  Failure details are mapped
+        to a closed taxonomy so paths, secrets, SQLite diagnostics, and
+        filesystem exception text cannot cross a health boundary.
+        """
+
+        registry_readiness = self._registry.probe_readiness()
+        if not registry_readiness.ready:
+            return self._registry_not_ready_verdict(registry_readiness)
+
+        try:
+            bound_store_id = self._registry.artifact_store_id
+        except RegistryError as exc:
+            return self._registry_error_verdict(
+                exc.code,
+                registry_readiness=registry_readiness,
+            )
+        if bound_store_id is None:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_UNBOUND,
+                registry_readiness=registry_readiness,
+            )
+
+        try:
+            self._artifact_store.root.lstat()
+        except FileNotFoundError:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_MISSING,
+                registry_readiness=registry_readiness,
+            )
+        except OSError:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_INTEGRITY_FAILED,
+                registry_readiness=registry_readiness,
+            )
+
+        try:
+            # Reading the cached identity first distinguishes a process that
+            # never initialized its adapter from corruption discovered while
+            # descriptor-verifying a previously initialized store.
+            cached_store_id = self._artifact_store.store_id
+        except ArtifactBoundaryError:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_NOT_INITIALIZED,
+                registry_readiness=registry_readiness,
+            )
+
+        try:
+            observed_store_id = self._artifact_store.verify_identity()
+        except ArtifactIntegrityError:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_INTEGRITY_FAILED,
+                registry_readiness=registry_readiness,
+            )
+        except ArtifactBoundaryError as exc:
+            code = (
+                EvidenceReadinessCode.CAS_MISSING
+                if exc.errno_code == errno.ENOENT
+                else EvidenceReadinessCode.CAS_INTEGRITY_FAILED
+            )
+            return self._evidence_verdict(code, registry_readiness=registry_readiness)
+        except ArtifactStoreError:
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_UNAVAILABLE,
+                registry_readiness=registry_readiness,
+            )
+        if not hmac.compare_digest(cached_store_id, observed_store_id):
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_INTEGRITY_FAILED,
+                registry_readiness=registry_readiness,
+            )
+        if not hmac.compare_digest(bound_store_id, observed_store_id):
+            return self._evidence_verdict(
+                EvidenceReadinessCode.CAS_IDENTITY_MISMATCH,
+                registry_readiness=registry_readiness,
+            )
+        return self._evidence_verdict(
+            EvidenceReadinessCode.READY,
+            registry_readiness=registry_readiness,
+        )
 
     def get_run(self, run_id: str) -> RunReadModel:
         """Return one safe run projection, rejecting ambiguous source collisions."""
@@ -449,14 +600,20 @@ class RegistryReadPorts:
         self,
         run_id: str,
         page: ArtifactPageRequest | None = None,
+        *,
+        query: ArtifactQuery | None = None,
     ) -> Page[RunArtifactView, ArtifactCursor]:
-        """List immutable path-free links under a run-bound snapshot cursor."""
+        """List path-free links under a run-, role-, and snapshot-bound cursor."""
 
         require_identifier(run_id, "run_id")
         if page is None:
             page = ArtifactPageRequest()
+        if query is None:
+            query = ArtifactQuery()
         if type(page) is not ArtifactPageRequest:
             raise ValidationError("page must be an ArtifactPageRequest")
+        if type(query) is not ArtifactQuery:
+            raise ValidationError("query must be an ArtifactQuery")
         self._validate_page_size(page.page_size)
 
         with self._reader() as connection:
@@ -465,6 +622,10 @@ class RegistryReadPorts:
             ).fetchone()
             if registry_exists is None:
                 if self._get_legacy_row(connection, run_id) is not None:
+                    if page.cursor is not None:
+                        raise InvalidCursorError(
+                            "legacy runs cannot continue a verified artifact cursor"
+                        )
                     return Page((), None)
                 raise NotFoundError("run does not exist")
             if page.cursor is None:
@@ -490,15 +651,27 @@ class RegistryReadPorts:
                     field_name="artifact-link sequence",
                     maximum=2**63 - 1,
                 )
-                snapshot, after, cursor_run_id = self._registry.cursor_codec.decode_artifact(
-                    page.cursor
-                )
+                (
+                    snapshot,
+                    after,
+                    cursor_run_id,
+                    cursor_role,
+                ) = self._registry.cursor_codec.decode_artifact_query(page.cursor)
                 if cursor_run_id != run_id:
                     raise InvalidCursorError(
                         "artifact cursor run filter does not match this request"
                     )
+                if cursor_role != query.role:
+                    raise InvalidCursorError(
+                        "artifact cursor role filter does not match this request"
+                    )
                 if current_maximum < snapshot:
                     raise InvalidCursorError("artifact cursor snapshot source regressed")
+            role_clause = "" if query.role is None else " AND l.role = ?"
+            parameters: list[object] = [run_id, after, snapshot]
+            if query.role is not None:
+                parameters.append(query.role)
+            parameters.append(page.page_size + 1)
             rows = connection.execute(
                 """
                 SELECT l.sequence, l.role, l.linked_at,
@@ -507,16 +680,14 @@ class RegistryReadPorts:
                 FROM sl_registry_run_artifacts AS l
                 LEFT JOIN sl_registry_artifacts AS a ON a.digest = l.artifact_digest
                 WHERE l.run_id = ? AND l.sequence > ? AND l.sequence <= ?
-                ORDER BY l.sequence
-                LIMIT ?
-                """,
-                (run_id, after, snapshot, page.page_size + 1),
+                """ + role_clause + " ORDER BY l.sequence LIMIT ?",
+                parameters,
             ).fetchall()
 
         items = tuple(self._run_artifact(row) for row in rows[: page.page_size])
         next_cursor = None
         if len(rows) > page.page_size:
-            next_cursor = self._registry.cursor_codec.encode_artifact(
+            next_cursor = self._registry.cursor_codec.encode_artifact_query(
                 snapshot,
                 require_stored_int(
                     rows[page.page_size - 1]["sequence"],
@@ -525,8 +696,58 @@ class RegistryReadPorts:
                     2**63 - 1,
                 ),
                 run_id,
+                query.role,
             )
         return Page(items, next_cursor)
+
+    @staticmethod
+    def _evidence_verdict(
+        code: EvidenceReadinessCode,
+        *,
+        registry_readiness: RegistryReadiness,
+    ) -> EvidenceReadiness:
+        return EvidenceReadiness(
+            ready=code is EvidenceReadinessCode.READY,
+            code=code,
+            schema_version=registry_readiness.schema_version,
+            journal_mode=cast(
+                Literal["wal", "delete"] | None,
+                registry_readiness.journal_mode,
+            ),
+        )
+
+    @classmethod
+    def _registry_not_ready_verdict(
+        cls,
+        readiness: RegistryReadiness,
+    ) -> EvidenceReadiness:
+        reason = readiness.reason
+        if reason == "registry database does not exist":
+            code = EvidenceReadinessCode.REGISTRY_MISSING
+        elif reason == BusyError.code:
+            code = EvidenceReadinessCode.REGISTRY_BUSY
+        elif reason == RegistryAuthorityMismatchError.code:
+            code = EvidenceReadinessCode.REGISTRY_AUTHORITY_MISMATCH
+        elif reason == IntegrityError.code:
+            code = EvidenceReadinessCode.REGISTRY_INTEGRITY_FAILED
+        else:
+            code = EvidenceReadinessCode.REGISTRY_NOT_READY
+        return cls._evidence_verdict(code, registry_readiness=readiness)
+
+    @classmethod
+    def _registry_error_verdict(
+        cls,
+        error_code: str,
+        *,
+        registry_readiness: RegistryReadiness,
+    ) -> EvidenceReadiness:
+        if error_code == BusyError.code:
+            code = EvidenceReadinessCode.REGISTRY_BUSY
+        elif error_code == RegistryAuthorityMismatchError.code:
+            code = EvidenceReadinessCode.REGISTRY_AUTHORITY_MISMATCH
+        else:
+            code = EvidenceReadinessCode.REGISTRY_INTEGRITY_FAILED
+        return cls._evidence_verdict(code, registry_readiness=registry_readiness)
 
     def read_verified_manifest(
         self,
@@ -556,7 +777,7 @@ class RegistryReadPorts:
         if metadata.media_type != expected_media_type:
             raise IntegrityError("artifact media type does not match the requested manifest type")
         if metadata.byte_size > max_bytes:
-            raise ValidationError("artifact exceeds the caller-declared manifest byte limit")
+            raise IntegrityError("stored artifact exceeds its authorized manifest byte limit")
         try:
             bound_store_id = self._registry.artifact_store_id
             if bound_store_id is None:

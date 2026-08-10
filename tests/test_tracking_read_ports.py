@@ -24,6 +24,7 @@ from quant_platform.tracking.contracts import (
     InvalidCursorError,
     NotFoundError,
     RegistryLimits,
+    RegistryReadiness,
     RunCursor,
     RunSnapshot,
     RunStatus,
@@ -33,7 +34,9 @@ from quant_platform.tracking.contracts import (
 )
 from quant_platform.tracking.read_ports import (
     ArtifactPageRequest,
+    ArtifactQuery,
     ArtifactView,
+    EvidenceReadinessCode,
     LegacyRunSnapshot,
     ReadPortLimits,
     ReadTimeoutError,
@@ -210,9 +213,14 @@ def test_probe_is_read_only_and_never_bootstraps_missing_state(tmp_path: Path) -
     ports = RegistryReadPorts(registry, ArtifactStore(cas_root))
 
     readiness = ports.probe_readiness()
+    evidence_readiness = ports.probe_evidence_readiness()
 
     assert not readiness.ready
     assert readiness.reason == "registry database does not exist"
+    assert evidence_readiness.code is EvidenceReadinessCode.REGISTRY_MISSING
+    assert not evidence_readiness.ready
+    assert not evidence_readiness.retryable
+    assert str(root) not in repr(evidence_readiness)
     assert not database.exists()
     assert not database.parent.exists()
     assert not cas_root.exists()
@@ -306,6 +314,12 @@ def test_real_registry_and_cas_round_trip_is_typed_frozen_and_path_free(
     with pytest.raises(FrozenInstanceError):
         metadata.byte_size = 0  # type: ignore[misc]
     assert ports.probe_readiness().ready
+    evidence_readiness = ports.probe_evidence_readiness()
+    assert evidence_readiness.ready
+    assert evidence_readiness.code is EvidenceReadinessCode.READY
+    assert evidence_readiness.schema_version is not None
+    assert evidence_readiness.journal_mode == "wal"
+    assert not evidence_readiness.retryable
 
 
 def test_every_database_read_rejects_a_registry_secret_mismatch(
@@ -334,6 +348,9 @@ def test_every_database_read_rejects_a_registry_secret_mismatch(
     ports = RegistryReadPorts(wrong_registry, store)
 
     assert not ports.probe_readiness().ready
+    assert (
+        ports.probe_evidence_readiness().code is EvidenceReadinessCode.REGISTRY_AUTHORITY_MISMATCH
+    )
     operations = (
         lambda: ports.get_run("secret-bound-run"),
         ports.list_runs,
@@ -726,6 +743,150 @@ def test_artifact_pagination_is_run_bound_tamper_evident_and_snapshot_stable(
         )
 
 
+def test_artifact_pagination_cursor_binds_exact_role_filter_and_snapshot(
+    system: tuple[RunRegistry, ArtifactStore, RegistryReadPorts],
+    tmp_path: Path,
+) -> None:
+    registry, store, ports = system
+    published = tuple(
+        _publish(
+            registry,
+            store,
+            tmp_path.resolve(),
+            name=f"role-bound-{index}.json",
+            payload=f'{{"index":{index}}}'.encode(),
+        )
+        for index in range(6)
+    )
+    forecast_role = "forecast-summary"
+    _complete_run(
+        registry,
+        "role-filtered-run",
+        offset=0,
+        artifact_links=tuple(
+            ArtifactLink(forecast_role, artifact.digest) for artifact in published[:4]
+        )
+        + (ArtifactLink("diagnostic", published[4].digest),),
+    )
+    _complete_run(registry, "other-role-run", offset=1)
+
+    first = ports.list_run_artifacts(
+        "role-filtered-run",
+        ArtifactPageRequest(page_size=2),
+        query=ArtifactQuery(role=forecast_role),
+    )
+    assert len(first.items) == 2
+    assert first.next_cursor is not None
+    assert {item.role for item in first.items} == {forecast_role}
+
+    with closing(sqlite3.connect(registry.path)) as connection, connection:
+        connection.execute(
+            """
+            INSERT INTO sl_registry_run_artifacts(run_id, role, artifact_digest, linked_at)
+            VALUES(?,?,?,?)
+            """,
+            (
+                "role-filtered-run",
+                forecast_role,
+                published[5].digest,
+                NOW.isoformat(timespec="microseconds").replace("+00:00", "Z"),
+            ),
+        )
+
+    second = ports.list_run_artifacts(
+        "role-filtered-run",
+        ArtifactPageRequest(page_size=5, cursor=first.next_cursor),
+        query=ArtifactQuery(role=forecast_role),
+    )
+    observed = first.items + second.items
+    assert len(observed) == 4
+    assert {item.role for item in observed} == {forecast_role}
+    assert published[5].digest not in {item.artifact.artifact_id for item in observed}
+
+    for mismatched_query in (ArtifactQuery(), ArtifactQuery(role="diagnostic")):
+        with pytest.raises(InvalidCursorError, match="role filter"):
+            ports.list_run_artifacts(
+                "role-filtered-run",
+                ArtifactPageRequest(page_size=1, cursor=first.next_cursor),
+                query=mismatched_query,
+            )
+    with pytest.raises(InvalidCursorError, match="run filter"):
+        ports.list_run_artifacts(
+            "other-role-run",
+            ArtifactPageRequest(page_size=1, cursor=first.next_cursor),
+            query=ArtifactQuery(role=forecast_role),
+        )
+
+
+def test_combined_readiness_returns_redacted_typed_storage_verdicts(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path.resolve()
+    store = ArtifactStore(root / "cas")
+    store.initialize()
+    registry = RunRegistry(
+        root / "registry.sqlite",
+        digest_secret=SECRET,
+        artifact_verifier=store,
+    )
+    registry.initialize()
+
+    wrong_store = ArtifactStore(root / "other-cas")
+    wrong_store.initialize()
+    wrong_store_verdict = RegistryReadPorts(registry, wrong_store).probe_evidence_readiness()
+    assert wrong_store_verdict.code is EvidenceReadinessCode.CAS_IDENTITY_MISMATCH
+
+    unsafe_root = store.root
+    unsafe_root.chmod(0o755)
+    corrupt_verdict = RegistryReadPorts(registry, store).probe_evidence_readiness()
+    assert corrupt_verdict.code is EvidenceReadinessCode.CAS_INTEGRITY_FAILED
+    assert str(root) not in repr(corrupt_verdict)
+    assert store.store_id not in repr(corrupt_verdict)
+
+
+def test_combined_readiness_distinguishes_missing_cas_without_recreation(
+    system: tuple[RunRegistry, ArtifactStore, RegistryReadPorts],
+    tmp_path: Path,
+) -> None:
+    _, store, ports = system
+    displaced = tmp_path.resolve() / "displaced-cas"
+    store.root.rename(displaced)
+
+    verdict = ports.probe_evidence_readiness()
+
+    assert verdict.code is EvidenceReadinessCode.CAS_MISSING
+    assert not store.root.exists()
+    assert displaced.is_dir()
+
+
+def test_combined_readiness_maps_corrupt_registry_and_busy_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path.resolve()
+    corrupt_path = root / "corrupt.sqlite"
+    corrupt_path.write_bytes(b"not a SQLite registry")
+    corrupt_path.chmod(0o600)
+    store = ArtifactStore(root / "cas")
+    ports = RegistryReadPorts(RunRegistry(corrupt_path, digest_secret=SECRET), store)
+
+    corrupt = ports.probe_evidence_readiness()
+    assert corrupt.code is EvidenceReadinessCode.REGISTRY_INTEGRITY_FAILED
+    assert str(corrupt_path) not in repr(corrupt)
+
+    registry = RunRegistry(root / "busy.sqlite", digest_secret=SECRET)
+    registry.initialize()
+    busy_ports = RegistryReadPorts(registry, store)
+    monkeypatch.setattr(
+        registry,
+        "probe_readiness",
+        lambda: RegistryReadiness(False, None, None, "registry_busy"),
+    )
+    busy = busy_ports.probe_evidence_readiness()
+    assert busy.code is EvidenceReadinessCode.REGISTRY_BUSY
+    assert busy.retryable
+
+
 def test_negative_artifact_link_sequence_cannot_be_omitted_from_listing(
     system: tuple[RunRegistry, ArtifactStore, RegistryReadPorts],
     tmp_path: Path,
@@ -839,6 +1000,11 @@ def test_legacy_run_has_no_verified_artifact_links(
     _insert_legacy(registry.path, "legacy-artifacts", offset=1)
 
     assert ports.list_run_artifacts("legacy-artifacts").items == ()
+    with pytest.raises(InvalidCursorError, match="legacy runs"):
+        ports.list_run_artifacts(
+            "legacy-artifacts",
+            ArtifactPageRequest(cursor=ArtifactCursor("forged-cursor-00")),
+        )
     with pytest.raises(NotFoundError):
         ports.list_run_artifacts("missing-run")
 
@@ -860,7 +1026,7 @@ def test_manifest_media_and_byte_limits_fail_before_cas_read(
         ports.read_verified_manifest(published.digest, "text/plain", 100)
     with pytest.raises(IntegrityError, match="media type"):
         ports.read_verified_manifest(published.digest, "application/manifest+json", 100)
-    with pytest.raises(ValidationError, match="byte limit"):
+    with pytest.raises(IntegrityError, match="byte limit"):
         ports.read_verified_manifest(published.digest, "application/json", 1)
     with pytest.raises(ValidationError, match="max_bytes"):
         ports.read_verified_manifest(published.digest, "application/json", 0)
@@ -1116,3 +1282,5 @@ def test_public_validation_rejects_pathlike_identifiers_and_wrong_contracts(
         RunPageRequest(cursor="not-a-cursor")  # type: ignore[arg-type]
     with pytest.raises(InvalidCursorError):
         ArtifactPageRequest(cursor=RunCursor("v1.aaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaa"))  # type: ignore[arg-type]
+    with pytest.raises(ValidationError):
+        ArtifactQuery(role="../private")
