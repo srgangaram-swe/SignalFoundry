@@ -2115,12 +2115,31 @@ def _container_command(args: argparse.Namespace) -> None:
         canary=canary,
         expected_revision=revision,
     )
-    if (
-        first_identity != second_identity
-        or first_identity.config_digest != first.image_config_digest
-        or second_identity.config_digest != second.image_config_digest
-    ):
-        raise VerificationError("clean builds or provenance produced different image identities")
+    # Split into three named conditions. The bounded-inventory comparison above
+    # already proved the two filesystems are identical, so a failure here is a
+    # metadata divergence and the message must say which field moved.
+    if first_identity.config_digest != second_identity.config_digest:
+        raise VerificationError(
+            "clean builds produced different image config digests: "
+            f"A={first_identity.config_digest} B={second_identity.config_digest} "
+            "(filesystem inventories matched, so the divergence is in image "
+            "metadata such as the created timestamp or history)"
+        )
+    if first_identity.manifest_digest != second_identity.manifest_digest:
+        raise VerificationError(
+            "clean builds produced different manifest digests: "
+            f"A={first_identity.manifest_digest} B={second_identity.manifest_digest}"
+        )
+    if first_identity.config_digest != first.image_config_digest:
+        raise VerificationError(
+            "build A metadata disagrees with the loaded image: "
+            f"metadata={first_identity.config_digest} inspect={first.image_config_digest}"
+        )
+    if second_identity.config_digest != second.image_config_digest:
+        raise VerificationError(
+            "build B metadata disagrees with the loaded image: "
+            f"metadata={second_identity.config_digest} inspect={second.image_config_digest}"
+        )
 
     cli_size = _inspect_cli_size(args.cli_image, canary=canary)
     service_cli_size_delta = first.image_size_bytes - cli_size
