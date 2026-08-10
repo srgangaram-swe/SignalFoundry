@@ -91,7 +91,7 @@ RUN --network=none /usr/sbin/groupadd --gid 10001 signalattice \
     && rm -rf /usr/local/lib/python3.13/site-packages \
         /usr/local/lib/python3.13/ensurepip \
         /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 \
-    && find / -xdev -type f -perm /6000 -exec chmod a-s {} + \
+    && find / -xdev \( -type f -o -type d \) -perm /6000 -exec chmod a-s {} + \
     && rm -rf /root/.cache /root/.local /tmp/* /var/tmp/*
 
 WORKDIR /app
@@ -157,7 +157,7 @@ COPY --chown=0:0 --chmod=0444 \
 # that runs before this stage copies /opt/venv from the builder, so the venv
 # never passed through it. Strip again here, after every COPY.
 RUN --network=none find /opt/venv -type d -path "*.dist-info/sboms" -exec rm -rf {} + \
-    && find /opt/venv /app/src -type f -perm /6000 -exec chmod a-s {} + \
+    && find /opt/venv /app/src \( -type f -o -type d \) -perm /6000 -exec chmod a-s {} + \
     && chmod -R go-w /opt/venv /app/src
 
 USER 10001:10001
