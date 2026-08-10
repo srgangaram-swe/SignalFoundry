@@ -415,16 +415,16 @@ def test_timestamp_contract_suppresses_hostile_timezone_failures() -> None:
 
 
 def test_submit_is_durable_idempotent_and_never_persists_raw_key(registry: RunRegistry) -> None:
-    key = "opaque-idempotency-key-123"
-    first = registry.submit(_request(), idempotency_key=key)
-    second = registry.submit(_request(), idempotency_key=key)
+    idempotency_value = "repeat-key"
+    first = registry.submit(_request(), idempotency_key=idempotency_value)
+    second = registry.submit(_request(), idempotency_key=idempotency_value)
 
     assert second == first
     assert len(registry.list_jobs().items) == 1
-    assert key.encode() not in registry.path.read_bytes()
+    assert idempotency_value.encode() not in registry.path.read_bytes()
     assert SECRET not in registry.path.read_bytes()
     with pytest.raises(ConflictError):
-        registry.submit(_request(2), idempotency_key=key)
+        registry.submit(_request(2), idempotency_key=idempotency_value)
 
 
 def test_queue_capacity_counts_nonterminal_work(tmp_path: Path) -> None:
