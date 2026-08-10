@@ -91,13 +91,17 @@ Key capabilities include:
   inference latency diagnostics;
 - an explicit-bootstrap, single-host durable research registry with idempotent submission,
   leases, append-only lifecycle evidence, content-addressed artifacts, bounded retention, and
-  path-free framework-neutral reads; and
+  path-free framework-neutral reads;
+- an optional loopback-only, read-only FastAPI projection for versioned aggregate forecast,
+  diagnostic, model-card, and artifact-metadata evidence—with no mutation, download, broker,
+  order, or live-trading route; and
 - unit and integration tests for chronology, candidate/calibrator/weighting separation,
   portfolio invariants, missing-data failure modes, temporal tensor construction,
   persistence, and report inputs.
 
-See [Architecture](docs/architecture.md), [Methodology](docs/methodology.md), and the
-[Validation protocol](docs/validation_protocol.md) for the contracts behind these claims.
+See [Architecture](docs/architecture.md), [Methodology](docs/methodology.md), the
+[Validation protocol](docs/validation_protocol.md), and the
+[local evidence-service guide](docs/api_service.md) for the contracts behind these claims.
 
 ## Evidence boundary
 
@@ -182,12 +186,17 @@ Install optional model backends only when a config requests them:
 python -m pip install -e ".[dev,boost]"  # XGBoost / LightGBM
 python -m pip install -e ".[dev,torch]"  # causal TCN
 python -m pip install -e ".[dev,mlflow]"  # remote MLflow tracking client
+python -m pip install -e ".[dev,service]"  # local read-only evidence API
 ```
 
 Requested optional backends fail closed when their dependency is absent. Signalattice does
 not silently replace an experiment's declared model with another estimator. The MLflow extra uses
 the current lightweight client distribution and deliberately excludes MLflow's local server, UI,
 and SQL storage dependency surface; point it only at an operator-approved tracking service.
+The service extra likewise omits FastAPI/Uvicorn convenience bundles, browser UI tooling,
+templates, multipart parsers, alternate event loops, reloaders, and WebSockets. It binds only
+to loopback under the documented profile and opens pre-existing registry/CAS state without
+migration; it is not a remotely authenticated or production trading service.
 
 ## Workflow
 

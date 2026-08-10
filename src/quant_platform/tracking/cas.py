@@ -894,6 +894,24 @@ class ArtifactStore:
             raise ArtifactBoundaryError("CAS store is not initialized")
         return self._store_id
 
+    def verify_identity(self) -> str:
+        """Verify and return the initialized store identity without mutation.
+
+        The descriptor-anchored check reopens the existing root, staging tree,
+        object tree, and immutable identity marker without creating, repairing,
+        chmodding, linking, or removing any filesystem entry.  It is therefore
+        suitable for a bounded readiness adapter.  An uninitialized instance,
+        missing component, identity substitution, unsafe permission, or corrupt
+        marker fails closed with a typed artifact-store error.
+        """
+
+        store = self._open_initialized()
+        try:
+            self._assert_initialized_bindings(store.root)
+            return self.store_id
+        finally:
+            store.close()
+
     def initialize(self) -> None:
         """Securely create and bind the private root, staging, and object trees.
 

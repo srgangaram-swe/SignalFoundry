@@ -47,16 +47,17 @@ jobs:
           version: "0.11.32"
       - name: Install locked audit environment
         run: uv sync --locked --extra dev
-      - name: Export hashed runtime and MLflow client dependency resolution
+      - name: Export hashed runtime, service, and MLflow client dependency resolution
         run: |
           uv export \
             --frozen \
             --no-dev \
             --no-emit-project \
             --extra mlflow \
+            --extra service \
             --format requirements-txt \
             --output-file /tmp/signalattice-audit-requirements.txt
-      - name: Audit locked runtime and MLflow client dependencies against known advisories
+      - name: Audit locked runtime, service, and MLflow client dependencies
         run: |
           uv run pip-audit \
             --strict \

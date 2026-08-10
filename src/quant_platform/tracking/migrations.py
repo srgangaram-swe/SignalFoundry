@@ -37,6 +37,7 @@ from quant_platform.tracking.contracts import (
     JsonValue,
     MigrationDriftError,
     MigrationError,
+    RegistryAuthorityMismatchError,
     RegistryError,
     RegistryReadiness,
     RunStatus,
@@ -1068,7 +1069,7 @@ def verify_database_binding(
     if type(observed) is not str:
         raise IntegrityError("registry HMAC authority metadata is malformed")
     if not hmac.compare_digest(observed, expected):
-        raise IntegrityError("registry HMAC authority does not match this process")
+        raise RegistryAuthorityMismatchError("registry HMAC authority does not match this process")
     return _validate_registry_id(row["registry_id"])
 
 
@@ -2273,7 +2274,8 @@ def probe_database(
         return RegistryReadiness(True, LATEST_SCHEMA_VERSION, mode)
     except RegistryError as exc:
         return RegistryReadiness(False, None, None, exc.code)
-    except sqlite3.Error:
-        return RegistryReadiness(False, None, None, "integrity_error")
+    except sqlite3.Error as exc:
+        reason = BusyError.code if _is_busy(exc) else IntegrityError.code
+        return RegistryReadiness(False, None, None, reason)
     finally:
         connection.close()

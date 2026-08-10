@@ -56,6 +56,10 @@ flowchart TD
 - `quant_platform.tracking`: backward-compatible SQLite, JSON, MLflow, and no-op experiment
   adapters plus the explicit-bootstrap durable local job/run registry, append-only lifecycle
   events, content-addressed evidence store, retention protocol, and framework-neutral read ports.
+- `quant_platform.service`: strict aggregate evidence manifests, public projections, a bounded
+  read-port protocol, redacted RFC 9457 failures, a raw ASGI security envelope, and the fixed
+  loopback-only Uvicorn assembly. The optional adapter owns no SQL, filesystem path, mutation,
+  broker, order, or live-trading authority.
 - `quant_platform.reporting`: diagnostic figures and self-contained run reports.
 - `quant_platform.cli`: Typer commands for individual stages and full runs.
 

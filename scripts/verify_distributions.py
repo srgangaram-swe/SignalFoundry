@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import binascii
 import csv
 import hashlib
 import importlib
 import importlib.metadata
+import importlib.util
 import io
+import json
 import re
 import stat
 import struct
@@ -20,9 +23,12 @@ import tempfile
 import zipfile
 import zlib
 from dataclasses import dataclass
+from email.message import Message
+from email.parser import BytesParser
+from email.policy import default as default_email_policy
 from pathlib import Path, PurePosixPath
 from types import ModuleType
-from typing import Protocol
+from typing import Any, Protocol
 
 _MAX_ARCHIVE_CONTAINER_BYTES = 16 * 1024 * 1024
 _MAX_ARCHIVE_MEMBER_BYTES = 8 * 1024 * 1024
@@ -50,6 +56,20 @@ _TRACKING_MODULES = (
     "registry",
     "retention",
 )
+_SERVICE_MODULES = (
+    "__init__",
+    "api",
+    "contracts",
+    "manifests",
+    "middleware",
+    "models",
+    "problems",
+    "server",
+)
+_SERVICE_FRAMEWORK_DISTRIBUTIONS = frozenset({"fastapi", "starlette", "uvicorn"})
+_SERVICE_FRAMEWORK_MODULES = ("fastapi", "starlette", "uvicorn")
+_REQUIREMENT_NAME = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)")
+_EXTRA_MARKER = re.compile(r'^\s*extra\s*==\s*["\']([A-Za-z0-9][A-Za-z0-9._-]*)["\']\s*$')
 _EXPECTED_TRACKING_EXPORTS = [
     "ExperimentTracker",
     "LegacyTrackingError",
@@ -64,6 +84,7 @@ _REQUIRED_WHEEL_FILES = frozenset(
         "quant_platform/tracking/__init__.py",
         "quant_platform/tracking/experiment.py",
         *{f"quant_platform/tracking/{module_name}.py" for module_name in _TRACKING_MODULES},
+        *{f"quant_platform/service/{module_name}.py" for module_name in _SERVICE_MODULES},
     }
 )
 _REQUIRED_WHEEL_METADATA_FILES = frozenset(
@@ -83,7 +104,11 @@ _REQUIRED_SDIST_FILES = frozenset(
         "README.md",
         "pyproject.toml",
         "docs/adr/0002-durable-local-registry.md",
+        "docs/adr/0003-local-read-only-evidence-api.md",
+        "docs/api/openapi-v1.json",
+        "docs/api_service.md",
         "docs/run_registry.md",
+        "scripts/generate_service_openapi.py",
         "scripts/summarize_experiments.py",
         "scripts/verify_distributions.py",
     }
@@ -169,6 +194,82 @@ _NON_POSIX_CAS_SMOKE = "\n".join(
 
 class DistributionContractError(RuntimeError):
     """A built distribution violates its deterministic publication contract."""
+
+
+def _normalize_distribution_name(value: str) -> str:
+    """Return the canonical comparison key defined by Python packaging metadata."""
+
+    return re.sub(r"[-_.]+", "-", value).lower()
+
+
+def _parse_core_metadata(payload: bytes) -> Message:
+    """Parse one bounded UTF-8 core metadata document without accepting parser defects."""
+
+    if not 1 <= len(payload) <= _MAX_ARCHIVE_MEMBER_BYTES:
+        raise DistributionContractError("wheel core metadata exceeds its byte ceiling")
+    try:
+        payload.decode("utf-8", errors="strict")
+        document = BytesParser(policy=default_email_policy).parsebytes(payload)
+    except (LookupError, MemoryError, UnicodeError, ValueError):
+        raise DistributionContractError("wheel core metadata is malformed") from None
+    if document.defects:
+        raise DistributionContractError("wheel core metadata contains parser defects")
+    return document
+
+
+def _service_marker(requirement: str) -> tuple[str, str | None]:
+    """Return a normalized distribution name and exact single-extra marker."""
+
+    requirement_text, separator, marker_text = requirement.partition(";")
+    name_match = _REQUIREMENT_NAME.match(requirement_text)
+    if name_match is None:
+        raise DistributionContractError("wheel contains a malformed dependency name")
+    dependency_name = _normalize_distribution_name(name_match.group(1))
+    if not separator:
+        return dependency_name, None
+    if ";" in marker_text:
+        return dependency_name, "complex"
+    marker_match = _EXTRA_MARKER.fullmatch(marker_text)
+    if marker_match is None:
+        return dependency_name, "complex"
+    return dependency_name, _normalize_distribution_name(marker_match.group(1))
+
+
+def _verify_service_extra_metadata(payload: bytes) -> None:
+    """Prove service frameworks are opt-in and the service extra is exactly bounded."""
+
+    document = _parse_core_metadata(payload)
+    extras = tuple(
+        _normalize_distribution_name(value)
+        for value in document.get_all("Provides-Extra", failobj=[])
+    )
+    if extras.count("service") != 1:
+        raise DistributionContractError("wheel must declare exactly one service extra")
+
+    service_dependencies: list[str] = []
+    for requirement in document.get_all("Requires-Dist", failobj=[]):
+        if not isinstance(requirement, str) or len(requirement) > 2_048:
+            raise DistributionContractError("wheel contains malformed dependency metadata")
+        dependency_name, extra = _service_marker(str(requirement))
+        if dependency_name in _SERVICE_FRAMEWORK_DISTRIBUTIONS:
+            if extra is None or extra == "complex":
+                raise DistributionContractError(
+                    "service framework dependency is not isolated behind one optional extra"
+                )
+            if extra not in {"dev", "service"}:
+                raise DistributionContractError(
+                    "service framework dependency uses an unapproved optional extra"
+                )
+        if extra == "service":
+            if dependency_name not in _SERVICE_FRAMEWORK_DISTRIBUTIONS:
+                raise DistributionContractError(
+                    "service extra contains a dependency outside its framework allowlist"
+                )
+            service_dependencies.append(dependency_name)
+    if len(service_dependencies) != len(set(service_dependencies)):
+        raise DistributionContractError("service extra contains a duplicate dependency")
+    if frozenset(service_dependencies) != _SERVICE_FRAMEWORK_DISTRIBUTIONS:
+        raise DistributionContractError("service extra omits a required framework dependency")
 
 
 @dataclass(frozen=True, slots=True)
@@ -807,6 +908,25 @@ def verify_wheel(path: Path) -> None:
                 raise DistributionContractError(
                     "wheel metadata does not match its exact publication inventory"
                 )
+            core_metadata_name = f"{dist_info_root}/METADATA"
+            core_metadata_member = next(
+                (
+                    member
+                    for member, member_path in zip(members, parsed, strict=True)
+                    if str(member_path) == core_metadata_name and not member.is_dir()
+                ),
+                None,
+            )
+            if core_metadata_member is None:
+                raise DistributionContractError("wheel omits its required core metadata")
+            _, _, core_metadata = _read_zip_member(
+                archive,
+                core_metadata_member,
+                capture=True,
+            )
+            if core_metadata is None:
+                raise DistributionContractError("wheel core metadata could not be read")
+            _verify_service_extra_metadata(core_metadata)
             missing = _REQUIRED_WHEEL_FILES.difference(member_names)
             if missing:
                 raise DistributionContractError(
@@ -1153,6 +1273,291 @@ def _verify_non_posix_import_boundary(prefix: Path) -> None:
             )
 
 
+def _installed_metadata_bytes(distribution: importlib.metadata.Distribution) -> bytes:
+    """Read installed core metadata without relying on the caller's working tree."""
+
+    try:
+        metadata = distribution.read_text("METADATA")
+    except (OSError, UnicodeError):
+        raise DistributionContractError("installed core metadata cannot be read") from None
+    if type(metadata) is not str:
+        raise DistributionContractError("installed distribution omits core metadata")
+    try:
+        return metadata.encode("utf-8")
+    except UnicodeEncodeError:
+        raise DistributionContractError("installed core metadata is not valid UTF-8") from None
+
+
+def _verify_missing_service_extra_cli(prefix: Path) -> None:
+    """Prove a core install has no service frameworks and fails with operator guidance."""
+
+    if Path(sys.prefix).resolve() != prefix:
+        raise DistributionContractError("package smoke is not running from the installed prefix")
+    if any(importlib.util.find_spec(name) is not None for name in _SERVICE_FRAMEWORK_MODULES):
+        raise DistributionContractError(
+            "core installation unexpectedly contains service frameworks"
+        )
+
+    executable = Path(sys.executable)
+    with tempfile.TemporaryDirectory(prefix="signalattice-core-service-smoke-") as directory:
+        smoke_root = Path(directory)
+        registry = smoke_root / "registry.db"
+        registry.touch(mode=0o600)
+        cas_root = smoke_root / "cas"
+        cas_root.mkdir(mode=0o700)
+        before = frozenset(smoke_root.iterdir())
+        try:
+            result = subprocess.run(
+                [
+                    str(executable),
+                    "-I",
+                    "-m",
+                    "quant_platform.cli",
+                    "serve-api",
+                    "--registry-db",
+                    str(registry),
+                    "--cas-root",
+                    str(cas_root),
+                ],
+                cwd=directory,
+                capture_output=True,
+                check=False,
+                text=True,
+                # A cold CLI import may initialize NumPy/Matplotlib runtime caches in the
+                # isolated environment; keep the process bounded without treating cold start as
+                # a ten-second correctness gate.
+                timeout=30,
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            raise DistributionContractError(
+                "core installation service-boundary smoke could not complete"
+            ) from None
+        rendered = result.stdout + result.stderr
+        if (
+            result.returncode == 0
+            or "optional service dependencies" not in rendered
+            or "signalattice[service]" not in rendered
+        ):
+            raise DistributionContractError(
+                "core installation does not fail actionably when the service extra is absent"
+            )
+        if frozenset(smoke_root.iterdir()) != before or tuple(cas_root.iterdir()):
+            raise DistributionContractError(
+                "missing-service-extra failure mutated the supplied evidence paths"
+            )
+
+
+class _ServiceSmokePorts:
+    """Read-port shape whose methods must remain untouched by liveness and schema reads."""
+
+    @staticmethod
+    def _unexpected(*_args: object, **_kwargs: object) -> Any:
+        raise AssertionError("service metadata smoke attempted an evidence read")
+
+    probe_evidence_readiness = _unexpected
+    get_run = _unexpected
+    list_runs = _unexpected
+    get_artifact = _unexpected
+    list_run_artifacts = _unexpected
+    read_verified_manifest = _unexpected
+
+
+async def _invoke_service_asgi(app: Any, path: str) -> tuple[int, dict[bytes, bytes], bytes]:
+    """Invoke one body-free loopback GET directly through the installed ASGI boundary."""
+
+    messages: list[dict[str, Any]] = []
+    receive_count = 0
+
+    async def receive() -> dict[str, Any]:
+        nonlocal receive_count
+        receive_count += 1
+        if receive_count == 1:
+            return {"type": "http.request", "body": b"", "more_body": False}
+        return {"type": "http.disconnect"}
+
+    async def send(message: dict[str, Any]) -> None:
+        messages.append(message)
+
+    scope: dict[str, Any] = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.5"},
+        "http_version": "1.1",
+        "scheme": "http",
+        "method": "GET",
+        "root_path": "",
+        "path": path,
+        "raw_path": path.encode("ascii"),
+        "query_string": b"",
+        "headers": [(b"host", b"localhost")],
+        "client": ("127.0.0.1", 30_000),
+        "server": ("127.0.0.1", 8_765),
+        "state": {},
+    }
+    try:
+        await asyncio.wait_for(app(scope, receive, send), timeout=5)
+    except (TimeoutError, OSError, RuntimeError):
+        raise DistributionContractError("installed service ASGI smoke did not complete") from None
+
+    starts = [message for message in messages if message.get("type") == "http.response.start"]
+    bodies = [message for message in messages if message.get("type") == "http.response.body"]
+    if len(starts) != 1 or not bodies or bool(bodies[-1].get("more_body", False)):
+        raise DistributionContractError("installed service emitted an invalid ASGI response")
+    status = starts[0].get("status")
+    raw_headers = starts[0].get("headers")
+    if type(status) is not int or type(raw_headers) is not list:
+        raise DistributionContractError("installed service emitted malformed ASGI metadata")
+    try:
+        headers = {bytes(name).lower(): bytes(value) for name, value in raw_headers}
+        body = b"".join(bytes(message.get("body", b"")) for message in bodies)
+    except (TypeError, ValueError):
+        raise DistributionContractError("installed service emitted malformed ASGI bytes") from None
+    return status, headers, body
+
+
+def _verify_installed_service_asgi() -> None:
+    """Exercise liveness and deterministic OpenAPI without reading evidence storage."""
+
+    from quant_platform.service.api import assert_read_only_route_inventory, create_app
+
+    ports = _ServiceSmokePorts()
+    app = create_app(ports, max_concurrency=2)
+    assert_read_only_route_inventory(app)
+
+    async def smoke() -> None:
+        live_status, live_headers, live_body = await _invoke_service_asgi(app, "/health/live")
+        schema_status, schema_headers, schema_body = await _invoke_service_asgi(
+            app,
+            "/api/v1/openapi.json",
+        )
+        _, _, repeated_schema_body = await _invoke_service_asgi(app, "/api/v1/openapi.json")
+        required_headers = {
+            b"cache-control": b"no-store",
+            b"referrer-policy": b"no-referrer",
+            b"x-content-type-options": b"nosniff",
+        }
+        if live_status != 200 or json.loads(live_body) != {"schema_version": 1, "status": "live"}:
+            raise DistributionContractError("installed service liveness smoke failed")
+        if any(live_headers.get(name) != value for name, value in required_headers.items()):
+            raise DistributionContractError("installed service omits required response hardening")
+        if schema_status != 200 or schema_body != repeated_schema_body:
+            raise DistributionContractError("installed service OpenAPI output is not deterministic")
+        if any(schema_headers.get(name) != value for name, value in required_headers.items()):
+            raise DistributionContractError("installed OpenAPI response omits required hardening")
+        try:
+            schema = json.loads(schema_body)
+            paths = schema["paths"]
+        except (KeyError, TypeError, UnicodeError, json.JSONDecodeError):
+            raise DistributionContractError(
+                "installed service OpenAPI document is malformed"
+            ) from None
+        if (
+            type(paths) is not dict
+            or not paths
+            or any(
+                type(operations) is not dict or set(operations) != {"get"}
+                for operations in paths.values()
+            )
+        ):
+            raise DistributionContractError("installed service OpenAPI exposes a non-GET operation")
+        operation_ids = [
+            operation.get("operationId")
+            for operations in paths.values()
+            for operation in operations.values()
+            if type(operation) is dict
+        ]
+        if (
+            len(operation_ids) != len(paths)
+            or any(type(value) is not str or not value for value in operation_ids)
+            or len(operation_ids) != len(set(operation_ids))
+        ):
+            raise DistributionContractError(
+                "installed OpenAPI operation IDs are not stable and unique"
+            )
+        if {"/docs", "/redoc", "/openapi.json"}.intersection(paths):
+            raise DistributionContractError("installed service exposes interactive documentation")
+
+    try:
+        asyncio.run(smoke())
+    except DistributionContractError:
+        raise
+    except (AssertionError, MemoryError, RuntimeError, ValueError):
+        raise DistributionContractError("installed service ASGI/OpenAPI smoke failed") from None
+
+
+def verify_installed_service_distribution(prefix: Path) -> None:
+    """Verify the optional wheel service boundary from an isolated installation."""
+
+    expected_prefix = prefix.resolve(strict=True)
+    if Path(sys.prefix).resolve() != expected_prefix:
+        raise DistributionContractError("service smoke is not running from the installed prefix")
+    before = frozenset(Path.cwd().iterdir())
+    distribution = importlib.metadata.distribution("signalattice")
+    _verify_service_extra_metadata(_installed_metadata_bytes(distribution))
+    modules = {
+        name: importlib.import_module(
+            "quant_platform.service" if name == "__init__" else f"quant_platform.service.{name}"
+        )
+        for name in _SERVICE_MODULES
+    }
+    for module in modules.values():
+        _module_location(module, expected_prefix)
+    if importlib.util.find_spec("httpx") is not None:
+        raise DistributionContractError("service extra unexpectedly includes the HTTP test client")
+
+    from quant_platform.service.server import ServerConfig, build_uvicorn_config
+
+    server = build_uvicorn_config(_ServiceSmokePorts(), ServerConfig())
+    observed_profile = (
+        server.host,
+        server.port,
+        server.http,
+        server.ws,
+        server.lifespan,
+        server.loop,
+        server.interface,
+        server.workers,
+        server.reload,
+        server.proxy_headers,
+        server.forwarded_allow_ips,
+        server.access_log,
+        server.server_header,
+        server.date_header,
+        server.limit_concurrency,
+        server.backlog,
+        server.timeout_keep_alive,
+        server.timeout_graceful_shutdown,
+        server.h11_max_incomplete_event_size,
+        server.reset_contextvars,
+    )
+    expected_profile = (
+        "127.0.0.1",
+        8_765,
+        "h11",
+        "none",
+        "on",
+        "asyncio",
+        "asgi3",
+        1,
+        False,
+        False,
+        "",
+        False,
+        False,
+        False,
+        64,
+        64,
+        3,
+        10,
+        16 * 1_024,
+        True,
+    )
+    if observed_profile != expected_profile:
+        raise DistributionContractError("installed service Uvicorn profile weakened")
+    _verify_installed_service_asgi()
+    if frozenset(Path.cwd().iterdir()) != before:
+        raise DistributionContractError("service imports or smoke created working-tree files")
+
+
 def verify_installed_distribution(prefix: Path) -> None:
     """Import every tracking surface from one isolated, non-editable installation."""
 
@@ -1172,6 +1577,7 @@ def verify_installed_distribution(prefix: Path) -> None:
     distribution = importlib.metadata.distribution("signalattice")
     if package.__version__ != distribution.version:
         raise DistributionContractError("installed package and distribution versions disagree")
+    _verify_service_extra_metadata(_installed_metadata_bytes(distribution))
     installed_files = {str(file) for file in distribution.files or ()}
     if _REQUIRED_WHEEL_FILES.difference(installed_files):
         raise DistributionContractError("installed distribution omits a required tracking resource")
@@ -1198,6 +1604,7 @@ def verify_installed_distribution(prefix: Path) -> None:
     if frozenset(Path.cwd().iterdir()) != before:
         raise DistributionContractError("tracking imports created files in the smoke directory")
     _verify_non_posix_import_boundary(expected_prefix)
+    _verify_missing_service_extra_cli(expected_prefix)
 
 
 def _single_archive(directory: Path, pattern: str, label: str) -> Path:
@@ -1229,8 +1636,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dist-dir", type=Path)
     parser.add_argument("--installed-prefix", type=Path)
+    parser.add_argument("--service-prefix", type=Path)
     args = parser.parse_args()
-    if args.dist_dir is None and args.installed_prefix is None:
+    if args.dist_dir is None and args.installed_prefix is None and args.service_prefix is None:
         parser.error("at least one verification boundary is required")
     try:
         if args.dist_dir is not None:
@@ -1241,7 +1649,10 @@ def main() -> None:
             print("distribution archives satisfy the publication allowlists")
         if args.installed_prefix is not None:
             verify_installed_distribution(args.installed_prefix)
-            print("installed distribution imports and migration contracts are verified")
+            print("installed core distribution and missing-service boundary are verified")
+        if args.service_prefix is not None:
+            verify_installed_service_distribution(args.service_prefix)
+            print("installed optional service distribution and ASGI contract are verified")
     except (DistributionContractError, FileNotFoundError, NotADirectoryError) as exc:
         raise SystemExit(f"distribution verification failed: {exc}") from None
 

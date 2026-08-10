@@ -81,6 +81,7 @@ _JOB_CURSOR_DOMAIN = b"signalattice.registry.job-cursor.v1\0"
 _EVENT_CURSOR_DOMAIN = b"signalattice.registry.event-cursor.v1\0"
 _RUN_CURSOR_DOMAIN = b"signalattice.registry.run-cursor.v1\0"
 _ARTIFACT_CURSOR_DOMAIN = b"signalattice.registry.artifact-cursor.v1\0"
+_ARTIFACT_QUERY_CURSOR_DOMAIN = b"signalattice.registry.artifact-query-cursor.v1\0"
 _KEY_VERIFIER_DOMAIN = b"signalattice.registry.key-verifier.v1\0"
 _RETENTION_PLAN_DOMAIN = b"signalattice.registry.retention-plan.v1\0"
 _CURSOR_VERSION = "v1"
@@ -344,6 +345,59 @@ class CursorCodec:
         except ValidationError as exc:
             raise InvalidCursorError("artifact cursor contains an invalid run filter") from exc
         return snapshot, after, run_id
+
+    def encode_artifact_query(
+        self,
+        snapshot: int,
+        after: int,
+        run_id: str,
+        role: str | None,
+    ) -> ArtifactCursor:
+        """Encode an artifact cursor bound to one run and exact optional role."""
+
+        self._validate_position(snapshot, after)
+        require_identifier(run_id, "run_id")
+        if role is not None:
+            require_identifier(role, "artifact role")
+        return ArtifactCursor(
+            self._encode(
+                _ARTIFACT_QUERY_CURSOR_DOMAIN,
+                {
+                    "after": after,
+                    "role": role,
+                    "run_id": run_id,
+                    "snapshot": snapshot,
+                },
+            )
+        )
+
+    def decode_artifact_query(
+        self,
+        cursor: ArtifactCursor,
+    ) -> tuple[int, int, str, str | None]:
+        """Authenticate one run-, role-, and snapshot-bound artifact cursor."""
+
+        if type(cursor) is not ArtifactCursor:
+            raise InvalidCursorError("artifact cursor has the wrong contract type")
+        payload = self._decode_payload(cursor.token, _ARTIFACT_QUERY_CURSOR_DOMAIN)
+        if set(payload) != {"after", "role", "run_id", "snapshot"}:
+            raise InvalidCursorError("artifact cursor payload has an unexpected shape")
+        snapshot = payload["snapshot"]
+        after = payload["after"]
+        run_id = payload["run_id"]
+        role = payload["role"]
+        self._validate_position(snapshot, after)
+        if type(run_id) is not str:
+            raise InvalidCursorError("artifact cursor run filter must be text")
+        if role is not None and type(role) is not str:
+            raise InvalidCursorError("artifact cursor role filter must be text or null")
+        try:
+            require_identifier(run_id, "cursor run_id")
+            if role is not None:
+                require_identifier(role, "cursor artifact role")
+        except ValidationError as exc:
+            raise InvalidCursorError("artifact cursor contains an invalid filter") from exc
+        return cast(int, snapshot), cast(int, after), run_id, role
 
     def _encode(self, domain: bytes, payload: object) -> str:
         encoded = canonical_json(payload).encode("utf-8")
