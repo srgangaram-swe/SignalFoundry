@@ -444,9 +444,7 @@ def _verify_trivy(
             if expected_type == "container_image" and expected_config_digest is None
             else expected_config_digest
         ),
-        expected_image_reference=(
-            IMAGE_NAME if expected_type == "container_image" else None
-        ),
+        expected_image_reference=(IMAGE_NAME if expected_type == "container_image" else None),
         require_artifact_id=require_artifact_id,
     )
 
@@ -1203,9 +1201,7 @@ def test_trivy_verifier_accepts_only_exact_version_bound_python_license_notices(
     with pytest.raises(verifier.VerificationError, match="release-blocking"):
         _verify_trivy(_minimal_trivy_result(Licenses=[notices[0]]))
 
-    duplicated = _minimal_image_trivy_result(
-        Licenses=[dict(notices[0]), dict(notices[0])]
-    )
+    duplicated = _minimal_image_trivy_result(Licenses=[dict(notices[0]), dict(notices[0])])
     with pytest.raises(verifier.VerificationError, match="duplicated"):
         _verify_trivy(duplicated, expected_type="container_image")
 

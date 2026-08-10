@@ -697,8 +697,7 @@ def _verify_trivy_metadata(
             for field in ("Family", "Name")
         )
         or not isinstance(image_config, dict)
-        or set(image_config)
-        != {"architecture", "config", "created", "history", "os", "rootfs"}
+        or set(image_config) != {"architecture", "config", "created", "history", "os", "rootfs"}
         or image_config.get("architecture") != "amd64"
         or image_config.get("os") != "linux"
         or not isinstance(image_config.get("created"), str)

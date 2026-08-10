@@ -241,7 +241,7 @@ claim. The plot is generated through Seaborn from the committed JSON. See the
 
 The 3,020 x 1,869 reference image was generated from aggregate JSON SHA-256
 `ecda1eb8aeee4c5950ace91b88fbe478235747e2c213416f5d68901e6217b0b7`; its
-service-operability plot SHA-256: `f0dae7b6b46c7f2bc9ab54ed11754a1efad6a90b83240cce8b5c5914904bd74f`.
+service-operability plot SHA-256: `67283fd06a081a5249418739eb49d6aa03d7d8cd776e5c783d7a409271377037`.
 The implementing engineering agent visually inspected it at original resolution and confirmed
 that the four panels, candidate reference lines, measured percentile curves, A/B bars, explicit
 fault/rejection outcomes, limit labels, units, source caption, and synthetic-local disclaimer are
