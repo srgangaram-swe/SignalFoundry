@@ -25,6 +25,7 @@ from quant_platform.tracking.contracts import (
     canonical_json,
 )
 from quant_platform.tracking.migrations import (
+    LATEST_SCHEMA_VERSION,
     MIGRATION_TABLE,
     MIGRATIONS,
     Migration,
@@ -335,7 +336,9 @@ def test_initialize_is_idempotent_and_enforces_connection_pragmas(tmp_path: Path
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
         assert connection.execute("PRAGMA synchronous").fetchone()[0] == 2
-        assert connection.execute(f"SELECT count(*) FROM {MIGRATION_TABLE}").fetchone()[0] == 1
+        assert connection.execute(f"SELECT count(*) FROM {MIGRATION_TABLE}").fetchone()[0] == len(
+            MIGRATIONS
+        )
     finally:
         connection.close()
 
@@ -432,8 +435,13 @@ def test_unknown_newer_schema_fails_closed(tmp_path: Path) -> None:
     _initialize(path)
     connection = sqlite3.connect(path)
     connection.execute(
-        f"INSERT INTO {MIGRATION_TABLE}(version, name, checksum, applied_at) VALUES(2,?,?,?)",
-        ("future", "f" * 64, "2026-08-08T12:00:00.000000Z"),
+        f"INSERT INTO {MIGRATION_TABLE}(version, name, checksum, applied_at) " "VALUES(?,?,?,?)",
+        (
+            LATEST_SCHEMA_VERSION + 1,
+            "future",
+            "f" * 64,
+            "2026-08-08T12:00:00.000000Z",
+        ),
     )
     connection.commit()
     connection.close()
@@ -1085,8 +1093,16 @@ def test_failed_forward_migration_rolls_back_schema_and_ledger(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     path = tmp_path / "rollback.sqlite"
+    # Bring the database up to the first migration only, so the broken step
+    # below is a genuine forward migration rather than one already applied.
+    monkeypatch.setattr("quant_platform.tracking.migrations.MIGRATIONS", (MIGRATIONS[0],))
     _initialize(path)
-    broken = Migration(2, "broken", "CREATE TABLE sl_registry_partial(value TEXT); INVALID SQL;")
+
+    broken = Migration(
+        MIGRATIONS[0].version + 1,
+        "broken",
+        "CREATE TABLE sl_registry_partial(value TEXT); INVALID SQL;",
+    )
     monkeypatch.setattr(
         "quant_platform.tracking.migrations.MIGRATIONS",
         (MIGRATIONS[0], broken),
@@ -1096,7 +1112,10 @@ def test_failed_forward_migration_rolls_back_schema_and_ledger(
         _initialize(path)
     connection = sqlite3.connect(path)
     try:
-        assert connection.execute(f"SELECT max(version) FROM {MIGRATION_TABLE}").fetchone()[0] == 1
+        assert (
+            connection.execute(f"SELECT max(version) FROM {MIGRATION_TABLE}").fetchone()[0]
+            == MIGRATIONS[0].version
+        )
         assert (
             connection.execute(
                 "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sl_registry_partial'"

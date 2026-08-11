@@ -469,7 +469,197 @@ class Migration:
         return hashlib.sha256(self.sql.encode("utf-8")).hexdigest()
 
 
-MIGRATIONS = (Migration(1, "registry_control_plane", _MIGRATION_1),)
+_MIGRATION_2 = """
+CREATE TABLE sl_shadow_campaigns (
+    campaign TEXT PRIMARY KEY CHECK(
+        length(campaign) BETWEEN 1 AND 64 AND campaign GLOB '[a-z]*'
+    ),
+    state TEXT NOT NULL CHECK(
+        state IN ('draft', 'active', 'sealed', 'reconciling', 'closed', 'abandoned')
+    ),
+    horizon_days INTEGER NOT NULL CHECK(horizon_days BETWEEN 1 AND 365),
+    class_labels TEXT NOT NULL CHECK(length(class_labels) BETWEEN 2 AND 4096),
+    created_at TEXT NOT NULL CHECK(
+        length(created_at) = 27 AND substr(created_at, -1) = 'Z'
+    ),
+    model_identity TEXT NOT NULL CHECK(
+        length(model_identity) = 64 AND model_identity NOT GLOB '*[^0-9a-f]*'
+    )
+);
+
+CREATE TABLE sl_shadow_campaign_transitions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campaign TEXT NOT NULL REFERENCES sl_shadow_campaigns(campaign),
+    from_state TEXT NOT NULL,
+    to_state TEXT NOT NULL,
+    occurred_at TEXT NOT NULL CHECK(
+        length(occurred_at) = 27 AND substr(occurred_at, -1) = 'Z'
+    )
+);
+
+CREATE INDEX sl_shadow_campaign_transitions_campaign
+    ON sl_shadow_campaign_transitions(campaign, id);
+
+CREATE TABLE sl_shadow_batches (
+    batch_id TEXT PRIMARY KEY CHECK(
+        length(batch_id) = 64 AND batch_id NOT GLOB '*[^0-9a-f]*'
+    ),
+    campaign TEXT NOT NULL REFERENCES sl_shadow_campaigns(campaign),
+    as_of TEXT NOT NULL CHECK(length(as_of) = 27 AND substr(as_of, -1) = 'Z'),
+    sealed_at TEXT NOT NULL CHECK(
+        length(sealed_at) = 27 AND substr(sealed_at, -1) = 'Z'
+    ),
+    expected_universe TEXT NOT NULL,
+    forecast_count INTEGER NOT NULL CHECK(forecast_count > 0),
+    UNIQUE(campaign, as_of)
+);
+
+CREATE TABLE sl_shadow_forecasts (
+    forecast_id TEXT PRIMARY KEY CHECK(
+        length(forecast_id) = 64 AND forecast_id NOT GLOB '*[^0-9a-f]*'
+    ),
+    batch_id TEXT NOT NULL REFERENCES sl_shadow_batches(batch_id),
+    campaign TEXT NOT NULL REFERENCES sl_shadow_campaigns(campaign),
+    symbol TEXT NOT NULL CHECK(length(symbol) BETWEEN 1 AND 24),
+    as_of TEXT NOT NULL CHECK(length(as_of) = 27 AND substr(as_of, -1) = 'Z'),
+    target_instant TEXT NOT NULL CHECK(
+        length(target_instant) = 27 AND substr(target_instant, -1) = 'Z'
+    ),
+    horizon_days INTEGER NOT NULL CHECK(horizon_days BETWEEN 1 AND 365),
+    distribution TEXT NOT NULL,
+    feature_prefix_digest TEXT NOT NULL CHECK(
+        length(feature_prefix_digest) = 64
+        AND feature_prefix_digest NOT GLOB '*[^0-9a-f]*'
+    ),
+    model_identity TEXT NOT NULL CHECK(
+        length(model_identity) = 64 AND model_identity NOT GLOB '*[^0-9a-f]*'
+    ),
+    CHECK(target_instant > as_of)
+);
+
+CREATE INDEX sl_shadow_forecasts_batch ON sl_shadow_forecasts(batch_id, symbol);
+CREATE INDEX sl_shadow_forecasts_campaign ON sl_shadow_forecasts(campaign, as_of);
+
+CREATE TABLE sl_shadow_outcomes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    forecast_id TEXT NOT NULL REFERENCES sl_shadow_forecasts(forecast_id),
+    revision INTEGER NOT NULL CHECK(revision >= 0),
+    realized_label TEXT NOT NULL CHECK(length(realized_label) BETWEEN 1 AND 64),
+    status TEXT NOT NULL CHECK(
+        status IN ('observed', 'pending', 'missing', 'late', 'wrong_horizon')
+    ),
+    observed_at TEXT NOT NULL CHECK(
+        length(observed_at) = 27 AND substr(observed_at, -1) = 'Z'
+    ),
+    recorded_at TEXT NOT NULL CHECK(
+        length(recorded_at) = 27 AND substr(recorded_at, -1) = 'Z'
+    ),
+    UNIQUE(forecast_id, revision),
+    CHECK(recorded_at >= observed_at)
+);
+
+CREATE INDEX sl_shadow_outcomes_forecast
+    ON sl_shadow_outcomes(forecast_id, revision);
+
+CREATE TABLE sl_shadow_reconciliations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campaign TEXT NOT NULL REFERENCES sl_shadow_campaigns(campaign),
+    basis TEXT NOT NULL CHECK(basis IN ('first_eligible', 'latest_known')),
+    report_identity TEXT NOT NULL CHECK(
+        length(report_identity) = 64 AND report_identity NOT GLOB '*[^0-9a-f]*'
+    ),
+    scored_count INTEGER NOT NULL CHECK(scored_count >= 0),
+    verdict TEXT NOT NULL CHECK(verdict IN ('reported', 'insufficient_evidence')),
+    produced_at TEXT NOT NULL CHECK(
+        length(produced_at) = 27 AND substr(produced_at, -1) = 'Z'
+    ),
+    UNIQUE(campaign, basis, report_identity)
+);
+
+CREATE TRIGGER sl_shadow_campaigns_no_delete
+BEFORE DELETE ON sl_shadow_campaigns
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_campaigns is append-only');
+END;
+
+CREATE TRIGGER sl_shadow_campaigns_state_forward_only
+BEFORE UPDATE ON sl_shadow_campaigns
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_campaigns accepts state changes only')
+    WHERE OLD.campaign <> NEW.campaign
+       OR OLD.horizon_days <> NEW.horizon_days
+       OR OLD.class_labels <> NEW.class_labels
+       OR OLD.created_at <> NEW.created_at
+       OR OLD.model_identity <> NEW.model_identity;
+    SELECT RAISE(ABORT, 'sl_shadow_campaigns cannot leave a terminal state')
+    WHERE OLD.state IN ('closed', 'abandoned');
+END;
+
+CREATE TRIGGER sl_shadow_campaign_transitions_no_update
+BEFORE UPDATE ON sl_shadow_campaign_transitions
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_campaign_transitions is immutable');
+END;
+
+CREATE TRIGGER sl_shadow_campaign_transitions_no_delete
+BEFORE DELETE ON sl_shadow_campaign_transitions
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_campaign_transitions is append-only');
+END;
+
+CREATE TRIGGER sl_shadow_batches_no_update
+BEFORE UPDATE ON sl_shadow_batches
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_batches is immutable once sealed');
+END;
+
+CREATE TRIGGER sl_shadow_batches_no_delete
+BEFORE DELETE ON sl_shadow_batches
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_batches is append-only');
+END;
+
+CREATE TRIGGER sl_shadow_forecasts_no_update
+BEFORE UPDATE ON sl_shadow_forecasts
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_forecasts is immutable once sealed');
+END;
+
+CREATE TRIGGER sl_shadow_forecasts_no_delete
+BEFORE DELETE ON sl_shadow_forecasts
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_forecasts is append-only');
+END;
+
+CREATE TRIGGER sl_shadow_outcomes_no_update
+BEFORE UPDATE ON sl_shadow_outcomes
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_outcomes is append-only; corrections insert a revision');
+END;
+
+CREATE TRIGGER sl_shadow_outcomes_no_delete
+BEFORE DELETE ON sl_shadow_outcomes
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_outcomes is append-only');
+END;
+
+CREATE TRIGGER sl_shadow_reconciliations_no_update
+BEFORE UPDATE ON sl_shadow_reconciliations
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_reconciliations is immutable');
+END;
+
+CREATE TRIGGER sl_shadow_reconciliations_no_delete
+BEFORE DELETE ON sl_shadow_reconciliations
+BEGIN
+    SELECT RAISE(ABORT, 'sl_shadow_reconciliations is append-only');
+END;
+"""
+
+MIGRATIONS = (
+    Migration(1, "registry_control_plane", _MIGRATION_1),
+    Migration(2, "shadow_forecast_campaigns", _MIGRATION_2),
+)
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version
 
 _MIGRATION_LEDGER_SQL = f"""
