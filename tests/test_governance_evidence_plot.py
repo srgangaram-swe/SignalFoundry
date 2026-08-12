@@ -125,3 +125,32 @@ def test_main_reports_a_refusal_with_a_non_zero_exit(
 
 def _raise_evidence_error(_points: object) -> None:
     raise evidence.EvidenceError("the calibration study produced no points")
+
+
+def test_the_gate_panel_shows_a_failing_cohort_not_only_a_passing_one() -> None:
+    """A gate panel that only ever displays passes is decoration."""
+    frame, accounting = evidence.gate_evidence()
+    assert set(frame["status"]) == {"satisfied", "failed"}
+    assert accounting["sufficient"]["gates_failed"] == 0
+    assert accounting["thin"]["gates_failed"] > 0
+    # Every gate appears once per cohort, so no failure is omitted from view.
+    per_cohort = frame.groupby("cohort")["gate"].nunique()
+    assert per_cohort.min() == per_cohort.max() == accounting["thin"]["gates_total"]
+
+
+def test_the_gate_panel_reports_coverage_and_exclusions() -> None:
+    """Exclusions are counted, not dropped, and the figure must say so."""
+    _frame, accounting = evidence.gate_evidence()
+    assert accounting["sufficient"]["champion_only"] == 1
+    assert accounting["thin"]["champion_only"] == 12
+    assert accounting["sufficient"]["coverage"] > accounting["thin"]["coverage"]
+    assert accounting["thin"]["coverage"] < 1.0
+
+
+def test_the_summary_carries_the_gate_accounting(tmp_path: Path) -> None:
+    """The machine-readable record must include what the panel claims."""
+    destination = tmp_path / "evidence.png"
+    summary = evidence.render(_sweep(block_rate=0.06, naive_rate=0.40), destination, seed=5)
+    assert set(summary["gate_accounting"]) == {"sufficient", "thin"}
+    assert summary["gate_accounting"]["thin"]["gates_failed"] > 0
+    assert json.loads(json.dumps(summary, allow_nan=False))

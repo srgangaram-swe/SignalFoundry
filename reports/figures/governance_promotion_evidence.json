@@ -39,8 +39,28 @@
   ],
   "cohorts_per_level": 400,
   "days": 30,
-  "figure_bytes": 173405,
+  "figure_bytes": 227722,
   "forecasts_per_day": 8,
+  "gate_accounting": {
+    "sufficient": {
+      "challenger_only": 0,
+      "champion_only": 1,
+      "coverage": 0.995850622406639,
+      "distinct_days": 30,
+      "gates_failed": 0,
+      "gates_total": 7,
+      "matched": 240
+    },
+    "thin": {
+      "challenger_only": 0,
+      "champion_only": 12,
+      "coverage": 0.75,
+      "distinct_days": 9,
+      "gates_failed": 6,
+      "gates_total": 7,
+      "matched": 36
+    }
+  },
   "production_replicates": 10000,
   "seed": 20260811,
   "study_replicates": 2000

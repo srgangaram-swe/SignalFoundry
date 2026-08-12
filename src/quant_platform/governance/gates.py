@@ -30,7 +30,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Final
+from typing import Any, ClassVar, Final
 
 from quant_platform.governance.comparison import PairedCohort
 from quant_platform.governance.inference import (
@@ -48,6 +48,36 @@ APPROVAL_VALIDITY: Final = timedelta(days=7)
 #: Refusal thresholds, not tuning knobs.
 MAX_GATES: Final = 32
 MAX_NAME_CHARS: Final = 64
+
+# ---------------------------------------------------------------------------
+# The preregistered operational floor.
+#
+# These are the minimum conditions under which the comparison question is
+# answerable at all. They are deliberately module constants rather than
+# parameters with permissive defaults: a floor a caller can lower at the call
+# site is not a floor. A policy may declare a *stricter* value; the frozen
+# identity then records that it did.
+# ---------------------------------------------------------------------------
+
+#: Consecutive calendar days of evidence.
+MIN_CONSECUTIVE_DAYS: Final = 28
+
+#: Distinct resolved target dates. Fewer than this cannot support a date-block
+#: bootstrap regardless of how many forecasts fall on them.
+MIN_RESOLVED_TARGET_DATES: Final = 20
+
+#: Exactly paired rows.
+MIN_PAIRED_ROWS: Final = 200
+
+#: Observations per outcome class. A class seen a handful of times cannot
+#: support a calibration claim about that class.
+MIN_OBSERVATIONS_PER_CLASS: Final = 50
+
+#: Forecast, reconciliation, and on-time issuance coverage.
+MIN_COVERAGE: Final = 0.99
+
+#: Preregistered power against the declared material effect.
+MIN_POWER: Final = 0.80
 
 
 class GovernanceError(ValueError):
@@ -87,58 +117,88 @@ class GateResult:
 class FrozenPolicy:
     """Preregistered decision rules, fixed before any comparison is run.
 
+    This is the issue's ``MonitoringPolicy``: one record carrying both the
+    statistical declaration (alpha, margin) and the operational floor below
+    which no comparison is answerable regardless of how favourable it looks.
+
+    The floor defaults are the preregistered Sprint 5 values. They are defaults
+    for *construction* only -- once a policy is built its identity fixes them,
+    and a comparison run against a different identity is refused.
+
+    **The floor never establishes superiority by itself.** Clearing it means the
+    evidence is sufficient to ask the question, not that the answer is yes.
+
     Raises:
         GovernanceError: On unusable thresholds.
     """
 
     version: str
     alpha: float
-    minimum_days: int
-    minimum_pairs: int
-    minimum_coverage: float
     margin: Margin
+    minimum_days: int = MIN_CONSECUTIVE_DAYS
+    minimum_target_dates: int = MIN_RESOLVED_TARGET_DATES
+    minimum_pairs: int = MIN_PAIRED_ROWS
+    minimum_per_class: int = MIN_OBSERVATIONS_PER_CLASS
+    minimum_coverage: float = MIN_COVERAGE
+    minimum_power: float = MIN_POWER
+
+    _POSITIVE_INT_FIELDS: ClassVar[tuple[str, ...]] = (
+        "minimum_days",
+        "minimum_target_dates",
+        "minimum_pairs",
+        "minimum_per_class",
+    )
+    _UNIT_INTERVAL_FIELDS: ClassVar[tuple[str, ...]] = ("minimum_coverage", "minimum_power")
 
     def __post_init__(self) -> None:
         if not isinstance(self.version, str) or not self.version.strip():
             raise GovernanceError("policy version must be a non-empty string")
         if not 0.0 < self.alpha < 0.5:
             raise GovernanceError("alpha must lie in (0, 0.5)")
-        for field_name in ("minimum_days", "minimum_pairs"):
+        for field_name in self._POSITIVE_INT_FIELDS:
             value = getattr(self, field_name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
                 raise GovernanceError(f"{field_name} must be a positive int")
-        if not 0.0 < self.minimum_coverage <= 1.0:
-            raise GovernanceError("minimum_coverage must lie in (0, 1]")
+        for field_name in self._UNIT_INTERVAL_FIELDS:
+            value = getattr(self, field_name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise GovernanceError(f"{field_name} must be a real number")
+            if not 0.0 < float(value) <= 1.0:
+                raise GovernanceError(f"{field_name} must lie in (0, 1]")
         if not isinstance(self.margin, Margin):
             raise GovernanceError("margin must be a Margin")
 
     @property
     def identity(self) -> str:
         """Content identity, so a policy edited after results is detectable."""
-        return canonical_digest(
-            {
-                "version": self.version,
-                "alpha": self.alpha,
-                "minimum_days": self.minimum_days,
-                "minimum_pairs": self.minimum_pairs,
-                "minimum_coverage": self.minimum_coverage,
-                "margin": self.margin.to_dict(),
-            }
-        )
+        return canonical_digest(self._declaration())
+
+    def _declaration(self) -> dict[str, Any]:
+        """Return exactly the fields the identity commits to."""
+        return {
+            "version": self.version,
+            "alpha": self.alpha,
+            "margin": self.margin.to_dict(),
+            "minimum_days": self.minimum_days,
+            "minimum_target_dates": self.minimum_target_dates,
+            "minimum_pairs": self.minimum_pairs,
+            "minimum_per_class": self.minimum_per_class,
+            "minimum_coverage": self.minimum_coverage,
+            "minimum_power": self.minimum_power,
+        }
 
     def to_dict(self) -> dict[str, Any]:
         """Return the JSON-friendly frozen declaration."""
         return {
-            "version": self.version,
+            **self._declaration(),
             "identity": self.identity,
-            "alpha": self.alpha,
-            "minimum_days": self.minimum_days,
-            "minimum_pairs": self.minimum_pairs,
-            "minimum_coverage": self.minimum_coverage,
-            "margin": self.margin.to_dict(),
             "policy": (
                 "Gates are absolute and independent. There is no weighted score and no "
                 "override; removing a gate requires publishing a new policy version."
+            ),
+            "floor": (
+                "Clearing the operational floor means the evidence is sufficient to ask "
+                "the question, not that the answer is favourable."
             ),
         }
 
@@ -191,14 +251,35 @@ class Decision:
         }
 
 
-def evaluate_gates(cohort: PairedCohort, policy: FrozenPolicy) -> tuple[GateResult, ...]:
+def evaluate_gates(
+    cohort: PairedCohort,
+    policy: FrozenPolicy,
+    *,
+    class_counts: Mapping[str, int] | None = None,
+    achieved_power: float | None = None,
+) -> tuple[GateResult, ...]:
     """Evaluate every absolute gate independently.
 
-    Each gate is checked on its own and all results are returned, so a reader
-    sees every failure rather than only the first. Short-circuiting would hide
-    a coverage problem behind a duration problem.
+    Each gate is checked on its own and **all** results are returned, so a
+    reader sees every failure rather than only the first. Short-circuiting would
+    hide a coverage problem behind a duration problem, and the reader would fix
+    one and rerun into the other.
+
+    Args:
+        cohort: The paired sample.
+        policy: The frozen preregistered rules.
+        class_counts: Observations per realised outcome class. ``None`` means
+            the caller did not supply it, which **fails** the gate rather than
+            skipping it: an unevaluated gate is not a satisfied one.
+        achieved_power: Preregistered power against the declared material
+            effect. ``None`` fails for the same reason.
+
+    Returns:
+        Every gate result, in a stable order.
     """
     distinct_days = len({item.as_of_date for item in cohort.pairs})
+    span_days = _calendar_span(cohort)
+    smallest_class, smallest_count = _smallest_class(class_counts)
     return (
         GateResult(
             name="cohort_comparable",
@@ -207,8 +288,19 @@ def evaluate_gates(cohort: PairedCohort, policy: FrozenPolicy) -> tuple[GateResu
         ),
         GateResult(
             name="minimum_duration",
-            satisfied=distinct_days >= policy.minimum_days,
-            detail=f"{distinct_days} distinct days against a minimum of {policy.minimum_days}",
+            satisfied=span_days >= policy.minimum_days,
+            detail=(
+                f"{span_days} consecutive calendar days spanned against a minimum of "
+                f"{policy.minimum_days}"
+            ),
+        ),
+        GateResult(
+            name="minimum_target_dates",
+            satisfied=distinct_days >= policy.minimum_target_dates,
+            detail=(
+                f"{distinct_days} resolved target dates against a minimum of "
+                f"{policy.minimum_target_dates}"
+            ),
         ),
         GateResult(
             name="minimum_pairs",
@@ -216,14 +308,62 @@ def evaluate_gates(cohort: PairedCohort, policy: FrozenPolicy) -> tuple[GateResu
             detail=f"{cohort.matched} matched pairs against a minimum of {policy.minimum_pairs}",
         ),
         GateResult(
+            name="minimum_per_class",
+            satisfied=class_counts is not None and smallest_count >= policy.minimum_per_class,
+            detail=(
+                "class counts were not supplied, so the gate cannot be evaluated and "
+                "is not satisfied"
+                if class_counts is None
+                else (
+                    f"smallest class {smallest_class!r} has {smallest_count} observations "
+                    f"against a minimum of {policy.minimum_per_class}"
+                )
+            ),
+        ),
+        GateResult(
             name="minimum_coverage",
             satisfied=cohort.coverage >= policy.minimum_coverage,
             detail=(
-                f"coverage {cohort.coverage:.3f} against a minimum of "
-                f"{policy.minimum_coverage:.3f}"
+                f"coverage {cohort.coverage:.4f} against a minimum of "
+                f"{policy.minimum_coverage:.4f}"
+            ),
+        ),
+        GateResult(
+            name="minimum_power",
+            satisfied=achieved_power is not None and achieved_power >= policy.minimum_power,
+            detail=(
+                "power was not supplied, so the gate cannot be evaluated and is not " "satisfied"
+                if achieved_power is None
+                else (
+                    f"preregistered power {achieved_power:.3f} against a minimum of "
+                    f"{policy.minimum_power:.3f}"
+                )
             ),
         ),
     )
+
+
+def _calendar_span(cohort: PairedCohort) -> int:
+    """Return the inclusive calendar span the cohort covers, in days.
+
+    Distinct days and calendar span are different quantities: 20 forecasts on
+    20 consecutive days span 20 days, while 20 forecasts spread over a year
+    also produce 20 distinct days. Both are gated, because the first is about
+    statistical support and the second about whether the evidence is recent
+    enough to describe the same regime.
+    """
+    if not cohort.pairs:
+        return 0
+    dates = [item.as_of_date for item in cohort.pairs]
+    return (max(dates) - min(dates)).days + 1
+
+
+def _smallest_class(class_counts: Mapping[str, int] | None) -> tuple[str | None, int]:
+    """Return the least-observed class and its count, or ``(None, 0)``."""
+    if not class_counts:
+        return (None, 0)
+    name = min(class_counts, key=lambda key: (class_counts[key], key))
+    return (name, class_counts[name])
 
 
 def recommend(
@@ -233,6 +373,8 @@ def recommend(
     *,
     now: datetime,
     expected_policy_identity: str | None = None,
+    class_counts: Mapping[str, int] | None = None,
+    achieved_power: float | None = None,
 ) -> Decision:
     """Produce a recommendation. This function cannot promote anything.
 
@@ -243,6 +385,9 @@ def recommend(
         now: Decision instant.
         expected_policy_identity: When supplied, the policy must match it, so a
             policy edited after seeing results is refused.
+        class_counts: Observations per realised outcome class. Omitting it fails
+            the per-class gate rather than skipping it.
+        achieved_power: Preregistered power. Omitting it fails the power gate.
 
     Raises:
         GovernanceError: On a policy identity mismatch or an empty test family.
@@ -256,7 +401,7 @@ def recommend(
     if not tests:
         raise GovernanceError("the test family must be non-empty")
 
-    gates = evaluate_gates(cohort, policy)
+    gates = evaluate_gates(cohort, policy, class_counts=class_counts, achieved_power=achieved_power)
     if not all(gate.satisfied for gate in gates):
         failing = [gate.name for gate in gates if not gate.satisfied]
         recommendation = (

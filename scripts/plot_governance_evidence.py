@@ -15,6 +15,10 @@ Three panels, all from seeded synthetic data generated in this script:
    interval is not more precise, it is wrong.
 3. **Holm correction across a family.** Raw versus adjusted p-values for a
    four-test family, marking which cross alpha before and after correction.
+4. **Gate outcomes and cohort accounting.** Every absolute gate for two example
+   cohorts -- one clearing the floor, one thin -- together with the coverage and
+   exclusion counts behind them. Unfavourable and insufficient outcomes are
+   shown, not omitted: a gate panel that only ever displays passes is decoration.
 
 The output contains aggregate synthetic engineering measurements only: no market
 observations, identifiers, credentials, or host paths.
@@ -25,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Final
 
@@ -37,8 +42,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+from quant_platform.governance.comparison import PairedCohort, PairedScore, PairKey
+from quant_platform.governance.gates import FrozenPolicy, evaluate_gates
 from quant_platform.governance.inference import (
     BOOTSTRAP_REPLICATES,
+    Margin,
     holm_adjust,
 )
 
@@ -176,6 +184,90 @@ def _holm_family() -> pd.DataFrame:
     )
 
 
+EVIDENCE_BASE: Final = datetime(2026, 8, 1, tzinfo=UTC)
+
+
+def _example_cohort(*, days: int, per_day: int, unmatched: int) -> PairedCohort:
+    """Build a cohort with a chosen size and a chosen number of exclusions."""
+    pairs = []
+    for day in range(days):
+        as_of = EVIDENCE_BASE + timedelta(days=day)
+        for slot in range(per_day):
+            pairs.append(
+                PairedScore(
+                    key=PairKey(campaign_symbol=f"S{slot:02d}", as_of=as_of, horizon_days=5),
+                    as_of_date=as_of.date(),
+                    champion_brier=0.50,
+                    challenger_brier=0.47,
+                    champion_log=0.70,
+                    challenger_log=0.66,
+                )
+            )
+    return PairedCohort(
+        pairs=tuple(pairs),
+        champion_total=len(pairs) + unmatched,
+        challenger_total=len(pairs),
+        champion_only=unmatched,
+        challenger_only=0,
+        champion_unscored=0,
+        challenger_unscored=0,
+        comparable=True,
+        incomparable_reason=None,
+    )
+
+
+def gate_evidence() -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Return per-gate outcomes for a sufficient and an insufficient cohort.
+
+    Both are shown deliberately. A gate panel that only ever displays passing
+    gates communicates nothing about what the gates would refuse.
+    """
+    policy = FrozenPolicy(
+        version="promotion-1", alpha=ALPHA, margin=Margin(metric="brier", value=0.01)
+    )
+    cases = {
+        "sufficient": {
+            "cohort": _example_cohort(days=30, per_day=8, unmatched=1),
+            "class_counts": {"up": 160, "down": 80},
+            "achieved_power": 0.86,
+        },
+        "thin": {
+            "cohort": _example_cohort(days=9, per_day=4, unmatched=12),
+            "class_counts": {"up": 30, "down": 6},
+            "achieved_power": 0.41,
+        },
+    }
+    rows: list[dict[str, Any]] = []
+    accounting: dict[str, Any] = {}
+    for label, case in cases.items():
+        cohort: PairedCohort = case["cohort"]
+        results = evaluate_gates(
+            cohort,
+            policy,
+            class_counts=case["class_counts"],
+            achieved_power=case["achieved_power"],
+        )
+        for result in results:
+            rows.append(
+                {
+                    "cohort": label,
+                    "gate": result.name.replace("_", " "),
+                    "satisfied": bool(result.satisfied),
+                    "status": "satisfied" if result.satisfied else "failed",
+                }
+            )
+        accounting[label] = {
+            "matched": cohort.matched,
+            "coverage": cohort.coverage,
+            "champion_only": cohort.champion_only,
+            "challenger_only": cohort.challenger_only,
+            "distinct_days": len({item.as_of_date for item in cohort.pairs}),
+            "gates_failed": sum(1 for item in results if not item.satisfied),
+            "gates_total": len(results),
+        }
+    return pd.DataFrame(rows), accounting
+
+
 def _validate(points: list[CalibrationPoint]) -> None:
     """Refuse to publish a figure whose own premise did not hold.
 
@@ -204,7 +296,7 @@ def _validate(points: list[CalibrationPoint]) -> None:
 def render(points: list[CalibrationPoint], destination: Path, *, seed: int) -> dict[str, Any]:
     """Render the three-panel figure and return its aggregate summary."""
     sns.set_theme(style="whitegrid", context="talk", palette="colorblind")
-    figure, axes = plt.subplots(1, 3, figsize=(19, 5.6))
+    figure, axes = plt.subplots(1, 4, figsize=(25, 5.8))
 
     frame = pd.DataFrame(
         [
@@ -260,9 +352,42 @@ def render(points: list[CalibrationPoint], destination: Path, *, seed: int) -> d
     # Outside the axes: at these p-values every in-axes corner sits on a bar.
     axes[2].legend(title="", loc="upper left", bbox_to_anchor=(1.02, 1.0), fontsize=11)
 
+    gates, accounting = gate_evidence()
+    palette = {"satisfied": "#2a7f62", "failed": "#b2182b"}
+    sns.scatterplot(
+        data=gates,
+        x="cohort",
+        y="gate",
+        hue="status",
+        style="status",
+        palette=palette,
+        markers={"satisfied": "o", "failed": "X"},
+        s=260,
+        ax=axes[3],
+        legend="full",
+    )
+    axes[3].set_title("Absolute gates on two cohorts", fontsize=14)
+    axes[3].set_xlabel("excluded rows are champion-only, counted not dropped", fontsize=11)
+    axes[3].set_ylabel("")
+    axes[3].margins(x=0.55, y=0.08)
+    axes[3].legend(title="", loc="upper left", bbox_to_anchor=(1.02, 1.0), fontsize=11)
+    # The cohort accounting belongs on the axis itself: a separate annotation
+    # block collides with the tick labels at any figure size worth reading.
+    ordered = sorted(accounting.items())
+    axes[3].set_xticks(range(len(ordered)))
+    axes[3].set_xticklabels(
+        [
+            f"{label}\n{record['matched']} pairs / {record['distinct_days']} days\n"
+            f"coverage {record['coverage']:.3f}\n"
+            f"{record['champion_only']} excluded\n"
+            f"{record['gates_failed']} of {record['gates_total']} gates failed"
+            for label, record in ordered
+        ],
+        fontsize=10,
+    )
+
     figure.suptitle(
-        "SF-S5-SL-MR5 promotion governance: the block bootstrap holds its level "
-        "under dependence where the naive one does not",
+        "SF-S5-SL-MR5 promotion governance: calibrated inference and absolute gates",
         fontsize=15,
     )
     # The honest caveat, stated on the figure rather than only in the ADR: a
@@ -281,7 +406,7 @@ def render(points: list[CalibrationPoint], destination: Path, *, seed: int) -> d
         fontsize=10,
         color="dimgray",
     )
-    figure.tight_layout(rect=(0, 0.045, 1, 0.94))
+    figure.tight_layout(rect=(0, 0.07, 1, 0.94))
     destination.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(destination, dpi=140, bbox_inches="tight")
     plt.close(figure)
@@ -308,6 +433,7 @@ def render(points: list[CalibrationPoint], destination: Path, *, seed: int) -> d
             }
             for point in points
         ],
+        "gate_accounting": accounting,
         "figure_bytes": size,
     }
 

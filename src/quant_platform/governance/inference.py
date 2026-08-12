@@ -6,8 +6,23 @@ failure they guard against is approving a challenger that is not actually better
 **Resampling is by date block, not by forecast.** Forecasts made on the same day
 share market conditions. Treating them as independent inflates the effective
 sample size and narrows every interval, which is exactly the error that makes a
-coin-flip challenger look significant. Blocks are whole days, resampled with a
-seeded generator so a rerun reproduces the interval.
+coin-flip challenger look significant.
+
+The scheme is a **circular moving-block** bootstrap over dates. Two properties
+matter and both are deliberate:
+
+* *Moving blocks* rather than independent days, because the day-level series is
+  itself serially dependent -- a regime lasting a week correlates consecutive
+  days' score differences, and resampling days independently destroys it.
+* *Circular* wrapping, so every date can start a block. A non-circular scheme
+  can only start within the first ``n - L + 1`` dates, under-sampling the end of
+  the window, which is the most recent evidence and the part a promotion leans
+  on hardest.
+
+Block length is **derived, never supplied**: ``max(horizon, ceil(n ** (1/3)))``.
+A caller who could choose it could choose the length that produced the narrowest
+interval. Everything is driven by a seeded generator, so a rerun reproduces the
+interval exactly.
 
 **Superiority and non-inferiority are different questions.** Superiority asks
 whether the challenger is better than the champion. Non-inferiority asks whether
@@ -140,17 +155,86 @@ def _blocks_from(cohort: PairedCohort) -> dict[date, list[float]]:
     return dict(grouped)
 
 
+def _cohort_horizon(cohort: PairedCohort) -> int:
+    """Return the cohort's single forecast horizon.
+
+    Raises:
+        InferenceError: If the cohort mixes horizons. A block length derived
+            from one horizon does not describe a sample containing another, and
+            averaging the two would understate dependence for the longer one.
+    """
+    horizons = {item.key.horizon_days for item in cohort.pairs}
+    if len(horizons) != 1:
+        raise InferenceError(
+            f"cohort mixes forecast horizons {sorted(horizons)}; the block length is "
+            "derived from the horizon and cannot describe several at once"
+        )
+    return horizons.pop()
+
+
+def block_length(*, horizon_days: int, date_count: int) -> int:
+    """Return the frozen block length for a cohort.
+
+    ``max(horizon, ceil(n ** (1/3)))`` -- the horizon because overlapping
+    forecasts remain dependent for at least that long, and the cube root because
+    it is the standard rate at which block length must grow with sample size for
+    a moving-block bootstrap to stay consistent. Taking the larger keeps both
+    guarantees rather than trading one for the other.
+
+    The length is derived, never passed in: a caller who could choose it could
+    choose the one that produced the narrowest interval.
+
+    Raises:
+        InferenceError: On a non-positive horizon or date count.
+    """
+    if isinstance(horizon_days, bool) or not isinstance(horizon_days, int) or horizon_days < 1:
+        raise InferenceError("horizon_days must be a positive int")
+    if isinstance(date_count, bool) or not isinstance(date_count, int) or date_count < 1:
+        raise InferenceError("date_count must be a positive int")
+    return max(horizon_days, int(math.ceil(date_count ** (1 / 3))))
+
+
 def _block_bootstrap(
-    blocks: Mapping[date, Sequence[float]], *, seed: int, replicates: int
+    blocks: Mapping[date, Sequence[float]],
+    *,
+    seed: int,
+    replicates: int,
+    horizon_days: int,
 ) -> np.ndarray:
-    """Return replicate means from resampling whole days with replacement."""
+    """Return replicate means from a circular moving-block bootstrap over dates.
+
+    **Circular** so every date starts a block equally often. A non-circular
+    moving-block scheme can only start a block at one of the first ``n - L + 1``
+    dates, which under-samples the end of the window -- and the end of the
+    window is the most recent evidence, the part a promotion decision leans on
+    hardest.
+
+    **Moving blocks** rather than independent days, because the day-level series
+    is itself serially dependent: a regime that lasts a week makes consecutive
+    days' score differences correlated, and resampling days independently
+    destroys exactly that structure.
+
+    Blocks are weighted by the number of forecasts on each resampled date, so a
+    day carrying 40 forecasts counts for more than one carrying 4.
+    """
     keys = sorted(blocks)
+    date_count = len(keys)
     means = np.array([float(np.mean(blocks[key])) for key in keys], dtype=float)
     weights = np.array([len(blocks[key]) for key in keys], dtype=float)
-    generator = np.random.default_rng(np.random.SeedSequence([seed, len(keys)]))
-    draws = generator.integers(0, len(keys), size=(replicates, len(keys)))
-    sampled = means[draws]
-    sampled_weights = weights[draws]
+
+    length = block_length(horizon_days=horizon_days, date_count=date_count)
+    block_count = math.ceil(date_count / length)
+    generator = np.random.default_rng(np.random.SeedSequence([seed, date_count, length]))
+
+    # One random start per block per replicate; the offsets within a block are
+    # deterministic, which is what makes it a *block* rather than a resample.
+    starts = generator.integers(0, date_count, size=(replicates, block_count))
+    offsets = np.arange(length)
+    indices = (starts[:, :, None] + offsets[None, None, :]) % date_count
+    flattened = indices.reshape(replicates, block_count * length)[:, :date_count]
+
+    sampled = means[flattened]
+    sampled_weights = weights[flattened]
     return np.asarray(np.sum(sampled * sampled_weights, axis=1) / np.sum(sampled_weights, axis=1))
 
 
@@ -183,7 +267,12 @@ def superiority_test(cohort: PairedCohort, *, alpha: float = 0.05, seed: int = 0
             observations=observations,
             margin=None,
         )
-    replicates = _block_bootstrap(blocks, seed=seed, replicates=BOOTSTRAP_REPLICATES)
+    replicates = _block_bootstrap(
+        blocks,
+        seed=seed,
+        replicates=BOOTSTRAP_REPLICATES,
+        horizon_days=_cohort_horizon(cohort),
+    )
     point = float(np.mean(replicates))
     low, high = np.percentile(replicates, [100 * alpha / 2, 100 * (1 - alpha / 2)])
     exceedances = int(np.sum(replicates >= 0.0))
@@ -237,7 +326,12 @@ def non_inferiority_test(
             observations=observations,
             margin=margin.value,
         )
-    replicates = _block_bootstrap(blocks, seed=seed, replicates=BOOTSTRAP_REPLICATES)
+    replicates = _block_bootstrap(
+        blocks,
+        seed=seed,
+        replicates=BOOTSTRAP_REPLICATES,
+        horizon_days=_cohort_horizon(cohort),
+    )
     point = float(np.mean(replicates))
     # One-sided: the whole question is whether the difference stays below +margin.
     high = float(np.percentile(replicates, 100 * (1 - alpha)))
@@ -307,6 +401,7 @@ __all__ = [
     "Margin",
     "TestResult",
     "TestVerdict",
+    "block_length",
     "holm_adjust",
     "non_inferiority_test",
     "superiority_test",

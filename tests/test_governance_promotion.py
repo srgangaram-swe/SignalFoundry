@@ -49,6 +49,7 @@ from quant_platform.governance.inference import (
     MIN_BLOCKS,
     InferenceError,
     Margin,
+    block_length,
     holm_adjust,
     non_inferiority_test,
     superiority_test,
@@ -117,16 +118,43 @@ def _arms(
 
 
 def _policy(**overrides: Any) -> FrozenPolicy:
+    """A policy at the real preregistered floor.
+
+    The floor is deliberately not lowered here. A test suite that relaxes the
+    thresholds to make its fixtures pass proves only that the relaxed gates
+    work.
+    """
     base: dict[str, Any] = {
         "version": "promotion-1",
         "alpha": 0.05,
-        "minimum_days": 20,
-        "minimum_pairs": 100,
-        "minimum_coverage": 0.9,
         "margin": Margin(metric="brier", value=0.01),
     }
     base.update(overrides)
     return FrozenPolicy(**base)
+
+
+def _floor_evidence(**overrides: Any) -> dict[str, Any]:
+    """Per-class counts and power that clear the operational floor."""
+    base: dict[str, Any] = {
+        "class_counts": {"up": 160, "down": 80},
+        "achieved_power": 0.86,
+    }
+    base.update(overrides)
+    return base
+
+
+def _recommend(
+    cohort: PairedCohort,
+    policy: FrozenPolicy,
+    tests: tuple[HypothesisTest, ...],
+    **overrides: Any,
+) -> Decision:
+    """Recommend with floor evidence supplied, as a real caller must."""
+    now = overrides.pop("now", BASE)
+    floor = _floor_evidence(
+        **{k: overrides.pop(k) for k in ("class_counts", "achieved_power") if k in overrides}
+    )
+    return recommend(cohort, policy, tests, now=now, **floor, **overrides)
 
 
 # ---------------------------------------------------------------------------
@@ -402,19 +430,89 @@ def _tests_favouring_challenger() -> tuple[HypothesisTest, ...]:
     )
 
 
+def _sparse_cohort(*, dates: int, spacing_days: int) -> PairedCohort:
+    """A cohort with a chosen number of target dates at a chosen spacing."""
+    pairs = []
+    for index in range(dates):
+        as_of = BASE + timedelta(days=index * spacing_days)
+        for slot in range(10):
+            pairs.append(
+                PairedScore(
+                    key=PairKey(campaign_symbol=f"S{slot}", as_of=as_of, horizon_days=5),
+                    as_of_date=as_of.date(),
+                    champion_brier=0.5,
+                    challenger_brier=0.45,
+                    champion_log=0.7,
+                    challenger_log=0.65,
+                )
+            )
+    return PairedCohort(
+        pairs=tuple(pairs),
+        champion_total=len(pairs),
+        challenger_total=len(pairs),
+        champion_only=0,
+        challenger_only=0,
+        champion_unscored=0,
+        challenger_unscored=0,
+        comparable=True,
+        incomparable_reason=None,
+    )
+
+
 def _passing_cohort() -> PairedCohort:
-    return _synthetic_cohort(-0.05, days=30, per_day=5, seed=6)
+    """A cohort that clears every floor gate: 30 days, 30 target dates, 240 pairs."""
+    return _synthetic_cohort(-0.05, days=30, per_day=8, seed=6)
 
 
 def test_all_gates_are_reported_not_short_circuited() -> None:
     """A coverage failure must not hide behind a duration failure."""
     results = evaluate_gates(_synthetic_cohort(0.0, days=2, per_day=1), _policy())
-    assert len(results) == 4
-    assert sum(1 for item in results if not item.satisfied) >= 2
+    # Every gate reports, and each name appears once: a reader fixing one
+    # failure must be able to see the others in the same record.
+    names = [item.name for item in results]
+    assert len(names) == len(set(names))
+    assert sum(1 for item in results if not item.satisfied) >= 4
+
+
+def test_an_unevaluated_gate_is_not_a_satisfied_gate() -> None:
+    """Omitting the evidence a gate needs must fail it, never skip it."""
+    results = {item.name: item for item in evaluate_gates(_passing_cohort(), _policy())}
+    assert results["minimum_per_class"].satisfied is False
+    assert "cannot be evaluated" in results["minimum_per_class"].detail
+    assert results["minimum_power"].satisfied is False
+    assert "cannot be evaluated" in results["minimum_power"].detail
+
+
+def test_a_thin_class_fails_the_per_class_gate() -> None:
+    """A class seen rarely cannot support a calibration claim about it."""
+    results = {
+        item.name: item
+        for item in evaluate_gates(
+            _passing_cohort(),
+            _policy(),
+            class_counts={"up": 230, "down": 10},
+            achieved_power=0.9,
+        )
+    }
+    assert results["minimum_per_class"].satisfied is False
+    assert "'down'" in results["minimum_per_class"].detail
+
+
+def test_distinct_days_and_calendar_span_are_gated_separately() -> None:
+    """Twenty forecasts across a year are not twenty consecutive days."""
+    scattered = _sparse_cohort(dates=25, spacing_days=14)
+    results = {item.name: item for item in evaluate_gates(scattered, _policy())}
+    assert results["minimum_target_dates"].satisfied is True
+    assert results["minimum_duration"].satisfied is True
+    dense = _sparse_cohort(dates=25, spacing_days=1)
+    dense_results = {item.name: item for item in evaluate_gates(dense, _policy())}
+    # 25 consecutive days is 25 calendar days, below the 28-day floor.
+    assert dense_results["minimum_target_dates"].satisfied is True
+    assert dense_results["minimum_duration"].satisfied is False
 
 
 def test_a_failed_duration_gate_yields_insufficient_evidence() -> None:
-    decision = recommend(
+    decision = _recommend(
         _synthetic_cohort(-0.05, days=5, per_day=5, seed=7),
         _policy(),
         _tests_favouring_challenger(),
@@ -436,7 +534,7 @@ def test_an_incomparable_cohort_yields_invalid() -> None:
         comparable=False,
         incomparable_reason="asymmetric missingness",
     )
-    decision = recommend(broken, _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(broken, _policy(), _tests_favouring_challenger(), now=BASE)
     assert decision.recommendation is Recommendation.INVALID
 
 
@@ -452,12 +550,12 @@ def test_an_underpowered_test_blocks_promotion() -> None:
         observations=9,
         margin=None,
     )
-    decision = recommend(_passing_cohort(), _policy(), (underpowered,), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), (underpowered,), now=BASE)
     assert decision.recommendation is Recommendation.INSUFFICIENT_EVIDENCE
 
 
 def test_a_clearly_better_challenger_is_recommended() -> None:
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     assert decision.recommendation is Recommendation.PROMOTE
     assert "not an authorization" in decision.to_dict()["authority"]
 
@@ -467,7 +565,7 @@ def test_editing_the_policy_after_results_is_detected() -> None:
     identity = policy.identity
     relaxed = _policy(minimum_days=1)
     with pytest.raises(GovernanceError, match="after seeing results"):
-        recommend(
+        _recommend(
             _passing_cohort(),
             relaxed,
             _tests_favouring_challenger(),
@@ -477,7 +575,7 @@ def test_editing_the_policy_after_results_is_detected() -> None:
 
 
 def test_the_decision_serializes() -> None:
-    payload = recommend(
+    payload = _recommend(
         _passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE
     ).to_dict()
     assert json.loads(json.dumps(payload))
@@ -501,7 +599,7 @@ def _approved(decision: Decision, **overrides: Any) -> Approval:
 
 
 def test_a_promote_decision_with_current_approval_and_stable_head_applies() -> None:
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     authorize_apply(
         decision,
         _approved(decision),
@@ -512,7 +610,7 @@ def test_a_promote_decision_with_current_approval_and_stable_head_applies() -> N
 
 
 def test_a_non_promote_decision_cannot_be_applied() -> None:
-    decision = recommend(
+    decision = _recommend(
         _synthetic_cohort(-0.05, days=5, per_day=5, seed=8),
         _policy(),
         _tests_favouring_challenger(),
@@ -529,9 +627,9 @@ def test_a_non_promote_decision_cannot_be_applied() -> None:
 
 
 def test_an_approval_cannot_be_recycled_onto_another_decision() -> None:
-    first = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
-    other = recommend(
-        _synthetic_cohort(-0.06, days=30, per_day=5, seed=12),
+    first = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    other = _recommend(
+        _synthetic_cohort(-0.06, days=30, per_day=8, seed=12),
         _policy(),
         _tests_favouring_challenger(),
         now=BASE,
@@ -547,7 +645,7 @@ def test_an_approval_cannot_be_recycled_onto_another_decision() -> None:
 
 
 def test_a_stale_approval_is_refused() -> None:
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     with pytest.raises(NotAuthorizedError, match="outside its"):
         authorize_apply(
             decision,
@@ -560,7 +658,7 @@ def test_a_stale_approval_is_refused() -> None:
 
 def test_a_moved_lane_head_loses_the_race() -> None:
     """Two approvals racing cannot both promote."""
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     with pytest.raises(NotAuthorizedError, match="lane head moved"):
         authorize_apply(
             decision,
@@ -572,7 +670,7 @@ def test_a_moved_lane_head_loses_the_race() -> None:
 
 
 def test_an_anonymous_approver_is_refused() -> None:
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     with pytest.raises(GovernanceError, match="approver"):
         _approved(decision, approver="   ")
 
@@ -660,7 +758,7 @@ def test_holm_refuses_a_non_numeric_p_value(value: Any) -> None:
 
 def test_recommend_refuses_an_empty_test_family() -> None:
     with pytest.raises(GovernanceError, match="family must be non-empty"):
-        recommend(_passing_cohort(), _policy(), (), now=BASE)
+        _recommend(_passing_cohort(), _policy(), (), now=BASE)
 
 
 def test_recommend_refuses_a_family_in_which_no_test_produced_a_p_value() -> None:
@@ -677,7 +775,7 @@ def test_recommend_refuses_a_family_in_which_no_test_produced_a_p_value() -> Non
         margin=None,
     )
     with pytest.raises(GovernanceError, match="no test produced a p-value"):
-        recommend(_passing_cohort(), _policy(), (silent,), now=BASE)
+        _recommend(_passing_cohort(), _policy(), (silent,), now=BASE)
 
 
 @pytest.mark.parametrize(
@@ -691,7 +789,7 @@ def test_recommend_refuses_a_family_in_which_no_test_produced_a_p_value() -> Non
     ],
 )
 def test_a_malformed_approval_is_refused(overrides: dict[str, Any], message: str) -> None:
-    decision = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     with pytest.raises(GovernanceError, match=message):
         _approved(decision, **overrides)
 
@@ -707,7 +805,7 @@ def test_authorize_apply_refuses_objects_it_did_not_produce(
     decision: Any, approval: Any, message: str
 ) -> None:
     """A duck-typed stand-in must not be able to walk through the authority gate."""
-    real = recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
+    real = _recommend(_passing_cohort(), _policy(), _tests_favouring_challenger(), now=BASE)
     with pytest.raises(NotAuthorizedError, match=message):
         authorize_apply(
             real if decision is None else decision,
@@ -764,7 +862,7 @@ def test_an_unscored_champion_arm_is_counted_as_unscored() -> None:
 def test_the_serialized_records_carry_their_reasoning() -> None:
     """to_dict is the reviewable artifact, so it must state what it is."""
     policy = _policy()
-    decision = recommend(_passing_cohort(), policy, _tests_favouring_challenger(), now=BASE)
+    decision = _recommend(_passing_cohort(), policy, _tests_favouring_challenger(), now=BASE)
     assert "no override" in policy.to_dict()["policy"]
     assert "not an authorization" in decision.to_dict()["authority"]
     approval = _approved(decision)
@@ -804,3 +902,140 @@ def test_the_cohort_summary_states_its_exclusions_and_its_identity() -> None:
     assert summary["distinct_days"] == 12
     assert "reported rather than dropped" in summary["note"]
     assert json.loads(json.dumps(summary, allow_nan=False))
+
+
+# ---------------------------------------------------------------------------
+# Circular moving-block resampling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("horizon", "dates", "expected"),
+    [
+        (5, 27, 5),  # ceil(27 ** 1/3) == 3, so the horizon dominates
+        (1, 27, 3),  # cube root dominates a one-day horizon
+        (1, 1000, 10),
+        (20, 30, 20),  # a long horizon keeps long blocks on a short window
+        (1, 1, 1),
+    ],
+)
+def test_block_length_is_the_larger_of_horizon_and_cube_root(
+    horizon: int, dates: int, expected: int
+) -> None:
+    """Both guarantees are kept rather than one traded for the other."""
+    assert block_length(horizon_days=horizon, date_count=dates) == expected
+
+
+@pytest.mark.parametrize(
+    ("horizon", "dates"),
+    [(0, 30), (-1, 30), (True, 30), (5, 0), (5, -1), (5, True)],
+)
+def test_an_unusable_block_length_request_is_refused(horizon: Any, dates: Any) -> None:
+    with pytest.raises(InferenceError, match="must be a positive int"):
+        block_length(horizon_days=horizon, date_count=dates)
+
+
+def test_the_block_length_is_derived_not_accepted() -> None:
+    """A caller who could choose it could choose the narrowest interval."""
+    signature = inspect.signature(superiority_test)
+    assert "block_length" not in signature.parameters
+    assert "blocks" not in signature.parameters
+    signature = inspect.signature(non_inferiority_test)
+    assert "block_length" not in signature.parameters
+
+
+def test_a_cohort_mixing_horizons_is_refused() -> None:
+    """One block length cannot describe two horizons."""
+    cohort = _passing_cohort()
+    mixed = PairedCohort(
+        pairs=(
+            *cohort.pairs,
+            PairedScore(
+                key=PairKey(campaign_symbol="X", as_of=BASE, horizon_days=20),
+                as_of_date=BASE.date(),
+                champion_brier=0.5,
+                challenger_brier=0.5,
+                champion_log=0.7,
+                challenger_log=0.7,
+            ),
+        ),
+        champion_total=cohort.champion_total + 1,
+        challenger_total=cohort.challenger_total + 1,
+        champion_only=0,
+        challenger_only=0,
+        champion_unscored=0,
+        challenger_unscored=0,
+        comparable=True,
+        incomparable_reason=None,
+    )
+    with pytest.raises(InferenceError, match="mixes forecast horizons"):
+        superiority_test(mixed)
+
+
+def test_resampling_is_circular_so_every_date_starts_a_block_equally_often() -> None:
+    """A non-circular scheme under-samples the most recent evidence."""
+    from quant_platform.governance import inference as inference_module
+
+    dates = sorted({item.as_of_date for item in _passing_cohort().pairs})
+    # One unit of signal on the final date only. Under a circular scheme the
+    # last date appears in resamples as often as any other, so the replicate
+    # mean centres on its true share; a scheme that could not start a block
+    # there would systematically under-weight it.
+    blocks = {day: [1.0 if day == dates[-1] else 0.0] for day in dates}
+    replicates = inference_module._block_bootstrap(blocks, seed=1, replicates=4000, horizon_days=5)
+    assert replicates.mean() == pytest.approx(1 / len(dates), abs=0.01)
+
+
+def test_serially_dependent_days_widen_the_interval() -> None:
+    """Moving blocks must preserve day-to-day dependence, not average it away."""
+    from quant_platform.governance import inference as inference_module
+
+    rng = np.random.default_rng(4)
+    dates = sorted({item.as_of_date for item in _passing_cohort().pairs})
+    level = 0.0
+    persistent = {}
+    for day in dates:
+        level = 0.9 * level + rng.normal(0.0, 0.02)
+        persistent[day] = [level]
+    independent = {day: [rng.normal(0.0, 0.02)] for day in dates}
+    spread_persistent = inference_module._block_bootstrap(
+        persistent, seed=2, replicates=4000, horizon_days=5
+    ).std()
+    spread_independent = inference_module._block_bootstrap(
+        independent, seed=2, replicates=4000, horizon_days=5
+    ).std()
+    assert spread_persistent > spread_independent
+
+
+def test_the_bootstrap_is_reproducible_under_a_fixed_seed() -> None:
+    cohort = _passing_cohort()
+    first = superiority_test(cohort, seed=99)
+    second = superiority_test(cohort, seed=99)
+    assert first.point_estimate == second.point_estimate
+    assert first.p_value == second.p_value
+    assert first.interval == second.interval
+
+
+@pytest.mark.parametrize("field", ["minimum_coverage", "minimum_power"])
+@pytest.mark.parametrize("value", ["0.9", None, True])
+def test_a_non_numeric_floor_fraction_is_refused(field: str, value: Any) -> None:
+    with pytest.raises(GovernanceError, match="must be a real number"):
+        _policy(**{field: value})
+
+
+def test_an_empty_cohort_spans_no_calendar_days() -> None:
+    """Zero pairs spans zero days, not one."""
+    empty = PairedCohort(
+        pairs=(),
+        champion_total=0,
+        challenger_total=0,
+        champion_only=0,
+        challenger_only=0,
+        champion_unscored=0,
+        challenger_unscored=0,
+        comparable=True,
+        incomparable_reason=None,
+    )
+    results = {item.name: item for item in evaluate_gates(empty, _policy())}
+    assert results["minimum_duration"].satisfied is False
+    assert "0 consecutive calendar days" in results["minimum_duration"].detail
