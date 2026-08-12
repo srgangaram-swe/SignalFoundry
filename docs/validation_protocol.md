@@ -167,3 +167,48 @@ Return an experiment to research when any of the following occurs:
 
 The correct output of this protocol is often `NOT_READY`. Making that conclusion explicit
 is a feature of Signalattice, not a failed demonstration.
+
+## Champion-challenger promotion floor
+
+Replacing a shadow champion is governed by `quant_platform.governance` and requires **all** of the
+following before any comparison is answerable. The thresholds are preregistered in a `FrozenPolicy`
+whose content identity is checked at decision time, so a threshold edited after seeing results is
+detected rather than applied:
+
+| Gate | Floor |
+| --- | --- |
+| Consecutive calendar days | 28 |
+| Resolved target dates | 20 |
+| Exactly paired rows | 200 |
+| Observations in the least-observed class | 50 |
+| Forecast, reconciliation, and issuance coverage | 0.99 |
+| Preregistered power against the declared material effect | 0.80 |
+| Cohort comparability (per-arm missingness asymmetry) | ≤ 0.05 |
+
+Calendar span and distinct target dates are gated separately: 20 forecasts on 20 consecutive days
+and 20 spread across a year both give 20 dates, but only one describes a single regime.
+
+Gates are **absolute and independent**. There is no weighted score, no compensating pass, and no
+`force`, `waive`, `override`, or `bypass` parameter anywhere in the package — a test proves their
+absence by parsing the module ASTs. Retiring a gate requires publishing a new policy version, which
+leaves a record. Omitting the evidence a gate needs *fails* that gate rather than skipping it.
+
+Clearing the floor means the evidence is sufficient to ask the question, never that the answer is
+favourable. Inference on top of it uses a circular moving-block bootstrap over dates with block
+length `max(horizon, ceil(n ** (1/3)))`, one-sided non-inferiority against a pre-declared margin,
+superiority on at least one primary metric, and Holm familywise correction across the complete
+family. A cohort with too few blocks returns `UNDERPOWERED` with no p-value at all, because a
+non-significant result is not evidence of equivalence.
+
+`INVALID` (the cohort cannot be compared) and `INSUFFICIENT_EVIDENCE` (the floor is not met) are
+distinct from `RETAIN_CHAMPION` (the champion is better). "We could not tell" is not a finding
+about the models.
+
+Sprint 5's deterministic replay is expected to prove the mechanics while honestly returning
+`INSUFFICIENT_EVIDENCE`; the wall-clock campaign that could clear the 28-day floor is tracked
+separately.
+
+**A recommendation is not an authorization.** Applying one requires a named human approval bound to
+that exact decision identity, valid for 7 days, plus a compare-and-swap against the lane head.
+Nothing in this repository approves, applies, rolls back, or unfreezes on its own, and none of it
+authorizes production deployment, capital, paper or live trading, or any profitability claim.

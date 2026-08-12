@@ -656,9 +656,139 @@ BEGIN
 END;
 """
 
+_MIGRATION_3 = """
+-- Governance lanes, their append-only event chain, and the rebuildable head
+-- projection (SF-S5-SL-MR5).
+--
+-- The event table is the authority; sl_governance_lane_head is a cache that
+-- must be reproducible from it. Any disagreement between the two is a fault to
+-- report, never a value to prefer, which is why the projection carries the
+-- sequence it was built from.
+
+CREATE TABLE sl_governance_lanes (
+    lane_identity TEXT PRIMARY KEY CHECK(
+        length(lane_identity) = 64 AND lane_identity NOT GLOB '*[^0-9a-f]*'
+    ),
+    lane_key TEXT NOT NULL CHECK(length(lane_key) BETWEEN 2 AND 4096),
+    created_at TEXT NOT NULL CHECK(length(created_at) BETWEEN 20 AND 32)
+) STRICT;
+
+CREATE TABLE sl_governance_events (
+    lane_identity TEXT NOT NULL REFERENCES sl_governance_lanes(lane_identity),
+    sequence INTEGER NOT NULL CHECK(sequence > 0),
+    kind TEXT NOT NULL CHECK(
+        kind IN (
+            'policy',
+            'comparison',
+            'request',
+            'approval',
+            'assignment',
+            'monitoring',
+            'freeze'
+        )
+    ),
+    payload TEXT NOT NULL CHECK(length(payload) BETWEEN 2 AND 1048576),
+    payload_digest TEXT NOT NULL CHECK(
+        length(payload_digest) = 64 AND payload_digest NOT GLOB '*[^0-9a-f]*'
+    ),
+    previous_digest TEXT NOT NULL CHECK(
+        length(previous_digest) = 64 AND previous_digest NOT GLOB '*[^0-9a-f]*'
+    ),
+    chain_digest TEXT NOT NULL CHECK(
+        length(chain_digest) = 64 AND chain_digest NOT GLOB '*[^0-9a-f]*'
+    ),
+    -- One-way digest only. The idempotency key itself is never stored, so a
+    -- reader of this table cannot replay a caller's key.
+    idempotency_digest TEXT CHECK(
+        idempotency_digest IS NULL OR (
+            length(idempotency_digest) = 64
+            AND idempotency_digest NOT GLOB '*[^0-9a-f]*'
+        )
+    ),
+    recorded_at TEXT NOT NULL CHECK(length(recorded_at) BETWEEN 20 AND 32),
+    PRIMARY KEY (lane_identity, sequence)
+) STRICT;
+
+-- A repeated idempotency key within a lane resolves to the existing event
+-- rather than appending a second one.
+CREATE UNIQUE INDEX sl_governance_events_idempotency
+    ON sl_governance_events(lane_identity, idempotency_digest)
+    WHERE idempotency_digest IS NOT NULL;
+
+-- Two events can never share a chain position.
+CREATE UNIQUE INDEX sl_governance_events_chain
+    ON sl_governance_events(chain_digest);
+
+CREATE INDEX sl_governance_events_kind
+    ON sl_governance_events(lane_identity, kind, sequence);
+
+CREATE TABLE sl_governance_lane_head (
+    lane_identity TEXT PRIMARY KEY REFERENCES sl_governance_lanes(lane_identity),
+    state TEXT NOT NULL CHECK(state IN ('unassigned', 'active', 'frozen')),
+    champion_revision TEXT CHECK(
+        champion_revision IS NULL OR (
+            length(champion_revision) = 64
+            AND champion_revision NOT GLOB '*[^0-9a-f]*'
+        )
+    ),
+    generation INTEGER NOT NULL CHECK(generation >= 0 AND generation <= 1000000),
+    freeze_trigger TEXT CHECK(
+        freeze_trigger IS NULL
+        OR freeze_trigger IN ('hard_integrity', 'consecutive_soft_breach')
+    ),
+    sequence INTEGER NOT NULL CHECK(sequence >= 0),
+    updated_at TEXT NOT NULL CHECK(length(updated_at) BETWEEN 20 AND 32),
+    -- The invariants from LaneHead, enforced by the database as well as by the
+    -- contract, so a hand-edited row cannot describe an impossible lane.
+    CHECK(state <> 'unassigned' OR champion_revision IS NULL),
+    CHECK(state <> 'active' OR champion_revision IS NOT NULL),
+    CHECK((state = 'frozen') = (freeze_trigger IS NOT NULL))
+) STRICT;
+
+CREATE TRIGGER sl_governance_lanes_no_update
+BEFORE UPDATE ON sl_governance_lanes
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_lanes is immutable');
+END;
+
+CREATE TRIGGER sl_governance_lanes_no_delete
+BEFORE DELETE ON sl_governance_lanes
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_lanes is append-only');
+END;
+
+CREATE TRIGGER sl_governance_events_no_update
+BEFORE UPDATE ON sl_governance_events
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_events is immutable; governance history is never rewritten');
+END;
+
+CREATE TRIGGER sl_governance_events_no_delete
+BEFORE DELETE ON sl_governance_events
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_events is append-only; governance history is never deleted');
+END;
+
+-- The head is a projection and may be rebuilt, but it may never move backwards:
+-- a generation or sequence that decreases means a stale writer won a race.
+CREATE TRIGGER sl_governance_lane_head_forward_only
+BEFORE UPDATE ON sl_governance_lane_head
+WHEN NEW.generation < OLD.generation OR NEW.sequence < OLD.sequence
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_lane_head may not move backwards');
+END;
+
+CREATE TRIGGER sl_governance_lane_head_no_delete
+BEFORE DELETE ON sl_governance_lane_head
+BEGIN
+    SELECT RAISE(ABORT, 'sl_governance_lane_head is not deletable; rebuild it in place');
+END;
+"""
+
 MIGRATIONS = (
     Migration(1, "registry_control_plane", _MIGRATION_1),
     Migration(2, "shadow_forecast_campaigns", _MIGRATION_2),
+    Migration(3, "governance_promotion_lanes", _MIGRATION_3),
 )
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1].version
 

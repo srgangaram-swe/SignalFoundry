@@ -131,3 +131,39 @@ This threat model does not establish remote authentication, TLS termination, ten
 Kubernetes or multi-worker safety, high availability, disaster recovery, a 28-day SLO, production
 readiness, current market-data validity, paper/live trading readiness, capital authorization,
 profitability, or protection from a compromised owner account.
+
+## Promotion governance
+
+`quant_platform.governance` records champion assignments in a per-lane append-only event chain.
+Each event binds its payload digest, its predecessor's chain digest, and its own sequence and kind,
+and `verify_chain` reports the first sequence that fails to reproduce. The lane head is a cache:
+`rebuild_head` replays the events and raises if the stored projection disagrees, because the events
+are the authority and a projection rebuilt from a broken chain would launder the break.
+
+Threats addressed:
+
+- **Approval replay and recycling.** An approval is bound to one decision identity and expires after
+  seven days, so it cannot be reused on a later comparison that produced a different result.
+- **Concurrent apply.** Application is a compare-and-swap on generation *and* champion inside one
+  `BEGIN IMMEDIATE` transaction, verified by a barrier-based concurrency test with exactly one
+  winner. A refused application leaves no event behind.
+- **Split records.** The head update and its event are written in the same transaction, so a crash
+  cannot leave a head that moved without recording why.
+- **Idempotency-key disclosure.** Only a one-way digest of a caller's key is stored; the key itself
+  never reaches the database file. Reusing a key for different content is a conflict, not a silent
+  no-op.
+- **Automation acquiring authority.** No `force`, `waive`, `skip`, `override`, `bypass`, `unsafe`,
+  or `ignore_gates` parameter exists in the package, proven by parsing the module ASTs, and there is
+  no `unfreeze` method and no HTTP mutation route.
+- **Post-hoc threshold changes.** The frozen policy carries a content identity that the decision
+  path checks.
+- **Non-finite and naive values.** Canonical digests reject NaN and infinity; every instant must be
+  timezone-aware.
+
+**Explicitly not established.** The hash chain is *not* externally tamper-proof: anyone able to
+rewrite a row can recompute the remainder of the chain, and restoring an older database file
+wholesale leaves a self-consistent chain that verifies. What is detected is divergence within a
+chain and between the chain and its projection. Signing and external anchoring are separate work.
+The approver field is an **owner assertion**, not cryptographic identity, independent validation, or
+separation of duties — a single local operator is both requester and approver. There is no
+independent time source, so clock trust rests on the caller.
