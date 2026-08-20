@@ -20,6 +20,7 @@ import { DigestText } from "../components/DigestText";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { empty, insufficient, invalid, partial, ready } from "../state/evidenceState";
 import { useEvidence } from "../hooks/useEvidence";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 /** Display domain for interval bars, in Brier units. */
 const INTERVAL_DOMAIN = 0.1;
@@ -131,7 +132,7 @@ export function ModelComparison(): React.JSX.Element {
 
                 <GateTable gates={comparison.gates} truncated={comparison.truncated_gates} />
 
-                <div className="table-scroll">
+                <ScrollableTable label="Hypothesis tests">
                   <table>
                     <caption>
                       Each test keeps its own interval and uncorrected p-value. The familywise
@@ -185,7 +186,7 @@ export function ModelComparison(): React.JSX.Element {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </ScrollableTable>
               </section>
             ))}
             <p className="detail">

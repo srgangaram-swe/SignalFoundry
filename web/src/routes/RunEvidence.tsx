@@ -14,6 +14,7 @@ import { DigestText } from "../components/DigestText";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { partial, ready } from "../state/evidenceState";
 import { useEvidence } from "../hooks/useEvidence";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 const artifactSchema = z.looseObject({
   digest: z.string().max(200),
@@ -88,7 +89,7 @@ export function RunEvidence(): React.JSX.Element {
 
       <EvidencePanel title="Artifacts and lineage" status={artifacts} headingLevel={3}>
         {(value) => (
-          <div className="table-scroll">
+          <ScrollableTable label="Run artifacts and lineage">
             <table>
               <caption>
                 Every artifact bound to this run, including any the registry could not verify.
@@ -125,7 +126,7 @@ export function RunEvidence(): React.JSX.Element {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </EvidencePanel>
     </>

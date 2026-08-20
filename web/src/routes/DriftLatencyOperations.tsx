@@ -16,6 +16,7 @@ import { EvidencePanel } from "../components/EvidencePanel";
 import { readText } from "../api/client";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { empty, errored, loading, partial, ready, classifyTransport } from "../state/evidenceState";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 export interface MetricSample {
   readonly name: string;
@@ -107,7 +108,7 @@ export function DriftLatencyOperations(): React.JSX.Element {
 
       <EvidencePanel title="Telemetry samples" status={status} headingLevel={3}>
         {(view) => (
-          <div className="table-scroll">
+          <ScrollableTable label="Telemetry samples">
             <table>
               <caption>
                 Bounded to {MAX_MARKS_PER_PANEL} samples. Series with unbounded label cardinality
@@ -132,7 +133,7 @@ export function DriftLatencyOperations(): React.JSX.Element {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </EvidencePanel>
     </>

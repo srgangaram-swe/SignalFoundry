@@ -6,6 +6,7 @@
  * matter to a reader deciding whether a recommendation is trustworthy.
  */
 import type { GateResult } from "../api/decoders";
+import { ScrollableTable } from "./ScrollableTable";
 
 export function GateTable({
   gates,
@@ -16,7 +17,7 @@ export function GateTable({
 }): React.JSX.Element {
   const failed = gates.filter((gate) => !gate.satisfied).length;
   return (
-    <div className="table-scroll">
+    <ScrollableTable label="Absolute gate outcomes">
       <table>
         <caption>
           {`${String(gates.length)} gates evaluated, ${String(failed)} failed.`}
@@ -47,6 +48,6 @@ export function GateTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollableTable>
   );
 }

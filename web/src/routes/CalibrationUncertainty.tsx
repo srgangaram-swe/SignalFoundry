@@ -17,6 +17,7 @@ import { EvidencePanel } from "../components/EvidencePanel";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { empty, insufficient, partial, ready } from "../state/evidenceState";
 import { useEvidence } from "../hooks/useEvidence";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 /** Below this, an aggregate cannot support a calibration claim. */
 const MIN_SCORED_OBSERVATIONS = 30;
@@ -111,7 +112,7 @@ export function CalibrationUncertainty(): React.JSX.Element {
       <EvidencePanel title="Proper scores and sample counts" status={summaries} headingLevel={3}>
         {(value) => (
           <>
-            <div className="table-scroll">
+            <ScrollableTable label="Proper scores and sample counts">
               <table>
                 <caption>
                   Brier and log score are strictly proper: lower is better, and both are minimised
@@ -153,7 +154,7 @@ export function CalibrationUncertainty(): React.JSX.Element {
                   )}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
             <h4>Stated limitations</h4>
             <ul>
               {value.items.flatMap((item, index) =>

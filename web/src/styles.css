@@ -28,12 +28,21 @@
   --rule: #c8ced4;
   --focus: #0072b2;
 
-  /* Okabe-Ito. Each is paired with a glyph in the markup. */
-  --state-ready: #009e73;
-  --state-warn: #e69f00;
-  --state-fail: #d55e00;
-  --state-info: #0072b2;
-  --state-muted: #6b7178;
+  /*
+   * Okabe-Ito hues, darkened for light backgrounds.
+   *
+   * The published Okabe-Ito values are chosen for hue separation under colour
+   * vision deficiency, not for contrast against white: #009e73 reaches only
+   * 3.4:1 and #d55e00 only 3.9:1, both under the 4.5:1 that WCAG 2.2 AA
+   * requires for text. These are the same hues taken darker so they clear the
+   * threshold while staying distinguishable. Every one is also paired with a
+   * glyph and a word, so colour is never the sole channel.
+   */
+  --state-ready: #00785a;
+  --state-warn: #8a5a00;
+  --state-fail: #a33d00;
+  --state-info: #005f96;
+  --state-muted: #5c636a;
 
   --space: 0.75rem;
   --radius: 6px;

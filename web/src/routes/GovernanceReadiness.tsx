@@ -18,6 +18,7 @@ import { DigestText } from "../components/DigestText";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { empty, invalid, partial, ready } from "../state/evidenceState";
 import { useEvidence } from "../hooks/useEvidence";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 const STATE_TONE: Readonly<Record<LaneSummary["state"], "ready" | "warn" | "muted">> = {
   active: "ready",
@@ -73,7 +74,7 @@ export function GovernanceReadiness(): React.JSX.Element {
       <EvidencePanel title="Governance lanes" status={lanes} headingLevel={3}>
         {(value) => (
           <>
-            <div className="table-scroll">
+            <ScrollableTable label="Governance lanes">
               <table>
                 <caption>
                   A champion is held relative to a lane, never globally. One revision may be
@@ -137,7 +138,7 @@ export function GovernanceReadiness(): React.JSX.Element {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
             <button
               type="button"
               disabled={next === null}

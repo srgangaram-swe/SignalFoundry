@@ -16,6 +16,7 @@ import { DigestText } from "../components/DigestText";
 import type { EvidenceStatus } from "../state/evidenceState";
 import { empty, ready } from "../state/evidenceState";
 import { useEvidence } from "../hooks/useEvidence";
+import { ScrollableTable } from "../components/ScrollableTable";
 
 const runSummarySchema = z.looseObject({
   run_id: z.string().max(200),
@@ -54,7 +55,7 @@ export function RunCatalog(): React.JSX.Element {
     <EvidencePanel title="Run catalog" status={page} headingLevel={3}>
       {(value) => (
         <>
-          <div className="table-scroll">
+          <ScrollableTable label="Run catalog">
             <table>
               <caption>
                 Runs are listed in a stable order with a forward cursor. No total count is shown:
@@ -81,7 +82,7 @@ export function RunCatalog(): React.JSX.Element {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollableTable>
           <button
             type="button"
             disabled={next === null}
