@@ -114,9 +114,11 @@ COPY --chown=0:0 --chmod=0444 \
     src/quant_platform/service/__main__.py \
     src/quant_platform/service/admission.py \
     src/quant_platform/service/api.py \
+    src/quant_platform/service/console.py \
     src/quant_platform/service/contracts.py \
     src/quant_platform/service/entrypoint.py \
     src/quant_platform/service/exporter.py \
+    src/quant_platform/service/governance_models.py \
     src/quant_platform/service/http_protocol.py \
     src/quant_platform/service/manifests.py \
     src/quant_platform/service/metrics.py \

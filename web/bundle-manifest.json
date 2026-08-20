@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "evidence_class": "measured_local_build",
+  "note": "Sizes measured from the emitted bundle. Lazy route chunks are excluded from the initial budgets and counted in total_bytes.",
+  "budgets": [
+    {
+      "name": "initial_js_gzip",
+      "observed": 94595,
+      "limit": 256000
+    },
+    {
+      "name": "initial_css_gzip",
+      "observed": 1551,
+      "limit": 51200
+    },
+    {
+      "name": "total_bytes",
+      "observed": 334360,
+      "limit": 1048576
+    }
+  ],
+  "files": [
+    {
+      "path": "assets/CalibrationUncertainty-w6c1xlUB.js",
+      "bytes": 3243,
+      "gzip_bytes": 1324,
+      "initial": false,
+      "sha256": "aa4b52d7421d1794a6193a519949a02a83e1666bba48613bb45e0ca4ca846e3b"
+    },
+    {
+      "path": "assets/DigestText-CSislrcO.js",
+      "bytes": 284,
+      "gzip_bytes": 216,
+      "initial": false,
+      "sha256": "c00c8e19d37d0f592b3e265828dcf433107bdb2776dfc2b998af40e3c80c59ec"
+    },
+    {
+      "path": "assets/DriftLatencyOperations-CvF__ymQ.js",
+      "bytes": 2436,
+      "gzip_bytes": 1189,
+      "initial": false,
+      "sha256": "9dba28bea41ccf89b2b50e56444503dbfe8f68a85e89b8e247cbb0afb9e7f40d"
+    },
+    {
+      "path": "assets/GovernanceReadiness-KCjo4CNX.js",
+      "bytes": 3839,
+      "gzip_bytes": 1591,
+      "initial": false,
+      "sha256": "e9ad56e6aa1fc952a6f4909d700c33bf2a3117c87cb612233ed046addbdff32a"
+    },
+    {
+      "path": "assets/ModelComparison-Du1uVgf1.js",
+      "bytes": 6189,
+      "gzip_bytes": 2200,
+      "initial": false,
+      "sha256": "e50b36c3888dd3ef3f1287a5d3d6f706707e09cb6c0f29542648b133a1136e60"
+    },
+    {
+      "path": "assets/RunCatalog-D2jLIh5o.js",
+      "bytes": 1786,
+      "gzip_bytes": 839,
+      "initial": false,
+      "sha256": "d992a4ce6e4d40155dbc43a37b400a7827b1f5f6e5c38d0e3954b3f421381d48"
+    },
+    {
+      "path": "assets/RunEvidence-DBQ_2CID.js",
+      "bytes": 2481,
+      "gzip_bytes": 1100,
+      "initial": false,
+      "sha256": "9833c46ee923124c5ea8ea20c2cc04f2c0f3ed70ec5f214e3fc412a95613a3e8"
+    },
+    {
+      "path": "assets/index-A9C8R3ks.js",
+      "bytes": 309204,
+      "gzip_bytes": 94595,
+      "initial": true,
+      "sha256": "9f86bd511f0582188d423eee0da0cccce5ed2021ce3d0b34d5e17f28c841e02c"
+    },
+    {
+      "path": "assets/style-CixQQabP.css",
+      "bytes": 4178,
+      "gzip_bytes": 1551,
+      "initial": true,
+      "sha256": "5b50378c595b2c46e5f164bc90b0e17934a7024e00ae3375d1696f38ceaf77d2"
+    },
+    {
+      "path": "index.html",
+      "bytes": 720,
+      "gzip_bytes": 405,
+      "initial": false,
+      "sha256": "425a467e819cbb497fc64232fcc7c1955a1453500a38fc200cd5d42f78203dff"
+    }
+  ]
+}

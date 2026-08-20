@@ -670,9 +670,7 @@ def test_route_and_openapi_inventory_is_exact_read_only_and_has_no_trading_autho
     assert document["paths"]["/api/v1/openapi.json"]["get"]["responses"]["200"] == {
         "description": "The deterministic OpenAPI 3.1 service contract.",
         "content": {
-            "application/json": {
-                "schema": {"$ref": "https://spec.openapis.org/oas/3.1/schema/2025-11-23"}
-            }
+            "application/json": {"schema": {"$ref": "#/components/schemas/OpenApiDocument"}}
         },
     }
     for path, path_item in document["paths"].items():
