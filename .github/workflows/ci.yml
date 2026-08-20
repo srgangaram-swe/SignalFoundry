@@ -243,3 +243,95 @@ jobs:
             reports/*.html
             reports/figures/*.png
           if-no-files-found: error
+
+  console:
+    name: Console (type-check, lint, tests, budgets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked dependencies
+        working-directory: web
+        # `npm ci` fails rather than resolving when the lockfile and manifest
+        # disagree, which is the property that makes the install reproducible.
+        run: npm ci
+      - name: Type-check
+        working-directory: web
+        run: npx tsc --noEmit
+      - name: Lint
+        working-directory: web
+        run: npx eslint . --max-warnings 0
+      - name: Unit and component tests with branch coverage
+        working-directory: web
+        run: npx vitest run --coverage
+      - name: Build
+        working-directory: web
+        run: npm run build
+      - name: OpenAPI contract drift
+        working-directory: web
+        # Regenerates the bindings and compares them byte for byte: types that
+        # drifted from the served contract compile happily and then render
+        # fields the service does not send.
+        run: npm run api:check
+      - name: Resource budgets
+        working-directory: web
+        run: npm run budget
+      - name: Two builds are byte-identical
+        working-directory: web
+        # A bundle whose bytes change without its inputs changing cannot be
+        # attested to later.
+        run: |
+          set -eu
+          find dist -type f -exec sha256sum {} + | sed 's| dist/| |' | sort > /tmp/build-a.txt
+          npm run build
+          find dist -type f -exec sha256sum {} + | sed 's| dist/| |' | sort > /tmp/build-b.txt
+          diff -u /tmp/build-a.txt /tmp/build-b.txt
+      - name: Reject generated or oversized artifacts in the tree
+        run: |
+          set -eu
+          if git ls-files --error-unmatch web/dist web/node_modules web/coverage >/dev/null 2>&1; then
+            echo "generated console output must not be committed" >&2
+            exit 1
+          fi
+
+  console-browser:
+    name: Console browser and accessibility tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked dependencies
+        working-directory: web
+        run: npm ci
+      - name: Install browsers
+        working-directory: web
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Build
+        working-directory: web
+        run: npm run build
+      - name: Browser matrix, keyboard, and axe
+        working-directory: web
+        run: npx playwright test
+        env:
+          CI: "1"
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: web/playwright-report
+          retention-days: 7

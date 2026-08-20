@@ -1,0 +1,134 @@
+{
+  "aa_contrast_threshold": 4.5,
+  "browsers": {
+    "chromium": {
+      "failed": 0,
+      "passed": 33,
+      "skipped": 0
+    },
+    "firefox": {
+      "failed": 0,
+      "passed": 33,
+      "skipped": 0
+    },
+    "mobile-narrow": {
+      "failed": 0,
+      "passed": 32,
+      "skipped": 1
+    },
+    "webkit": {
+      "failed": 0,
+      "passed": 32,
+      "skipped": 1
+    }
+  },
+  "bundle_budgets": [
+    {
+      "limit": 256000,
+      "name": "initial_js_gzip",
+      "observed": 94667,
+      "utilisation": 0.36979296875
+    },
+    {
+      "limit": 51200,
+      "name": "initial_css_gzip",
+      "observed": 1553,
+      "utilisation": 0.03033203125
+    },
+    {
+      "limit": 1048576,
+      "name": "total_bytes",
+      "observed": 335030,
+      "utilisation": 0.31950950622558594
+    }
+  ],
+  "coverage": {
+    "branches": 91.82,
+    "functions": 93.93,
+    "lines": 99.15,
+    "statements": 96.9
+  },
+  "evidence_class": "measured_local_engineering",
+  "evidence_states": [
+    "LOADING",
+    "READY",
+    "EMPTY",
+    "PARTIAL",
+    "INSUFFICIENT_EVIDENCE",
+    "INVALID",
+    "STALE",
+    "UNAVAILABLE",
+    "ERROR"
+  ],
+  "note": "Counts, ratios, and byte sizes produced by real build and test runs on one local machine. Not a performance benchmark, a capacity claim, or evidence of profitability.",
+  "palette_contrast": {
+    "ink": 17.63359508009438,
+    "ink-muted": 8.059053666623406,
+    "state-fail": 6.512024824584142,
+    "state-info": 6.8241967078380386,
+    "state-ready": 5.476986318314853,
+    "state-warn": 5.9269788497474005
+  },
+  "route_states": {
+    "CalibrationUncertainty": [
+      "EMPTY",
+      "ERROR",
+      "INSUFFICIENT_EVIDENCE",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "DriftLatencyOperations": [
+      "EMPTY",
+      "ERROR",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "GovernanceReadiness": [
+      "EMPTY",
+      "ERROR",
+      "INVALID",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "ModelComparison": [
+      "EMPTY",
+      "ERROR",
+      "INSUFFICIENT_EVIDENCE",
+      "INVALID",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "RunCatalog": [
+      "EMPTY",
+      "ERROR",
+      "LOADING",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "RunEvidence": [
+      "EMPTY",
+      "ERROR",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ],
+    "SystemOverview": [
+      "EMPTY",
+      "ERROR",
+      "LOADING",
+      "PARTIAL",
+      "READY",
+      "UNAVAILABLE"
+    ]
+  },
+  "schema_version": 1
+}

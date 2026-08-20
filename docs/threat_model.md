@@ -132,6 +132,36 @@ Kubernetes or multi-worker safety, high availability, disaster recovery, a 28-da
 readiness, current market-data validity, paper/live trading readiness, capital authorization,
 profitability, or protection from a compromised owner account.
 
+## Local console
+
+The console is served from the same loopback origin by an additive delivery boundary. It is a
+projection: it issues only same-origin `GET` requests, sends no credentials, persists nothing in the
+browser, registers no service worker, opens no socket, and cannot express a mutation -- its
+transport has no method parameter.
+
+Threats addressed:
+
+- **Serving something outside the build.** The bundle is enumerated once at load; symlinks are
+  refused rather than followed, content types come from a fixed map, and a file appearing under the
+  root afterwards is not reachable.
+- **Path oracles.** Route fallback is an allowlist of exactly seven views, so the console does not
+  answer 200 for arbitrary paths.
+- **Script injection.** The document policy is `script-src 'self'` and `style-src 'self'` with no
+  inline, no eval, no third-party origin, no worker, and no frame. Server text is rendered as text;
+  lint forbids `dangerouslySetInnerHTML`, `innerHTML`, and `outerHTML`.
+- **Untrusted response bodies.** Every response is strict-decoded before use; unknown fields,
+  non-finite numbers, bad digests, wrong schema versions, and unrecognised enum members fail closed,
+  and the failure reason never echoes the received value.
+- **Resource exhaustion by the observer.** Four requests in flight, a ten-second hard abort, no
+  retry, no polling, and a 256-mark ceiling per panel.
+- **Method confusion.** `HEAD` is admitted for console assets only; the JSON API stays GET-only and
+  every mutation verb is refused everywhere.
+
+**Explicitly not established.** The console does not re-verify hash chains or re-run gates in the
+browser; it renders the fields the service reports, so a service reporting a false `true` would be
+believed. Local-only enforcement remains the service's `Host` validation, not the browser's. Node
+is a build-time dependency only and is absent from the hardened image.
+
 ## Promotion governance
 
 `quant_platform.governance` records champion assignments in a per-lane append-only event chain.
