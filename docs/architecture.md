@@ -140,6 +140,12 @@ The additive read-only service is qualified only inside the fixed local operatin
 [service operations guide](service_operations.md), [service threat model](threat_model.md), and
 [ADR 0004](adr/0004-bounded-service-operability.md).
 
+A local-only read-only browser projection of this evidence is served under `/console` by the same
+service. It computes nothing the API did not send, holds no authority, and is removable by passing
+`console=None`; see the [console guide](console.md) and
+[ADR 0006](adr/0006-local-forecast-observability-console.md). Node is a build and test boundary
+only -- the hardened container ships without it.
+
 Champion-challenger promotion is governed separately in `quant_platform.governance`, which layers
 exact paired comparison, dependence-aware inference, absolute gates, and an append-only event chain
 per lane. Automation there may compute, recommend, and freeze; it may never approve, apply, roll

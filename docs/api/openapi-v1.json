@@ -803,6 +803,12 @@
         "title": "ModelCardSummary",
         "type": "object"
       },
+      "OpenApiDocument": {
+        "additionalProperties": true,
+        "description": "This service's own OpenAPI 3.1 document. Conformance to the OpenAPI meta-schema is asserted by the contract test suite rather than by a remote $ref, so the published contract resolves entirely offline.",
+        "title": "OpenApiDocument",
+        "type": "object"
+      },
       "ProblemDocument": {
         "additionalProperties": false,
         "description": "RFC 9457 response with a stable service code and server request ID.",
@@ -1241,7 +1247,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1261,7 +1267,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "Get Artifact",
@@ -1390,7 +1396,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1410,7 +1416,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "List Model Cards",
@@ -1517,7 +1523,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1537,7 +1543,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "Get Model Card",
@@ -1554,7 +1560,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "https://spec.openapis.org/oas/3.1/schema/2025-11-23"
+                  "$ref": "#/components/schemas/OpenApiDocument"
                 }
               }
             },
@@ -1598,7 +1604,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1618,7 +1624,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "Get Openapi",
@@ -1757,7 +1763,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1777,7 +1783,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "List Runs",
@@ -1872,7 +1878,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -1892,7 +1898,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "Get Run",
@@ -2021,7 +2027,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -2041,7 +2047,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "List Artifacts",
@@ -2170,7 +2176,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -2190,7 +2196,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "List Diagnostics",
@@ -2319,7 +2325,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -2339,7 +2345,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "List Forecast Summaries",
@@ -2400,7 +2406,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {
@@ -2420,7 +2426,7 @@
                 }
               }
             },
-            "description": "The service is draining, capacity-bounded, or verified evidence is unavailable."
+            "description": "The service is draining or a verified evidence or response boundary is unavailable."
           }
         },
         "summary": "Liveness",
@@ -2481,7 +2487,7 @@
                 }
               }
             },
-            "description": "The bounded application concurrency limit was reached."
+            "description": "A bounded rate or concurrency admission limit was reached."
           },
           "500": {
             "content": {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated, Protocol, cast
+from typing import Annotated, Any, Final, Protocol, cast
 
 from fastapi import FastAPI, Query, Request
 from fastapi import Path as ApiPath
@@ -16,6 +16,13 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from quant_platform.service.admission import (
     AdmissionController,
     AdmissionLimits,
+)
+from quant_platform.service.console import ConsoleBundle
+from quant_platform.service.governance_models import (
+    LANE_RESPONSE_PAGE_LIMIT,
+    ComparisonPageResponse,
+    LaneDetailResponse,
+    LanePageResponse,
 )
 from quant_platform.service.manifests import (
     DiagnosticsManifest,
@@ -85,7 +92,23 @@ _MANIFEST_MEDIA_TYPE = "application/vnd.signalattice.manifest+json"
 _FORECAST_MANIFEST_BYTES = 128 * 1024
 _DIAGNOSTICS_MANIFEST_BYTES = 512 * 1024
 _MODEL_CARD_MANIFEST_BYTES = 96 * 1024
-_OPENAPI_DOCUMENT_SCHEMA = "https://spec.openapis.org/oas/3.1/schema/2025-11-23"
+# The contract describes its own document locally rather than by reference to the
+# remote OpenAPI meta-schema. A local-only, offline service whose published
+# contract cannot be interpreted without a network fetch is not self-contained,
+# and every consumer -- including the console's type generator -- would have to
+# reach the public internet to read it.
+_OPENAPI_DOCUMENT_SCHEMA_NAME = "OpenApiDocument"
+_OPENAPI_DOCUMENT_SCHEMA_REF = f"#/components/schemas/{_OPENAPI_DOCUMENT_SCHEMA_NAME}"
+_OPENAPI_DOCUMENT_SCHEMA: Final[dict[str, object]] = {
+    "type": "object",
+    "title": _OPENAPI_DOCUMENT_SCHEMA_NAME,
+    "description": (
+        "This service's own OpenAPI 3.1 document. Conformance to the OpenAPI "
+        "meta-schema is asserted by the contract test suite rather than by a remote "
+        "$ref, so the published contract resolves entirely offline."
+    ),
+    "additionalProperties": True,
+}
 
 _PROBLEM_DESCRIPTIONS = {
     400: "The bounded request contract was violated.",
@@ -148,10 +171,35 @@ RunReferencePath = Annotated[
     ApiPath(min_length=5, max_length=176, pattern=r"^r1_[A-Za-z0-9_-]+$"),
 ]
 DigestPath = Annotated[str, ApiPath(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")]
+# A governance lane cursor is a lane identity, so it is validated as one rather
+# than as opaque text: an unparseable cursor fails at the boundary.
+LaneCursorQuery = Annotated[
+    str | None,
+    Query(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$"),
+]
 CardIdentifierPath = Annotated[
     str,
     ApiPath(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._~-]{0,127}$"),
 ]
+
+
+class GovernanceReadPort(Protocol):
+    """Structural contract for the bounded governance projection.
+
+    Declared here rather than imported so the service package does not depend on
+    the governance package. The hardened image ships the service modules without
+    governance, and a concrete import would place the writable governance store
+    inside a container whose whole point is that it cannot write.
+    """
+
+    def list_lanes(self, *, page_size: int = ..., cursor: str | None = ...) -> Any:
+        """Return one bounded page of lane summaries."""
+
+    def get_lane(self, lane_identity: str) -> Any:
+        """Return one lane with a bounded slice of its history."""
+
+    def list_comparisons(self, lane_identity: str) -> Any:
+        """Return the lane's recorded promotion decisions."""
 
 
 class EvidenceReadPort(Protocol):
@@ -273,6 +321,7 @@ def _install_openapi_contract(app: FastAPI) -> None:
         schemas["ProblemDocument"] = ProblemDocument.model_json_schema(
             ref_template="#/components/schemas/{model}"
         )
+        schemas[_OPENAPI_DOCUMENT_SCHEMA_NAME] = dict(_OPENAPI_DOCUMENT_SCHEMA)
         paths = cast(dict[str, object], document.get("paths", {}))
         for path, raw_path_item in paths.items():
             path_item = cast(dict[str, object], raw_path_item)
@@ -317,6 +366,8 @@ def create_app(
     allowed_port: int | None = None,
     admission: AdmissionController | None = None,
     telemetry: ServiceTelemetry | None = None,
+    governance: GovernanceReadPort | None = None,
+    console: ConsoleBundle | None = None,
 ) -> FastAPI:
     """Create a read-only app over already-initialized injected storage ports.
 
@@ -713,7 +764,7 @@ def create_app(
                 "description": "The deterministic OpenAPI 3.1 service contract.",
                 "content": {
                     "application/json": {
-                        "schema": {"$ref": _OPENAPI_DOCUMENT_SCHEMA},
+                        "schema": {"$ref": _OPENAPI_DOCUMENT_SCHEMA_REF},
                     }
                 },
             }
@@ -725,6 +776,44 @@ def create_app(
             media_type="application/json",
         )
 
+    if governance is not None:
+        governance_ports = governance
+
+        @app.get(
+            "/api/v1/governance/lanes",
+            response_model=LanePageResponse,
+            operation_id="listGovernanceLanesV1",
+            tags=["governance"],
+        )
+        def list_governance_lanes(
+            page_size: PageSize = 25,
+            cursor: LaneCursorQuery = None,
+        ) -> LanePageResponse:
+            bounded = min(page_size, LANE_RESPONSE_PAGE_LIMIT)
+            return LanePageResponse.from_projection(
+                governance_ports.list_lanes(page_size=bounded, cursor=cursor)
+            )
+
+        @app.get(
+            "/api/v1/governance/lanes/{lane_id}",
+            response_model=LaneDetailResponse,
+            operation_id="getGovernanceLaneV1",
+            tags=["governance"],
+        )
+        def get_governance_lane(lane_id: DigestPath) -> LaneDetailResponse:
+            return LaneDetailResponse.from_projection(governance_ports.get_lane(lane_id))
+
+        @app.get(
+            "/api/v1/governance/lanes/{lane_id}/comparisons",
+            response_model=ComparisonPageResponse,
+            operation_id="listGovernanceComparisonsV1",
+            tags=["governance"],
+        )
+        def list_governance_comparisons(lane_id: DigestPath) -> ComparisonPageResponse:
+            return ComparisonPageResponse.from_projections(
+                governance_ports.list_comparisons(lane_id)
+            )
+
     _install_openapi_contract(app)
     app.add_middleware(
         SecurityBoundaryMiddleware,
@@ -733,6 +822,7 @@ def create_app(
         allowed_port=allowed_port,
         admission=resolved_admission,
         telemetry=resolved_telemetry,
+        console=console,
     )
     return app
 
@@ -754,6 +844,13 @@ def assert_read_only_route_inventory(app: FastAPI) -> None:
         "/api/v1/model-cards/{card_id}",
         "/api/v1/openapi.json",
     }
+    # Governance reads are mounted only when a governance port is injected, so
+    # the inventory admits them conditionally rather than demanding them.
+    optional = {
+        "/api/v1/governance/lanes",
+        "/api/v1/governance/lanes/{lane_id}",
+        "/api/v1/governance/lanes/{lane_id}/comparisons",
+    }
     observed: set[str] = set()
     operation_ids: set[str] = set()
     for route in app.routes:
@@ -768,5 +865,6 @@ def assert_read_only_route_inventory(app: FastAPI) -> None:
         if type(operation_id) is not str or not operation_id or operation_id in operation_ids:
             raise RuntimeError("service route inventory has a missing or duplicate operation ID")
         operation_ids.add(operation_id)
-    if observed != expected:
+    unexpected = observed - expected - optional
+    if unexpected or not expected <= observed:
         raise RuntimeError("service route inventory differs from the approved version-1 contract")

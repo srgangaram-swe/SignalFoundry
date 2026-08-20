@@ -20,10 +20,16 @@ from quant_platform.service.admission import (
     AdmissionLimits,
     AdmissionRejection,
 )
+from quant_platform.service.console import (
+    ConsoleAsset,
+    ConsoleBundle,
+    console_headers,
+)
 from quant_platform.service.problems import (
     BAD_REQUEST,
     INTERNAL,
     METHOD_NOT_ALLOWED,
+    NOT_FOUND,
     PAYLOAD_TOO_LARGE,
     RATE_LIMITED,
     RESPONSE_LIMIT_EXCEEDED,
@@ -104,6 +110,7 @@ class SecurityBoundaryMiddleware:
         allowed_port: int | None = None,
         admission: AdmissionController | None = None,
         telemetry: ServiceTelemetry | None = None,
+        console: ConsoleBundle | None = None,
     ) -> None:
         bounds = {
             "max_concurrency": (max_concurrency, 1, 1_024),
@@ -127,6 +134,8 @@ class SecurityBoundaryMiddleware:
             raise TypeError("admission must be an AdmissionController")
         if telemetry is not None and type(telemetry) is not ServiceTelemetry:
             raise TypeError("telemetry must be a ServiceTelemetry")
+        if console is not None and type(console) is not ConsoleBundle:
+            raise TypeError("console must be a ConsoleBundle")
         self._app = app
         self._max_headers = max_headers
         self._max_header_bytes = max_header_bytes
@@ -145,6 +154,7 @@ class SecurityBoundaryMiddleware:
             else admission
         )
         self._telemetry = telemetry
+        self._console = console
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Validate one ASGI exchange and emit a bounded secured response."""
@@ -233,6 +243,9 @@ class SecurityBoundaryMiddleware:
                 scope["headers"] = [
                     pair for pair in scope.get("headers", ()) if pair[0].lower() != b"x-request-id"
                 ]
+                if self._console is not None and self._console_scoped(scope):
+                    await self._serve_console(scope, observed_send)
+                    return
                 bounded_rejection = await self._call_bounded(
                     scope,
                     replay_receive,
@@ -304,12 +317,73 @@ class SecurityBoundaryMiddleware:
             else AdmissionLane.DATA
         )
 
+    def _console_scoped(self, scope: Scope) -> bool:
+        """Return whether this request targets the mounted console namespace.
+
+        Scoping is by exact path or a ``/console/`` prefix on the already
+        decoded path. The prefix check runs against ``scope["path"]``, which the
+        server has normalised, and the boundary separately rejects percent-encoded
+        aliases, so a request cannot reach console handling under an alternate
+        spelling.
+        """
+        if self._console is None:
+            return False
+        path = scope.get("path")
+        if type(path) is not str:
+            return False
+        return path == "/console" or path.startswith("/console/")
+
+    async def _serve_console(self, scope: Scope, send: Send) -> None:
+        """Emit one console asset, or a bounded 404 when nothing matches.
+
+        The body is omitted for ``HEAD`` while the headers stay identical, so a
+        client can validate size and type without transferring the payload.
+        """
+        assert self._console is not None  # guarded by the caller
+        path = scope.get("path")
+        asset = self._console.resolve(path) if type(path) is str else None
+        if asset is None:
+            await self._send_problem(send, NOT_FOUND, secrets.token_hex(16))
+            return
+        await self._send_console_asset(asset, method=scope.get("method"), send=send)
+
+    async def _send_console_asset(self, asset: ConsoleAsset, *, method: object, send: Send) -> None:
+        """Write one asset with its fixed headers and bounded body."""
+        try:
+            body = asset.path.read_bytes()
+        except OSError:
+            # The manifest was built from files that existed at load; one
+            # disappearing underneath us is an integrity fault, not a 404.
+            await self._send_problem(send, INTERNAL, secrets.token_hex(16))
+            return
+        if len(body) != asset.size:
+            await self._send_problem(send, INTERNAL, secrets.token_hex(16))
+            return
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": list(console_headers(asset)),
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": b"" if method == "HEAD" else body,
+                "more_body": False,
+            }
+        )
+
     def _validate_scope(
         self,
         scope: Scope,
     ) -> tuple[ProblemSpec | None, RejectionReason | None]:
         method = scope.get("method")
-        if method != "GET":
+        # HEAD is admitted only for console assets, and only when a console is
+        # actually mounted. The JSON API stays GET-only: a HEAD there would be a
+        # second code path returning evidence headers with no body to verify.
+        permitted = ("GET", "HEAD") if self._console_scoped(scope) else ("GET",)
+        if method not in permitted:
             return METHOD_NOT_ALLOWED, RejectionReason.INVALID_METADATA
         path = scope.get("path")
         raw_path = scope.get("raw_path", b"")
