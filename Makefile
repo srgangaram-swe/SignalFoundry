@@ -173,3 +173,16 @@ release-verify: ## Independently verify a staged release candidate
 
 release-reproducible: ## Prove two clean builds of one commit are byte-identical
 	$(BIN)/python scripts/check_release_reproducible.py
+
+# ---------------------------------------------------------------------------
+# Sprint 5 evidence dossier (SF-S5-SL-MR8)
+# ---------------------------------------------------------------------------
+
+.PHONY: sprint5-dossier sprint5-dossier-check
+
+sprint5-dossier: ## Regenerate the Sprint 5 evidence index and figure
+	$(BIN)/python scripts/build_sprint5_dossier.py
+	$(BIN)/python scripts/plot_sprint5_evidence.py
+
+sprint5-dossier-check: ## Recompute every evidence digest and refuse on drift
+	$(BIN)/python scripts/build_sprint5_dossier.py --check
