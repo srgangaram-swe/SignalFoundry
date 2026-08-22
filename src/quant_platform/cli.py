@@ -63,6 +63,92 @@ def version() -> None:
     typer.echo(f"signalattice {__version__}")
 
 
+@app.command("serve-api")
+def serve_api(
+    registry_db: Path = typer.Option(
+        ...,
+        "--registry-db",
+        help="Existing durable registry SQLite file; never created or migrated.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    cas_root: Path = typer.Option(
+        ...,
+        "--cas-root",
+        help="Existing private content-addressed artifact-store root.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    port: int = typer.Option(
+        8765,
+        "--port",
+        min=1024,
+        max=65_535,
+        help="Loopback TCP port (the bind host is fixed to 127.0.0.1).",
+    ),
+    keychain_service: str = typer.Option(
+        "com.signal-foundry.signalattice-registry",
+        "--keychain-service",
+        help="Public macOS Keychain service label for the registry HMAC credential.",
+    ),
+    socket_path: Path | None = typer.Option(
+        None,
+        "--socket-path",
+        help="Private Unix-domain socket path; when set, no TCP listener is created.",
+        file_okay=True,
+        dir_okay=False,
+        # Preserve the caller's path identity so the server can reject a
+        # symlinked parent instead of receiving Click's resolved target.
+        resolve_path=False,
+    ),
+    digest_key_file: Path | None = typer.Option(
+        None,
+        "--digest-key-file",
+        help="Private runtime-mounted registry HMAC key file; never logged or persisted.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        # O_NOFOLLOW is meaningful only when Typer has not already followed
+        # the untrusted path during argument conversion.
+        resolve_path=False,
+    ),
+) -> None:
+    """Serve verified aggregate evidence through the local read-only API."""
+
+    try:
+        from quant_platform.service.server import (
+            ServerConfig,
+            ServiceStartupError,
+            serve_existing_evidence,
+        )
+    except ModuleNotFoundError as exc:
+        if exc.name not in {"fastapi", "starlette", "uvicorn"}:
+            raise
+        raise typer.BadParameter(
+            "The local API requires the optional service dependencies; install "
+            "with `pip install 'signalattice[service]'`."
+        ) from None
+    try:
+        serve_existing_evidence(
+            registry_db,
+            cas_root,
+            keychain_service=keychain_service,
+            digest_key_file=digest_key_file,
+            config=ServerConfig(port=port, socket_path=socket_path),
+        )
+    except ServiceStartupError as exc:
+        # ServiceStartupError messages are deliberately stable and contain no
+        # paths, credentials, SQL diagnostics, or underlying exception text.
+        raise typer.BadParameter(str(exc)) from None
+
+
 @app.command("ingest-data")
 def ingest_data(
     config: str = ConfigOpt, log_level: str | None = LogLevelOpt, force: bool = ForceOpt
@@ -241,7 +327,15 @@ def run_full_pipeline(
 
 @app.command("list-experiments")
 def list_experiments(
-    config: str = ConfigOpt, log_level: str | None = LogLevelOpt, limit: int = 10
+    config: str = ConfigOpt,
+    log_level: str | None = LogLevelOpt,
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        min=1,
+        max=1_000,
+        help="Maximum legacy experiment records to inspect.",
+    ),
 ) -> None:
     """List recorded experiment runs from the tracking backend."""
     from quant_platform.tracking import get_tracker
@@ -249,7 +343,7 @@ def list_experiments(
     cfg = AppConfig.from_yaml(config)
     configure_logging(log_level, force=log_level is not None)
     tracker = get_tracker(cfg.tracking)
-    runs = tracker.list_runs()[:limit]
+    runs = tracker.list_runs(limit=limit)
     if not runs:
         typer.echo("No experiment runs recorded yet.")
         raise typer.Exit()

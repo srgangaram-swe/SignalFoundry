@@ -101,6 +101,23 @@ and [validation protocol](validation_protocol.md) together. A result should be r
 sent back for investigation when it depends on one fold, one candidate, an implausible
 cost assumption, weak calibration, a narrow universe, or an undocumented data change.
 
+## Champion status
+
+A model is never "the champion" globally. Champion status is held **relative to a governance lane**,
+keyed by purpose, target, horizon, frequency, universe, decision policy, and environment. One
+revision may be champion in one lane and a rejected challenger in another, so the question is only
+answerable against a named lane and its generation.
+
+Replacing a champion requires the preregistered floor in the
+[validation protocol](validation_protocol.md), a comparison on an exactly paired cohort, and a
+**named human approval** bound to that decision. A changed model is a new revision with a new
+evidence window, and every tried challenger stays in the multiplicity family — a challenger that
+was tested and set aside still counts toward the correction applied to the next one.
+
+Being a lane's champion is a statement about accumulated shadow evidence within this repository. It
+is not a production deployment, a capital allocation, an authorization to trade on paper or live, or
+a claim of profitability.
+
 ## Versioning
 
 Model behavior is versioned through the Git commit, resolved YAML config, feature list,

@@ -8,15 +8,27 @@ from quant_platform.config import AppConfig
 from quant_platform.tracking import get_tracker
 
 
+def _bounded_limit(value: str) -> int:
+    """Parse one positive, resource-bounded legacy query limit."""
+
+    try:
+        limit = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("limit must be an integer") from exc
+    if not 1 <= limit <= 1_000:
+        raise argparse.ArgumentTypeError("limit must be between 1 and 1000")
+    return limit
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/example.yaml")
-    parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument("--limit", type=_bounded_limit, default=10)
     args = parser.parse_args()
 
     cfg = AppConfig.from_yaml(args.config)
     tracker = get_tracker(cfg.tracking)
-    runs = tracker.list_runs()[: args.limit]
+    runs = tracker.list_runs(limit=args.limit)
     if not runs:
         print("No tracked runs found.")
         return

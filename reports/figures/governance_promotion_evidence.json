@@ -1,0 +1,67 @@
+{
+  "alpha": 0.05,
+  "calibration": [
+    {
+      "block_false_positive_rate": 0.0725,
+      "block_median_width": 0.0024393852367801732,
+      "dependence": 0.0,
+      "naive_false_positive_rate": 0.0675,
+      "naive_median_width": 0.0025221424008393845
+    },
+    {
+      "block_false_positive_rate": 0.055,
+      "block_median_width": 0.004007374856733128,
+      "dependence": 0.25,
+      "naive_false_positive_rate": 0.26,
+      "naive_median_width": 0.0024876428722010483
+    },
+    {
+      "block_false_positive_rate": 0.05,
+      "block_median_width": 0.005201520582741279,
+      "dependence": 0.5,
+      "naive_false_positive_rate": 0.35,
+      "naive_median_width": 0.0024817702331597505
+    },
+    {
+      "block_false_positive_rate": 0.07,
+      "block_median_width": 0.0062489251889586645,
+      "dependence": 0.75,
+      "naive_false_positive_rate": 0.3975,
+      "naive_median_width": 0.002505726493423041
+    },
+    {
+      "block_false_positive_rate": 0.04,
+      "block_median_width": 0.006997483506451562,
+      "dependence": 1.0,
+      "naive_false_positive_rate": 0.4875,
+      "naive_median_width": 0.0024635899890392684
+    }
+  ],
+  "cohorts_per_level": 400,
+  "days": 30,
+  "figure_bytes": 227722,
+  "forecasts_per_day": 8,
+  "gate_accounting": {
+    "sufficient": {
+      "challenger_only": 0,
+      "champion_only": 1,
+      "coverage": 0.995850622406639,
+      "distinct_days": 30,
+      "gates_failed": 0,
+      "gates_total": 7,
+      "matched": 240
+    },
+    "thin": {
+      "challenger_only": 0,
+      "champion_only": 12,
+      "coverage": 0.75,
+      "distinct_days": 9,
+      "gates_failed": 6,
+      "gates_total": 7,
+      "matched": 36
+    }
+  },
+  "production_replicates": 10000,
+  "seed": 20260811,
+  "study_replicates": 2000
+}

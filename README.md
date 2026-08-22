@@ -88,13 +88,23 @@ Key capabilities include:
   no-trade bands, position and gross-exposure limits, causal volatility targeting, costs,
   and explicit execution lag;
 - cost, delay, break-even cost, dollar-volume participation, capacity-proxy, and warm
-  inference latency diagnostics; and
+  inference latency diagnostics;
+- an explicit-bootstrap, single-host durable research registry with idempotent submission,
+  leases, append-only lifecycle evidence, content-addressed artifacts, bounded retention, and
+  path-free framework-neutral reads;
+- an optional loopback-only, read-only FastAPI projection for versioned aggregate forecast,
+  diagnostic, model-card, and artifact-metadata evidence—with no mutation, download, broker,
+  order, or live-trading route; and
 - unit and integration tests for chronology, candidate/calibrator/weighting separation,
   portfolio invariants, missing-data failure modes, temporal tensor construction,
   persistence, and report inputs.
 
-See [Architecture](docs/architecture.md), [Methodology](docs/methodology.md), and the
-[Validation protocol](docs/validation_protocol.md) for the contracts behind these claims.
+See [Architecture](docs/architecture.md), [Methodology](docs/methodology.md), the
+[Validation protocol](docs/validation_protocol.md), and the
+[local evidence-service guide](docs/api_service.md) for the contracts behind these claims. The
+[bounded service operator guide](docs/service_operations.md) and
+[service threat model](docs/threat_model.md) define the narrower deployable local profile and its
+explicit limitations.
 
 ## Evidence boundary
 
@@ -139,6 +149,16 @@ plots are supporting diagnostics; no single plot is treated as proof of tradabil
 Signalattice uses a standard `src/` package layout and exposes both `signalattice` and the
 legacy `quant-platform` console aliases.
 
+The commands and example YAML files below assume a repository checkout. Runtime wheels contain
+only importable package code and typing metadata; they do not depend on repository documentation,
+scripts, or example configs. Wheel users must supply their own explicit `--config` path. The source
+distribution additionally carries the durable-registry operator guide, its ADR, and the bounded
+legacy-experiment summarizer, while example configs remain repository-only to avoid presenting
+research fixtures as installed runtime policy. The release gate rejects archive-path aliases and
+file/directory collisions, bounds compressed and expanded archive bytes before semantic parsing,
+verifies every wheel `RECORD` hash and size against streamed member bytes, and installs both the
+wheel and source distribution in separate isolated environments.
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -168,10 +188,18 @@ Install optional model backends only when a config requests them:
 ```bash
 python -m pip install -e ".[dev,boost]"  # XGBoost / LightGBM
 python -m pip install -e ".[dev,torch]"  # causal TCN
+python -m pip install -e ".[dev,mlflow]"  # remote MLflow tracking client
+python -m pip install -e ".[dev,service]"  # local read-only evidence API
 ```
 
 Requested optional backends fail closed when their dependency is absent. Signalattice does
-not silently replace an experiment's declared model with another estimator.
+not silently replace an experiment's declared model with another estimator. The MLflow extra uses
+the current lightweight client distribution and deliberately excludes MLflow's local server, UI,
+and SQL storage dependency surface; point it only at an operator-approved tracking service.
+The service extra likewise omits FastAPI/Uvicorn convenience bundles, browser UI tooling,
+templates, multipart parsers, alternate event loops, reloaders, and WebSockets. It binds only
+to loopback under the documented profile and opens pre-existing registry/CAS state without
+migration; it is not a remotely authenticated or production trading service.
 
 ## Workflow
 
@@ -212,8 +240,16 @@ Docker:
 
 ```bash
 docker compose build
-docker compose run --rm platform run-full-pipeline --config configs/synthetic.yaml --force
+docker compose --profile cli run --rm platform \
+  run-full-pipeline --config configs/synthetic.yaml --force
 ```
+
+The dedicated, networkless evidence-service container has a stricter secret, storage, and Unix
+socket startup contract; follow the [bounded service operator guide](docs/service_operations.md)
+instead of improvising mounts or publishing a port. Its builder synchronizes only the locked
+`service-runtime` dependency group and starts the explicit
+`python -m quant_platform.service` boundary; the broad numerical research environment is not copied
+into that image.
 
 The CI workflow runs static checks, unit/integration tests across supported Python
 versions, and a deterministic end-to-end smoke test. Deep-learning tests are isolated
@@ -253,6 +289,8 @@ tests/                      unit and integration contracts
 - [Backtesting contract](docs/backtesting.md)
 - [Risk metrics](docs/risk_metrics.md)
 - [ADR 0001: probabilistic ForecastOps](docs/adr/0001-probabilistic-forecastops.md)
+- [Durable registry operator guide](docs/run_registry.md)
+- [ADR 0002: durable local registry and CAS](docs/adr/0002-durable-local-registry.md)
 
 ## Known limitations
 
