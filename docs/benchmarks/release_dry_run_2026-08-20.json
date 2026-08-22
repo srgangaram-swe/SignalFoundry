@@ -1,0 +1,82 @@
+{
+  "build_kind": "dry-run",
+  "evidence_class": "measured_local_release_dry_run",
+  "limitations": [
+    "Artifact digests establish content identity, not economic validity.",
+    "No prospective wall-clock trading evidence exists; shadow campaigns are deterministic replays.",
+    "The console bundle is built from the committed lockfile.",
+    "A signature proves the authorized process signed these bytes; it is not independent review and not an authorization to trade."
+  ],
+  "note": "Produced by a non-publishing dry run. Digests establish content identity, not economic validity, independent review, or production readiness.",
+  "release_version": "0.3.0",
+  "sbom_components": 439,
+  "schema_version": 1,
+  "source_commit": "c8c149fccd89d6145ac11fd993fa650a4a9c5681",
+  "subject_count": 24,
+  "subjects_by_kind": {
+    "console": {
+      "bytes": 335030,
+      "count": 11
+    },
+    "evidence": {
+      "bytes": 112036,
+      "count": 9
+    },
+    "license": {
+      "bytes": 1359,
+      "count": 1
+    },
+    "schema": {
+      "bytes": 71797,
+      "count": 1
+    },
+    "sdist": {
+      "bytes": 1135223,
+      "count": 1
+    },
+    "wheel": {
+      "bytes": 501491,
+      "count": 1
+    }
+  },
+  "tamper_cases": [
+    {
+      "description": "flip a single bit inside the largest artifact",
+      "detected": true,
+      "name": "one_byte_flip",
+      "refusal": "modified: python/signalattice-0.3.0.tar.gz"
+    },
+    {
+      "description": "delete an artifact the inventory expects",
+      "detected": true,
+      "name": "removed_artifact",
+      "refusal": "missing: python/signalattice-0.3.0.tar.gz"
+    },
+    {
+      "description": "add a file the inventory does not list",
+      "detected": true,
+      "name": "extra_artifact",
+      "refusal": "unexpected: unexpected.txt"
+    },
+    {
+      "description": "rename an artifact but keep its bytes",
+      "detected": true,
+      "name": "renamed_artifact",
+      "refusal": "missing: python/signalattice-0.3.0.tar.gz; unexpected: python/renamed-signalattice-0.3.0.tar.gz"
+    },
+    {
+      "description": "rewrite provenance to claim a different source commit",
+      "detected": true,
+      "name": "wrong_source_commit",
+      "refusal": "provenance does not bind source commit c8c149fccd89"
+    },
+    {
+      "description": "relabel a dry-run attestation as a publication one",
+      "detected": true,
+      "name": "dry_run_as_publication",
+      "refusal": "provenance was produced by 'https://github.com/srgangaram-swe/Signalattice/release/publication' but 'https://github.com/srgangaram-swe/Signalattice/release/dry-run' was required; a dry-run attestation"
+    }
+  ],
+  "verification_detail": "the staged release verifies end to end",
+  "verified": true
+}

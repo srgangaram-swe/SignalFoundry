@@ -151,3 +151,25 @@ docker-build: ## Build the Docker image
 .PHONY: docker-demo
 docker-demo: ## Run the synthetic demo inside Docker
 	docker compose run --rm platform run-full-pipeline --config configs/synthetic.yaml
+
+# ---------------------------------------------------------------------------
+# Release machinery (SF-S5-SL-MR7)
+#
+# These are the authoritative entry points. `release-publish` is deliberately
+# absent: publication is a separately authorized operation that runs only from
+# the protected release workflow against origin/main, and a make target would
+# put it one keystroke away from any developer shell.
+# ---------------------------------------------------------------------------
+
+RELEASE_STAGING ?= build/release
+
+.PHONY: release-dry-run release-verify release-reproducible
+
+release-dry-run: ## Build and verify a release candidate; publishes nothing
+	$(BIN)/python scripts/release.py dry-run --staging $(RELEASE_STAGING)
+
+release-verify: ## Independently verify a staged release candidate
+	$(BIN)/python scripts/release.py verify --staging $(RELEASE_STAGING)
+
+release-reproducible: ## Prove two clean builds of one commit are byte-identical
+	$(BIN)/python scripts/check_release_reproducible.py
