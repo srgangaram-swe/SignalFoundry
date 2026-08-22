@@ -632,3 +632,48 @@ def test_the_release_package_exposes_no_publish_function() -> None:
     forbidden = {"publish", "create_tag", "upload", "push_release", "create_release"}
     for module in (release_package, descriptor, identity, inventory, policy, provenance):
         assert not forbidden & set(dir(module)), module.__name__
+
+
+# ---------------------------------------------------------------------------
+# The version must not be restated anywhere the tooling does not check
+# ---------------------------------------------------------------------------
+
+
+def test_no_workflow_hardcodes_the_release_version() -> None:
+    """A version repeated in CI is a source the release tooling never sees.
+
+    This regressed once: the distribution smoke test asserted against a literal
+    ``0.2.1`` and broke the moment the canonical version moved. Workflows now
+    resolve it from ``pyproject.toml``.
+    """
+    version = canonical_version(REPOSITORY_ROOT)
+    workflows = sorted((REPOSITORY_ROOT / ".github" / "workflows").glob("*.yml"))
+    assert workflows, "no workflows found to check"
+    offenders = [path.name for path in workflows if version in path.read_text(encoding="utf-8")]
+    assert offenders == [], (
+        f"these workflows state the release version literally: {offenders}. "
+        "Resolve it from pyproject.toml instead."
+    )
+
+
+def test_the_release_package_has_no_publish_capability_in_its_source() -> None:
+    """Asserted against the source, not the exported names.
+
+    A module could publish through a helper that ``dir()`` does not reveal, so
+    this checks for the calls themselves.
+    """
+    import ast
+
+    package = REPOSITORY_ROOT / "src" / "quant_platform" / "release"
+    forbidden_calls = {"urlopen", "post", "put", "delete", "request"}
+    for source in sorted(package.glob("*.py")):
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                name = getattr(node.func, "attr", None) or getattr(node.func, "id", None)
+                assert name not in forbidden_calls, f"{source.name} calls {name}"
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert not alias.name.startswith(
+                        ("http", "urllib", "requests", "socket")
+                    ), f"{source.name} imports {alias.name}"
