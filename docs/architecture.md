@@ -146,6 +146,12 @@ service. It computes nothing the API did not send, holds no authority, and is re
 [ADR 0006](adr/0006-local-forecast-observability-console.md). Node is a build and test boundary
 only -- the hardened container ships without it.
 
+Distribution is governed by `quant_platform.release`, which resolves one canonical version,
+records a closed artifact inventory, binds it with in-toto/SLSA provenance and a CycloneDX SBOM, and
+gates publication behind a single authorized path. It contains no function that publishes. See the
+[release runbook](release_runbook.md) and
+[ADR 0007](adr/0007-reproducible-signed-release.md).
+
 Champion-challenger promotion is governed separately in `quant_platform.governance`, which layers
 exact paired comparison, dependence-aware inference, absolute gates, and an append-only event chain
 per lane. Automation there may compute, recommend, and freeze; it may never approve, apply, roll
