@@ -1,0 +1,336 @@
+/*
+ * Console styling.
+ *
+ * Three constraints drive everything here:
+ *
+ * 1. Status is never encoded by colour alone. Every state carries a text label
+ *    and a distinct glyph, so a reader with any colour vision -- or a forced
+ *    high-contrast theme that discards our palette entirely -- still reads the
+ *    same finding.
+ * 2. The layout reflows to 320 CSS pixels and survives 200% zoom without a
+ *    horizontal scrollbar on the document. Wide tables scroll inside their own
+ *    container instead.
+ * 3. Motion is opt-out by default and removed entirely under
+ *    prefers-reduced-motion.
+ *
+ * The palette is the Okabe-Ito colourblind-safe set, chosen because the console
+ * must distinguish "failed" from "insufficient" from "stale" and those
+ * distinctions are the whole point.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --ink: #16191d;
+  --ink-muted: #4a5157;
+  --surface: #ffffff;
+  --surface-sunken: #f2f4f6;
+  --rule: #c8ced4;
+  --focus: #0072b2;
+
+  /*
+   * Okabe-Ito hues, darkened for light backgrounds.
+   *
+   * The published Okabe-Ito values are chosen for hue separation under colour
+   * vision deficiency, not for contrast against white: #009e73 reaches only
+   * 3.4:1 and #d55e00 only 3.9:1, both under the 4.5:1 that WCAG 2.2 AA
+   * requires for text. These are the same hues taken darker so they clear the
+   * threshold while staying distinguishable. Every one is also paired with a
+   * glyph and a word, so colour is never the sole channel.
+   */
+  --state-ready: #00785a;
+  --state-warn: #8a5a00;
+  --state-fail: #a33d00;
+  --state-info: #005f96;
+  --state-muted: #5c636a;
+
+  --space: 0.75rem;
+  --radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e9edf1;
+    --ink-muted: #a9b2bb;
+    --surface: #14171a;
+    --surface-sunken: #1c2126;
+    --rule: #39424a;
+    --focus: #56b4e9;
+    --state-ready: #35c79a;
+    --state-warn: #f0b429;
+    --state-fail: #ff7a3d;
+    --state-info: #56b4e9;
+    --state-muted: #98a1aa;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* No horizontal scroll on the document itself at any width. */
+  overflow-x: hidden;
+}
+
+/* Keyboard access: the skip link is the first focusable thing on the page. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  padding: var(--space);
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--focus);
+  z-index: 10;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: var(--space);
+  min-height: 100vh;
+}
+
+/* Single column well before 320px becomes cramped. */
+@media (max-width: 52rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sidebar {
+  padding: var(--space);
+  border-right: 1px solid var(--rule);
+  background: var(--surface-sunken);
+}
+
+@media (max-width: 52rem) {
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+.sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar a {
+  display: block;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid transparent;
+}
+
+.sidebar a:hover {
+  background: var(--surface);
+}
+
+/* Current page is marked by text and border, not only by colour. */
+.sidebar a[aria-current="page"] {
+  border-color: var(--focus);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.content {
+  padding: var(--space);
+  min-width: 0;
+}
+
+.panel {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: var(--space);
+  margin-block-end: var(--space);
+  background: var(--surface);
+}
+
+.panel > h2,
+.panel > h3 {
+  margin-block-start: 0;
+}
+
+/* Status chips pair a glyph with a word; colour is the third signal, never the only one. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status[data-tone="ready"] { color: var(--state-ready); }
+.status[data-tone="warn"] { color: var(--state-warn); }
+.status[data-tone="fail"] { color: var(--state-fail); }
+.status[data-tone="info"] { color: var(--state-info); }
+.status[data-tone="muted"] { color: var(--state-muted); }
+
+.status .glyph {
+  font-variant-emoji: text;
+  speak: none;
+}
+
+.detail {
+  color: var(--ink-muted);
+  margin: 0.4rem 0 0;
+}
+
+/* Wide evidence scrolls inside its own container, never the document. */
+.table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 28rem;
+}
+
+caption {
+  text-align: start;
+  color: var(--ink-muted);
+  padding-block-end: 0.4rem;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--rule);
+  padding: 0.4rem 0.6rem;
+  text-align: start;
+  vertical-align: top;
+}
+
+th[scope="col"] {
+  border-bottom-width: 2px;
+}
+
+td.numeric,
+th.numeric {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+code,
+.digest {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--rule);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A bar chart that always has a table beside it; the bar is decoration. */
+.interval {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.interval-track {
+  position: relative;
+  flex: 1 1 8rem;
+  height: 0.55rem;
+  min-width: 4rem;
+  background: var(--surface-sunken);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.interval-span {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  border-radius: 999px;
+  background: var(--state-info);
+}
+
+.interval-zero {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Forced-colors discards our palette; keep structure legible through borders. */
+@media (forced-colors: active) {
+  .status,
+  .panel,
+  .interval-track {
+    border: 1px solid CanvasText;
+  }
+
+  .interval-span {
+    background: Highlight;
+  }
+
+  .sidebar a[aria-current="page"] {
+    border-color: Highlight;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight;
+  }
+}
