@@ -6,7 +6,8 @@
     "0004-bounded-service-operability.md",
     "0005-champion-challenger-promotion-governance.md",
     "0006-local-forecast-observability-console.md",
-    "0007-reproducible-signed-release.md"
+    "0007-reproducible-signed-release.md",
+    "0008-release-signing-and-remote-verification.md"
   ],
   "entries": [
     {
@@ -17,9 +18,9 @@
       "issue": "#20",
       "limitations": "Laptop-scale measurements from one process. Not a service level objective, a capacity claim, or evidence of production readiness.",
       "sample_context": "aggregate percentiles over synthetic request scenarios",
-      "sha256": "6e11ba18dae2d4a9c530ad0fb83d7b39d2dde3739b6eaf8487b1437affb1ecfb",
-      "size_bytes": 21810,
-      "source_path": "docs/benchmarks/service_operability_2026-08-09.json"
+      "sha256": "f37e549e4e0a0e069d7a23dc820458fbe51664f4ccf8aeb8b9b6b05e91819127",
+      "size_bytes": 21872,
+      "source_path": "docs/benchmarks/service_operability_2026-09-06.json"
     },
     {
       "claim": "The console meets its resource budgets, renders every honest state, and passes accessibility checks across four browser targets.",

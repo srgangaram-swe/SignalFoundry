@@ -35,7 +35,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, Literal
 
 from quant_platform.release.descriptor import (
     ArtifactSubject,
@@ -57,7 +57,12 @@ from quant_platform.release.inventory import (
     inventory_from_dicts,
     inventory_to_dicts,
 )
-from quant_platform.release.policy import PublicationRefused, assert_dry_run_publishes_nothing
+from quant_platform.release.policy import (
+    PublicationRefused,
+    RepositoryState,
+    assert_dry_run_publishes_nothing,
+    assert_publication_permitted,
+)
 from quant_platform.release.provenance import (
     BUILDER_DRY_RUN,
     BuildContext,
@@ -299,7 +304,13 @@ def _write_canonical(path: Path, document: Any) -> None:
     )
 
 
-def dry_run(repository_root: Path, staging: Path, *, release_version: str | None) -> int:
+def dry_run(
+    repository_root: Path,
+    staging: Path,
+    *,
+    release_version: str | None,
+    build_kind: Literal["dry-run", "publication"] = "dry-run",
+) -> int:
     """Build and verify a complete release candidate without publishing.
 
     Returns:
@@ -324,7 +335,8 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
         )
 
     if staging.exists():
-        shutil.rmtree(staging)
+        print("release refused: staging already exists; choose a new destination")
+        return EXIT_REFUSED
     staging.mkdir(parents=True)
 
     # A fixed epoch derived from the commit, not the wall clock: two builds of
@@ -356,7 +368,7 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
             release_version=version,
             source_commit=commit,
             built_at=started,
-            build_kind="dry-run",
+            build_kind=build_kind,
             toolchains=_toolchains(),
             subjects=tuple(
                 ArtifactSubject.from_subject(item, kind=_classify(item.path)) for item in subjects
@@ -374,7 +386,7 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
                 ),
             ),
             evidence=(
-                "docs/benchmarks/service_operability_2026-08-09.json",
+                "docs/benchmarks/service_operability_2026-09-06.json",
                 "docs/benchmarks/console_evidence_2026-08-20.json",
                 "reports/figures/console_evidence.png",
             ),
@@ -396,9 +408,9 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
 
         context = BuildContext(
             source_commit=commit,
-            build_kind="dry-run",
+            build_kind=build_kind,
             lockfile_digest=lockfile_digest(repository_root),
-            invocation=("scripts/release.py", "dry-run"),
+            invocation=("scripts/release.py", build_kind),
             started_at=started,
             # Also the source date. A provenance statement that recorded real
             # elapsed time would make two reproducible builds differ, and the
@@ -427,7 +439,7 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
             {
                 "release_version": version,
                 "source_commit": commit,
-                "build_kind": "dry-run",
+                "build_kind": build_kind,
                 "subjects": len(subjects),
                 "console_built": console_built,
                 "staging": str(staging),
@@ -437,7 +449,7 @@ def dry_run(repository_root: Path, staging: Path, *, release_version: str | None
             sort_keys=True,
         )
     )
-    return EXIT_OK
+    return verify(repository_root, staging)
 
 
 def verify(repository_root: Path, staging: Path) -> int:
@@ -466,6 +478,10 @@ def verify(repository_root: Path, staging: Path) -> int:
         descriptor = ReleaseDescriptor.model_validate_json(descriptor_text)
     except Exception as error:  # noqa: BLE001 - pydantic raises its own type
         print(f"verification refused: the descriptor is invalid ({error})")
+        return EXIT_REFUSED
+
+    if descriptor.source_commit != _git(repository_root, "rev-parse", "HEAD"):
+        print("verification refused: descriptor source does not match checked-out HEAD")
         return EXIT_REFUSED
 
     try:
@@ -530,6 +546,45 @@ def verify(repository_root: Path, staging: Path) -> int:
     return EXIT_OK
 
 
+def publication_gate(repository_root: Path, staging: Path, requested_commit: str) -> int:
+    """Verify staged bytes and observed promotion ancestry without publishing.
+
+    The caller refreshes origin refs before invocation. This function never
+    accesses a credential or changes Git refs. Both promotions must be real
+    merge ancestry; an empty list cannot silently satisfy the gate.
+    """
+    if verify(repository_root, staging) != EXIT_OK:
+        return EXIT_REFUSED
+    try:
+        descriptor = ReleaseDescriptor.model_validate_json(
+            (staging / DESCRIPTOR_NAME).read_text(encoding="utf-8")
+        )
+        main = _git(repository_root, "rev-parse", "origin/main")
+        prod = _git(repository_root, "rev-parse", "origin/prod")
+        dev = _git(repository_root, "rev-parse", "origin/dev")
+        _git(repository_root, "merge-base", "--is-ancestor", dev, prod)
+        _git(repository_root, "merge-base", "--is-ancestor", prod, main)
+        for promotion in (prod, main):
+            if len(_git(repository_root, "show", "-s", "--format=%P", promotion).split()) < 2:
+                raise PublicationRefused("promotion must be a merge commit")
+        state = RepositoryState(
+            branch=_git(repository_root, "branch", "--show-current"),
+            head_commit=_source_commit(repository_root),
+            remote_main_commit=main,
+            is_clean=True,
+            existing_tags=frozenset(_git(repository_root, "tag", "--list").splitlines()),
+            main_ancestry=frozenset(_git(repository_root, "rev-list", main).splitlines()),
+        )
+        tag = assert_publication_permitted(
+            descriptor, state, requested_commit=requested_commit, promotion_ancestry=(dev, prod)
+        )
+        print(json.dumps({"permitted": True, "tag": tag, "dev": dev, "prod": prod, "main": main}))
+        return EXIT_OK
+    except (OSError, ValueError, PublicationRefused, ReleaseToolError) as error:
+        print(f"publication refused: {error}")
+        return EXIT_REFUSED
+
+
 def main(argv: list[str] | None = None) -> int:
     """Dispatch a release subcommand."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -542,6 +597,14 @@ def main(argv: list[str] | None = None) -> int:
     dry = subcommands.add_parser("dry-run", help="build and verify without publishing")
     dry.add_argument("--staging", type=Path, default=Path("build/release"))
     dry.add_argument("--release-version", default=None)
+    publication = subcommands.add_parser(
+        "publication", help="build publication-identity bytes locally; publishes nothing"
+    )
+    publication.add_argument("--staging", type=Path, default=Path("build/publication"))
+    publication.add_argument("--release-version", default=None)
+    gate = subcommands.add_parser("publication-gate", help="verify bytes and promotion ancestry")
+    gate.add_argument("--staging", type=Path, default=Path("build/publication"))
+    gate.add_argument("--commit", required=True)
     check = subcommands.add_parser("verify", help="independently verify a staged candidate")
     check.add_argument("--staging", type=Path, default=Path("build/release"))
 
@@ -549,8 +612,12 @@ def main(argv: list[str] | None = None) -> int:
     root = arguments.root.resolve()
     staging = arguments.staging if arguments.staging.is_absolute() else root / arguments.staging
 
-    if arguments.command == "dry-run":
-        return dry_run(root, staging, release_version=arguments.release_version)
+    if arguments.command in {"dry-run", "publication"}:
+        return dry_run(
+            root, staging, release_version=arguments.release_version, build_kind=arguments.command
+        )
+    if arguments.command == "publication-gate":
+        return publication_gate(root, staging, arguments.commit)
     return verify(root, staging)
 
 

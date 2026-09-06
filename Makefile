@@ -116,9 +116,9 @@ benchmark-service-operability: ## Stage bounded-service JSON and Seaborn candida
 		--output "$${service_evidence_run}/candidate.png"; \
 	shasum -a 256 \
 		"$${service_evidence_run}/candidate.json" \
-		docs/benchmarks/service_operability_2026-08-09.json \
+		docs/benchmarks/service_operability_2026-09-06.json \
 		"$${service_evidence_run}/candidate.png" \
-		docs/assets/service_operability_2026-08-09.png; \
+		docs/assets/service_operability_2026-09-06.png; \
 	echo "Review retained service-operability candidates in $${service_evidence_run}"; \
 	echo "After review, publish only to new empty dated reference paths on a dedicated work branch; never overwrite the current references."
 
