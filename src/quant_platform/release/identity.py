@@ -105,12 +105,37 @@ def _console_version(repository_root: Path) -> str | None:
 
     try:
         document = json.loads(manifest.read_text(encoding="utf-8"))
-    except ValueError as error:
-        raise ReleaseIdentityError("web/package.json is not valid JSON") from error
+    except (OSError, ValueError) as error:
+        raise ReleaseIdentityError("web/package.json is not readable valid JSON") from error
+    if not isinstance(document, dict):
+        raise ReleaseIdentityError("web/package.json must contain an object")
     version = document.get("version")
     if not isinstance(version, str):
         raise ReleaseIdentityError("web/package.json declares no string version")
     return version
+
+
+def _console_lock_versions(repository_root: Path) -> tuple[VersionSource, ...]:
+    """Check both npm root identities; dependency component versions are independent."""
+    import json
+
+    path = repository_root / "web" / "package-lock.json"
+    if not path.is_file():
+        raise ReleaseIdentityError("console lockfile web/package-lock.json is missing")
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(document, dict):
+            raise ReleaseIdentityError("web/package-lock.json must contain an object")
+        packages = document.get("packages")
+        if not isinstance(packages, dict) or not isinstance(packages.get(""), dict):
+            raise ReleaseIdentityError("web/package-lock.json must declare the root package")
+        versions = (document.get("version"), packages[""].get("version"))
+        return tuple(
+            VersionSource(name, "web/package-lock.json", parse_version(value))
+            for name, value in zip(("console-lock", "console-lock-root"), versions, strict=True)
+        )
+    except (OSError, ValueError) as error:
+        raise ReleaseIdentityError(f"web/package-lock.json identity is invalid: {error}") from error
 
 
 def _installed_version() -> str | None:
@@ -136,6 +161,7 @@ def collect_version_sources(repository_root: Path) -> tuple[VersionSource, ...]:
     console = _console_version(repository_root)
     if console is not None:
         sources.append(VersionSource("console", "web/package.json", console))
+        sources.extend(_console_lock_versions(repository_root))
     installed = _installed_version()
     if installed is not None:
         sources.append(VersionSource("installed", f"{DISTRIBUTION_NAME} metadata", installed))

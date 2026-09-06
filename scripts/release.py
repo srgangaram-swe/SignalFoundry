@@ -255,6 +255,7 @@ def _copy_schemas_and_evidence(repository_root: Path, staging: Path) -> None:
         shutil.copy2(candidate, evidence / candidate.name)
 
     shutil.copy2(repository_root / "LICENSE", staging / "LICENSE")
+    shutil.copy2(repository_root / "DISCLAIMER.md", staging / "DISCLAIMER.md")
 
 
 def _toolchains() -> tuple[ToolchainRequirement, ...]:
@@ -289,7 +290,7 @@ def _classify(path: str) -> str:
         return "schema"
     if path.startswith("evidence/"):
         return "evidence"
-    if path == "LICENSE":
+    if path in {"LICENSE", "DISCLAIMER.md"}:
         return "license"
     if path.endswith("RELEASE-NOTES.md"):
         return "notes"
@@ -386,7 +387,7 @@ def dry_run(
                 ),
             ),
             evidence=(
-                "docs/benchmarks/service_operability_2026-09-06.json",
+                "docs/benchmarks/service_operability_2026-09-06_patch1.json",
                 "docs/benchmarks/console_evidence_2026-08-20.json",
                 "reports/figures/console_evidence.png",
             ),

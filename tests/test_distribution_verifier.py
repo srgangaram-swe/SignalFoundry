@@ -81,6 +81,7 @@ def _wheel_files(*, metadata: bytes | None = None) -> dict[str, bytes]:
         b"[console_scripts]\nsignalattice = quant_platform.cli:main\n"
     )
     files[f"{_DIST_INFO}/licenses/LICENSE"] = b"bounded license fixture\n"
+    files[f"{_DIST_INFO}/licenses/DISCLAIMER.md"] = b"bounded disclaimer fixture\n"
     files[f"{_DIST_INFO}/top_level.txt"] = b"quant_platform\n"
     return files
 

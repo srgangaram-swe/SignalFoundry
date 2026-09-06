@@ -126,7 +126,7 @@ def render(root: Path, destination: Path) -> dict[str, Any]:
     matrix = _gate_matrix(root)
     _validate(matrix)
     console = _load(root / "docs/benchmarks/console_evidence_2026-08-20.json")
-    service = _load(root / "docs/benchmarks/service_operability_2026-09-06.json")
+    service = _load(root / "docs/benchmarks/service_operability_2026-09-06_patch1.json")
     governance = _load(root / "reports/figures/governance_promotion_evidence.json")
 
     sns.set_theme(style="whitegrid", context="talk", palette="colorblind")
