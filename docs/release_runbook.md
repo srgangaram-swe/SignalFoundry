@@ -67,6 +67,21 @@ Publication happens only after the `dev → prod → main` promotions, against t
 
 ## Immutability and correction
 
+The publication correction in [ADR 0008](adr/0008-release-signing-and-remote-verification.md)
+builds publication-identity metadata, signs the annotated tag with an ephemeral SSH key,
+and attests the complete asset set using the approved GitHub workflow identity. Downloaded
+assets and the full stage ZIP are compared to their source bytes before the draft becomes
+public. To authenticate a downloaded signing key, verify its GitHub attestation with the
+repository, `.github/workflows/release.yml`, `refs/heads/main`, and exact source digest
+pinned. Then use that key in an allowed-signers file to run `git verify-tag`. A public key
+downloaded without verified provenance is not a trust anchor.
+
+The offline `scripts/release.py publication` command grants no publishing permission;
+`publication-gate --commit <sha>` checks current main and promotion ancestry. These are
+workflow plumbing, not an alternate publication path. Staging refuses an existing output
+directory. Download verification includes the console, schemas, evidence and license in
+`release-stage.zip`; the archive verifier never extracts untrusted members.
+
 Published tags and releases are **immutable**. A defective release is never fixed by moving a tag,
 replacing an asset, or deleting a release — every one of those silently invalidates verifications
 that other people already performed.
