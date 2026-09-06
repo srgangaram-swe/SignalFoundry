@@ -386,7 +386,7 @@ def dry_run(
                 ),
             ),
             evidence=(
-                "docs/benchmarks/service_operability_2026-08-09.json",
+                "docs/benchmarks/service_operability_2026-09-06.json",
                 "docs/benchmarks/console_evidence_2026-08-20.json",
                 "reports/figures/console_evidence.png",
             ),
