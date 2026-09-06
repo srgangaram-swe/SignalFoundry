@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signalattice"
-version = "0.3.0"
+version = "0.3.1"
 description = "Calibrated probabilistic market forecasting from point-in-time data to decision-readiness evidence."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "DISCLAIMER.md"]
 authors = [{ name = "srgangaram-swe" }]
 keywords = [
     "quant",

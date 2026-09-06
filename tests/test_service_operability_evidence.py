@@ -18,8 +18,8 @@ from scripts import benchmark_service_operability as benchmark
 from scripts import plot_service_operability as plot
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_PATH = ROOT / "docs" / "benchmarks" / "service_operability_2026-09-06.json"
-PLOT_PATH = ROOT / "docs" / "assets" / "service_operability_2026-09-06.png"
+EVIDENCE_PATH = ROOT / "docs" / "benchmarks" / "service_operability_2026-09-06_patch1.json"
+PLOT_PATH = ROOT / "docs" / "assets" / "service_operability_2026-09-06_patch1.png"
 OPERATIONS_PATH = ROOT / "docs" / "service_operations.md"
 MAKEFILE_PATH = ROOT / "Makefile"
 Publisher = Callable[[bytes, Path], None]
@@ -700,8 +700,8 @@ def test_make_target_stages_candidates_without_targeting_committed_references() 
     assert '--output "$${service_evidence_run}/candidate.json"' in section
     assert '--output "$${service_evidence_run}/candidate.png"' in section
     assert "shasum -a 256" in section
-    assert "docs/benchmarks/service_operability_2026-09-06.json" in section
-    assert "docs/assets/service_operability_2026-09-06.png" in section
+    assert "docs/benchmarks/service_operability_2026-09-06_patch1.json" in section
+    assert "docs/assets/service_operability_2026-09-06_patch1.png" in section
     assert "Review retained service-operability candidates" in section
     assert "--output docs/benchmarks" not in section
     assert "--output docs/assets" not in section

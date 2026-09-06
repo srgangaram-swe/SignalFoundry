@@ -294,6 +294,11 @@ tests/                      unit and integration contracts
 
 ## Known limitations
 
+The software is licensed under [MIT](LICENSE). The unchanged
+[educational-use and trading disclaimer](DISCLAIMER.md) is packaged separately
+so automated license recognition sees the canonical license text.
+See the [0.3.1 correction record](docs/release_correction_0.3.1.md).
+
 - Daily OHLCV bars cannot validate intraday fills, spread, queue position, borrow, or
   market impact.
 - The public example universe is small and fixed, not survivorship-bias-free or historically

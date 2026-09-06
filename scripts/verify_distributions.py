@@ -102,11 +102,13 @@ _REQUIRED_WHEEL_METADATA_FILES = frozenset(
         "WHEEL",
         "entry_points.txt",
         "licenses/LICENSE",
+        "licenses/DISCLAIMER.md",
         "top_level.txt",
     }
 )
 _REQUIRED_SDIST_FILES = frozenset(
     {
+        "DISCLAIMER.md",
         "LICENSE",
         "MANIFEST.in",
         "README.md",
@@ -117,9 +119,11 @@ _REQUIRED_SDIST_FILES = frozenset(
         "docs/api/openapi-v1.json",
         "docs/assets/service_operability_2026-08-09.png",
         "docs/assets/service_operability_2026-09-06.png",
+        "docs/assets/service_operability_2026-09-06_patch1.png",
         "docs/api_service.md",
         "docs/benchmarks/service_operability_2026-08-09.json",
         "docs/benchmarks/service_operability_2026-09-06.json",
+        "docs/benchmarks/service_operability_2026-09-06_patch1.json",
         "docs/run_registry.md",
         "docs/service_operations.md",
         "docs/threat_model.md",
@@ -133,6 +137,7 @@ _REQUIRED_SDIST_FILES = frozenset(
 )
 _SDIST_ROOT_FILES = frozenset(
     {
+        "DISCLAIMER.md",
         "LICENSE",
         "MANIFEST.in",
         "PKG-INFO",
