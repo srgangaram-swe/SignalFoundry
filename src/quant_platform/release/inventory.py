@@ -124,11 +124,15 @@ def build_inventory(root: Path, *, exclude: Iterable[str] = ()) -> tuple[Subject
     base = Path(root)
     if not base.is_dir():
         raise InventoryError(f"staging root {base} is not a directory")
+    if base.is_symlink():
+        raise InventoryError("staging root must not be a symlink")
     excluded = {item.replace(os.sep, "/") for item in exclude}
 
     subjects: list[Subject] = []
     for current, directories, files in os.walk(base, followlinks=False):
         directories.sort()
+        if any((Path(current) / name).is_symlink() for name in directories):
+            raise InventoryError("staging contains a symlink directory")
         for name in sorted(files):
             candidate = Path(current) / name
             if candidate.is_symlink():

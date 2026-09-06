@@ -181,18 +181,18 @@ python scripts/plot_service_operability.py \
   --input "${service_evidence_run}/candidate.json" \
   --output "${service_evidence_run}/candidate.png"
 python scripts/plot_service_operability.py \
-  --input docs/benchmarks/service_operability_2026-08-09.json \
+  --input docs/benchmarks/service_operability_2026-09-06.json \
   --output "${service_evidence_run}/committed-input.png"
 shasum -a 256 \
   "${service_evidence_run}/candidate.json" \
-  docs/benchmarks/service_operability_2026-08-09.json \
+  docs/benchmarks/service_operability_2026-09-06.json \
   "${service_evidence_run}/candidate.png" \
-  docs/assets/service_operability_2026-08-09.png
+  docs/assets/service_operability_2026-09-06.png
 regenerated_reference_plot_sha="$(
   shasum -a 256 "${service_evidence_run}/committed-input.png" | cut -d ' ' -f 1
 )"
 committed_reference_plot_sha="$(
-  shasum -a 256 docs/assets/service_operability_2026-08-09.png | cut -d ' ' -f 1
+  shasum -a 256 docs/assets/service_operability_2026-09-06.png | cut -d ' ' -f 1
 )"
 test "${regenerated_reference_plot_sha}" = "${committed_reference_plot_sha}"
 pytest -q tests/test_service_operability_evidence.py
@@ -236,12 +236,15 @@ allocator/import noise can make enabled minus disabled negative. Evidence retain
 difference. Only the incremental-overhead guard is `max(0, signed difference)`, and it must remain
 at or below 100 MiB. This is a coarse local engineering guard, not a production capacity or SLO
 claim. The plot is generated through Seaborn from the committed JSON. See the
-[committed aggregate evidence](benchmarks/service_operability_2026-08-09.json) and
-[visual summary](assets/service_operability_2026-08-09.png).
+[committed aggregate evidence](benchmarks/service_operability_2026-09-06.json) and
+[visual summary](assets/service_operability_2026-09-06.png).
 
-The 3,020 x 1,869 reference image was generated from aggregate JSON SHA-256
-`ecda1eb8aeee4c5950ace91b88fbe478235747e2c213416f5d68901e6217b0b7`; its
-service-operability plot SHA-256: `9e3d6b5815e740ac689fc5b96c50b62660e02848ab067808bf1b5931cf6ab9cd`.
+The 2026-09-06 reference reruns the unchanged synthetic workload against the
+GitPython 3.1.59 security-patched lockfile. The August reference remains available
+as historical evidence; these measurements are not a controlled performance comparison.
+The 3,016 x 1,869 reference image was generated from aggregate JSON SHA-256
+`f37e549e4e0a0e069d7a23dc820458fbe51664f4ccf8aeb8b9b6b05e91819127`; its
+service-operability plot SHA-256: `2ea49872d284057686625c9682d7093302f5e1dc52d33c2bc637c921d8235656`.
 The implementing engineering agent visually inspected it at original resolution and confirmed
 that the four panels, candidate reference lines, measured percentile curves, A/B bars, explicit
 fault/rejection outcomes, limit labels, units, source caption, and synthetic-local disclaimer are
