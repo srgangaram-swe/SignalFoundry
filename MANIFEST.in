@@ -6,8 +6,10 @@ include docs/adr/0003-local-read-only-evidence-api.md
 include docs/adr/0004-bounded-service-operability.md
 include docs/api/openapi-v1.json
 include docs/assets/service_operability_2026-08-09.png
+include docs/assets/service_operability_2026-09-06.png
 include docs/api_service.md
 include docs/benchmarks/service_operability_2026-08-09.json
+include docs/benchmarks/service_operability_2026-09-06.json
 include docs/run_registry.md
 include docs/service_operations.md
 include docs/threat_model.md

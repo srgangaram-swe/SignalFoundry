@@ -74,7 +74,7 @@ _DECLARED: Final[tuple[dict[str, str], ...]] = (
     {
         "claim": "The bounded read-only service holds its admission, latency, and response bounds.",
         "issue": "#20",
-        "source_path": "docs/benchmarks/service_operability_2026-08-09.json",
+        "source_path": "docs/benchmarks/service_operability_2026-09-06.json",
         "evidence_class": "local_engineering",
         "collection_method": "scripts/benchmark_service_operability.py against an in-process app",
         "environment": "single local machine, CPython, no network",

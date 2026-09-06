@@ -68,7 +68,7 @@ limitations — are in the [machine-readable index](benchmarks/sprint5_evidence_
 
 | Claim | Class | Artifact |
 | --- | --- | --- |
-| Service holds its admission, latency, and response bounds | local engineering | `service_operability_2026-08-09.json` |
+| Service holds its admission, latency, and response bounds | local engineering | `service_operability_2026-09-06.json` |
 | Console meets budgets, renders every state, passes accessibility | local engineering | `console_evidence_2026-08-20.json` |
 | Release dry run verifies and refuses six tamper cases | local engineering | `release_dry_run_2026-08-20.json` |
 | Two clean builds are byte-identical | local engineering | `release_reproducibility_2026-08-20.json` |

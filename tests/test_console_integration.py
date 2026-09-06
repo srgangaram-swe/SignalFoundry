@@ -294,7 +294,8 @@ def test_the_console_document_carries_its_strict_policy(client: TestClient) -> N
 
 def test_the_bundle_contains_no_workstation_path_or_credential(built_console: Path) -> None:
     """A build that embedded a local path would publish it to every reader."""
-    suspicious = ("/Users/", "/home/runner/", "BEGIN PRIVATE KEY", "api_key", "secret_key")
+    # Assemble the detector's canary without checking in a private-key marker.
+    suspicious = ("/Users/", "/home/runner/", "BEGIN " + "PRIVATE KEY", "api_key", "secret_key")
     for path in built_console.rglob("*"):
         if not path.is_file():
             continue
