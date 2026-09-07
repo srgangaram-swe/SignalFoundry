@@ -17,6 +17,7 @@ import yaml
 CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 PYTHON = "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97"
 UV = "astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9"
+NODE = "actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903"
 
 
 def relocate(source: str, original: dict[str, Any]) -> dict[str, Any]:
@@ -179,16 +180,34 @@ def generate(root: Path) -> dict[str, Any]:
             {"uses": PYTHON, "with": {"python-version": "3.13"}},
             {"uses": UV, "with": {"version": "0.11.32"}},
             {"run": "uv sync --locked --extra dev"},
-            {"run": "uv run black --check foundry_build tests"},
-            {"run": "uv run ruff check foundry_build tests"},
-            {"run": "uv run mypy foundry_build"},
-            {"run": "uv run python -m foundry_build.workflows --check"},
             {
                 "run": (
-                    "uv run pytest --cov=foundry_build --cov-branch "
-                    "--cov-report=term-missing --cov-fail-under=90"
+                    "uv sync --project packages/alphaforge --locked --extra dev --extra"
+                    " data"
                 )
             },
+            {"run": "uv sync --project packages/signalattice --locked --extra dev"},
+            {"run": "uv run python -m foundry_build.context alphaforge"},
+            {"run": "uv run python -m foundry_build.context signalattice"},
+            {"run": "uv run black --check foundry_build signal_foundry tests"},
+            {"run": "uv run ruff check foundry_build signal_foundry tests"},
+            {"run": "uv run mypy foundry_build signal_foundry"},
+            {"run": "uv run python -m foundry_build.workflows --check"},
+            {
+                "env": {"FOUNDRY_TEST_COVERAGE": "1"},
+                "run": (
+                    "uv run pytest --cov=foundry_build --cov=signal_foundry"
+                    " --cov-branch --cov-report=term-missing --cov-fail-under=90"
+                ),
+            },
+            {"run": "uv run python -m foundry_build.contracts --check"},
+            {"uses": NODE, "with": {"node-version": "24"}},
+            {"run": "npm --prefix contracts ci --ignore-scripts"},
+            {"run": "npm --prefix contracts run generate"},
+            {"run": "npm --prefix contracts run check"},
+            {"run": "git diff --exit-code -- contracts"},
+            {"run": "npm --prefix contracts audit"},
+            {"run": "uv build --no-sources"},
             {"run": "uv run python -m foundry_build.assembly verify"},
         ],
     }

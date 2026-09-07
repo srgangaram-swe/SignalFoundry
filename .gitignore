@@ -1,4 +1,5 @@
 ai.md
+var/
 .DS_Store
 *.egg-info/
 .venv/

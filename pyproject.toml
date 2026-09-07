@@ -4,11 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "signal-foundry"
-version = "0.1.0"
-description = "Local-first quantitative research assembly and provenance tooling"
+version = "0.2.0"
+description = "Local-first quantitative research control plane and provenance tooling"
 requires-python = ">=3.12"
 authors = [{name = "srgangaram-swe"}]
-dependencies = []
+dependencies = ["fastapi==0.141.1", "pydantic==2.13.4", "uvicorn==0.52.1", "psutil>=7,<8"]
+
+[project.scripts]
+signal-foundry = "signal_foundry.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -22,10 +25,17 @@ dev = [
   "seaborn>=0.13.2,<0.14",
   "pip-audit>=2.10.1,<3",
   "pip>=26.2,<27",
+  "httpx2==2.12.0",
+  "hypothesis>=6,<7",
+  "pandas-stubs>=3,<4",
+  "types-psutil>=7,<8",
 ]
 
 [tool.setuptools.packages.find]
-include = ["foundry_build*"]
+include = ["foundry_build*", "signal_foundry*"]
+
+[tool.setuptools.package-data]
+signal_foundry = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -44,6 +54,12 @@ strict = true
 
 [[tool.mypy.overrides]]
 module = ["seaborn"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Independently locked source packages are deliberately not root dependencies.
+# Their public boundary is validated by typed wire contracts and real-worker tests.
+module = ["alphaforge.*", "quant_platform.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
