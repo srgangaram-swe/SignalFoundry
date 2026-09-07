@@ -40,18 +40,28 @@ def measure(operation: str, phase: str, action: Callable[[], Any]) -> dict[str, 
     """Measure wall latency and sampled parent/descendant RSS at 20 ms cadence."""
     stop = threading.Event()
     samples: list[int] = []
+    failures: list[psutil.Error | OSError] = []
+    parent = psutil.Process()
+
+    def snapshot() -> int:
+        resident = parent.memory_info().rss
+        for child in parent.children(recursive=True):
+            try:
+                resident += child.memory_info().rss
+            except psutil.NoSuchProcess:
+                continue
+        return resident
+
+    # Establish the baseline before invoking even a zero-duration action. Thread
+    # scheduling must not decide whether an admission rejection has RSS evidence.
+    samples.append(snapshot())
 
     def sample() -> None:
-        parent = psutil.Process()
-        while not stop.is_set():
-            resident = parent.memory_info().rss
-            for child in parent.children(recursive=True):
-                try:
-                    resident += child.memory_info().rss
-                except psutil.NoSuchProcess:
-                    continue
-            samples.append(resident)
-            stop.wait(0.02)
+        try:
+            while not stop.wait(0.02):
+                samples.append(snapshot())
+        except (psutil.Error, OSError) as exc:
+            failures.append(exc)
 
     sampler = threading.Thread(target=sample, name="evidence-rss")
     sampler.start()
@@ -69,6 +79,10 @@ def measure(operation: str, phase: str, action: Callable[[], Any]) -> dict[str, 
         sampler.join(timeout=2)
     if sampler.is_alive() or not samples:
         raise RuntimeError("resource sampler failed to terminate or record evidence")
+    if failures:
+        raise RuntimeError(
+            "resource sampler could not read process evidence"
+        ) from failures[0]
     return {
         "operation": operation,
         "phase": phase,

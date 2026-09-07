@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -93,6 +94,54 @@ def test_benchmark_harness_keeps_every_sample(tmp_path: Path, monkeypatch) -> No
     assert len(measured["samples"]) == 22
     assert measured["repeatable_research_hash"] == result.digest()
     assert measured["method"]["saturation_clients"] == 8
+
+
+def test_measurement_baseline_precedes_an_unscheduled_sampler(monkeypatch) -> None:
+    """Deterministically reproduce an action finishing before its thread starts."""
+
+    class DeferredThread:
+        def __init__(self, *, target, name):
+            self.target = target
+
+        def start(self):
+            pass
+
+        def join(self, timeout):
+            self.target()
+
+        def is_alive(self):
+            return False
+
+    monkeypatch.setattr(module.threading, "Thread", DeferredThread)
+    result = module.measure("immediate", "regression", lambda: None)
+    assert result["rss_samples"] == 1
+    assert result["peak_tree_rss_mib"] > 0
+
+
+def test_measurement_propagates_background_sampler_fault(monkeypatch) -> None:
+    sampled = threading.Event()
+
+    class Process:
+        calls = 0
+
+        def memory_info(self):
+            self.calls += 1
+            if self.calls > 1:
+                sampled.set()
+                raise PermissionError("injected denied RSS inspection")
+            return type("Memory", (), {"rss": 1024})()
+
+        def children(self, *, recursive):
+            return []
+
+    monkeypatch.setattr(module.psutil, "Process", Process)
+
+    def action():
+        assert sampled.wait(timeout=2)
+
+    with pytest.raises(RuntimeError, match="could not read") as raised:
+        module.measure("fault", "regression", action)
+    assert isinstance(raised.value.__cause__, PermissionError)
 
 
 def test_render_cli_uses_saved_measurements(tmp_path: Path, monkeypatch) -> None:

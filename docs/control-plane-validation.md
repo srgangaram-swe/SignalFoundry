@@ -26,7 +26,7 @@ resource limits are containment, not an algorithmic speedup claim.
 
 ## Local test and build procedure
 
-The final local root run passed **207 tests** in 114.36 seconds with **94.00%**
+The final local root run passed **209 tests** in 113.91 seconds with **94.02%**
 branch-inclusive coverage (required floor: 90%). Black, Ruff and strict mypy
 passed across all 24 implementation/tooling modules. This includes actual locked
 worker processes; the unchanged source repositories have additional required CI
@@ -79,10 +79,10 @@ with code/config/data/environment identities and an artifact hash manifest.
 
 | Operation/profile | Samples | Median wall time | Observed range |
 | --- | ---: | ---: | ---: |
-| Catalog, fresh Runner | 3 | 1.122 s | 1.073–1.597 s |
-| Catalog, reused Runner | 5 | 1.082 s | 1.077–1.098 s |
-| Validation, reused Runner | 3 | 1.131 s | 1.128–1.155 s |
-| Default research, reused Runner | 3 | 5.708 s | 5.697–5.717 s |
+| Catalog, fresh Runner | 3 | 1.075 s | 1.062–1.427 s |
+| Catalog, reused Runner | 5 | 1.062 s | 1.057–1.068 s |
+| Validation, reused Runner | 3 | 1.119 s | 1.097–1.120 s |
+| Default research, reused Runner | 3 | 5.640 s | 5.589–5.665 s |
 
 “Fresh” means a fresh adapter instance, not a reboot or flushed filesystem cache;
 every operation still launches a cold package subprocess. This measures the
@@ -91,10 +91,16 @@ small to establish dependable p95/p99 service levels.
 
 Eight simultaneous validation callers produced two completions and six explicit
 capacity rejections. The whole burst, including thread startup and sampling,
-took 1.245 seconds: 1.606 completed validations/second for that burst, **not**
-sustained throughput. Peak sampled process-tree RSS was 554.45 MiB. Overlapping
+took 1.242 seconds: 1.610 completed validations/second for that burst, **not**
+sustained throughput. Peak sampled process-tree RSS was 529.39 MiB. Overlapping
 samples share the same process tree; RSS is not additive per caller. Sampling
 every 20 ms can miss short-lived peaks. No noisy timing threshold gates CI.
+
+The sampler records a synchronous pre-action baseline, so immediate capacity
+rejections retain memory evidence even when the background thread has not been
+scheduled. A deterministic deferred-thread regression reproduces the initial
+Linux CI failure; a second fault test verifies sampler errors remain visible.
+The reference was regenerated after this correction, without concurrent tests.
 
 ![Measured local resource boundary](evidence/control-plane/local-resources.png)
 
