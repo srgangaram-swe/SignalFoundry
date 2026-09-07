@@ -1,0 +1,25 @@
+{
+  "manifest_sha256": "cb4b9f2b6b047ab1882ee7e3eb14ac6339035f6c500f3ca536955c25c0cd426a",
+  "runtime_parity": "reported separately by source tests and CI",
+  "schema_version": 1,
+  "scope": "Git preservation counts; not performance or trading evidence",
+  "source_container_limitation": "srgangaram-swe/Signalattice#67 remains open",
+  "sources": {
+    "alphaforge": {
+      "active_blockers": 0,
+      "commits": 167,
+      "objects": 1972,
+      "refs": 88,
+      "tracked_files": 546,
+      "tree": "c26a439be174c2583a49c8c688c95088871c93dc"
+    },
+    "signalattice": {
+      "active_blockers": 0,
+      "commits": 115,
+      "objects": 1246,
+      "refs": 52,
+      "tracked_files": 368,
+      "tree": "68eae95fbfc8b4fde579f655471b88187d32713d"
+    }
+  }
+}
