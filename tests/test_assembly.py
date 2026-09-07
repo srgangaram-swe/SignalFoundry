@@ -392,6 +392,32 @@ def test_job_relocation_does_not_mutate_original() -> None:
     assert relocated["defaults"]["run"]["working-directory"] == "packages/alphaforge"
 
 
+@pytest.mark.parametrize("distribution", ["wheel", "sdist", "service-wheel"])
+def test_relocation_preserves_absolute_distribution_interpreters(
+    distribution: str,
+) -> None:
+    interpreter = f"/tmp/signalattice-{distribution}/bin/python"
+    commands = (
+        f"{interpreter} -m pip install --upgrade pip\n"
+        f"{interpreter} -m pip install dist/example.whl\n"
+        f"{interpreter} -m pip check\n"
+    )
+    result = relocate("signalattice", {"steps": [{"run": commands}]})
+    assert result["steps"][0]["run"] == commands
+
+
+def test_relocation_changes_only_exact_bootstrap_lines() -> None:
+    commands = (
+        "python -m pip install --upgrade pip\n"
+        'python -m pip install -e ".[dev]"\n'
+        "python -m pip install ./dist/example.whl\n"
+    )
+    result = relocate("signalattice", {"steps": [{"run": commands}]})
+    assert result["steps"][0]["run"] == (
+        "uv sync --locked --extra dev\n" "python -m pip install ./dist/example.whl\n"
+    )
+
+
 @pytest.mark.parametrize("case", ["path", "identity", "duplicate", "source", "refs"])
 def test_ledger_boundary_failures(frozen: tuple[Path, Path], case: str) -> None:
     _, backup = frozen

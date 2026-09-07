@@ -27,6 +27,14 @@ dependency skips are not claimed exercised by that local numerical run; dedicate
 remote optional-extra jobs remain required. Current PR check results are the
 authority for remote status, not this local record.
 
+The first unified remote run exposed an adapter defect: substring replacement of
+a bootstrap command also modified absolute wheel/sdist interpreter commands.
+The adapter now matches complete command lines only; four regression cases retain
+absolute interpreters and reject partial-command rewrites. The original source
+distribution tests remain unchanged. A separate clone fetched from GitHub also
+passed full object/ref/ancestry verification and independently created both offline
+package contexts, without using the original checkouts or preservation backups.
+
 The original source workflow pins, test commands, coverage floors and required-job
 sets remain enforced by generated root workflows. Signalattice's previously
 non-required service-image metadata reproducibility job remains visible and tied

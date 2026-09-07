@@ -507,24 +507,27 @@ jobs:
 
         '
     - name: Install and inspect the wheel
-      run: "python -m venv /tmp/signalattice-wheel\n/tmp/signalattice-wheel/bin//tmp/signalattice-wheel/bin/python\
-        \ -m pip install dist/*.whl\n/tmp/signalattice-wheel/bin/python -m pip check\n/tmp/signalattice-wheel/bin/python\
-        \ -c \"from importlib.metadata import version; import quant_platform; assert version('signalattice')\
-        \ == quant_platform.__version__ == '${{ steps.version.outputs.value }}'\"\n/tmp/signalattice-wheel/bin/signalattice\
-        \ version\nmkdir -p /tmp/signalattice-wheel-smoke\ncd /tmp/signalattice-wheel-smoke\n/tmp/signalattice-wheel/bin/python\
+      run: "python -m venv /tmp/signalattice-wheel\n/tmp/signalattice-wheel/bin/python -m pip install\
+        \ --upgrade pip\n/tmp/signalattice-wheel/bin/python -m pip install dist/*.whl\n/tmp/signalattice-wheel/bin/python\
+        \ -m pip check\n/tmp/signalattice-wheel/bin/python -c \"from importlib.metadata import version;\
+        \ import quant_platform; assert version('signalattice') == quant_platform.__version__ == '${{\
+        \ steps.version.outputs.value }}'\"\n/tmp/signalattice-wheel/bin/signalattice version\nmkdir -p\
+        \ /tmp/signalattice-wheel-smoke\ncd /tmp/signalattice-wheel-smoke\n/tmp/signalattice-wheel/bin/python\
         \ -I \"$GITHUB_WORKSPACE/packages/signalattice/scripts/verify_distributions.py\" \\\n  --installed-prefix\
         \ /tmp/signalattice-wheel\n"
     - name: Install and inspect the source distribution
-      run: "python -m venv /tmp/signalattice-sdist\n/tmp/signalattice-sdist/bin//tmp/signalattice-sdist/bin/python\
-        \ -m pip install dist/*.tar.gz\n/tmp/signalattice-sdist/bin/python -m pip check\n/tmp/signalattice-sdist/bin/python\
-        \ -c \"from importlib.metadata import version; import quant_platform; assert version('signalattice')\
-        \ == quant_platform.__version__ == '${{ steps.version.outputs.value }}'\"\n/tmp/signalattice-sdist/bin/signalattice\
-        \ version\nmkdir -p /tmp/signalattice-sdist-smoke\ncd /tmp/signalattice-sdist-smoke\n/tmp/signalattice-sdist/bin/python\
+      run: "python -m venv /tmp/signalattice-sdist\n/tmp/signalattice-sdist/bin/python -m pip install\
+        \ --upgrade pip\n/tmp/signalattice-sdist/bin/python -m pip install dist/*.tar.gz\n/tmp/signalattice-sdist/bin/python\
+        \ -m pip check\n/tmp/signalattice-sdist/bin/python -c \"from importlib.metadata import version;\
+        \ import quant_platform; assert version('signalattice') == quant_platform.__version__ == '${{\
+        \ steps.version.outputs.value }}'\"\n/tmp/signalattice-sdist/bin/signalattice version\nmkdir -p\
+        \ /tmp/signalattice-sdist-smoke\ncd /tmp/signalattice-sdist-smoke\n/tmp/signalattice-sdist/bin/python\
         \ -I \"$GITHUB_WORKSPACE/packages/signalattice/scripts/verify_distributions.py\" \\\n  --installed-prefix\
         \ /tmp/signalattice-sdist\n"
     - name: Install and inspect the optional service wheel
-      run: "python -m venv /tmp/signalattice-service-wheel\n/tmp/signalattice-service-wheel/bin//tmp/signalattice-service-wheel/bin/python\
-        \ -m pip install \\\n  \"signalattice[service] @ file://${GITHUB_WORKSPACE}/packages/signalattice/dist/signalattice-${{\
+      run: "python -m venv /tmp/signalattice-service-wheel\n/tmp/signalattice-service-wheel/bin/python\
+        \ -m pip install --upgrade pip\n/tmp/signalattice-service-wheel/bin/python -m pip install \\\n\
+        \  \"signalattice[service] @ file://${GITHUB_WORKSPACE}/packages/signalattice/dist/signalattice-${{\
         \ steps.version.outputs.value }}-py3-none-any.whl\"\n/tmp/signalattice-service-wheel/bin/python\
         \ -m pip check\nmkdir -p /tmp/signalattice-service-wheel-smoke\ncd /tmp/signalattice-service-wheel-smoke\n\
         /tmp/signalattice-service-wheel/bin/python -I \\\n  \"$GITHUB_WORKSPACE/packages/signalattice/scripts/verify_distributions.py\"\

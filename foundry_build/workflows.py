@@ -70,9 +70,13 @@ def relocate(source: str, original: dict[str, Any]) -> dict[str, Any]:
                     "python -m pip install .": "uv sync --locked",
                     "uv sync --all-extras --frozen": "uv sync --all-extras --locked",
                 }
-                for before, after in replacements.items():
-                    command = command.replace(before, after)
-                command = command.replace("python -m pip install --upgrade pip\n", "")
+                # Only whole bootstrap commands may change. Substring replacement
+                # corrupts absolute wheel/sdist interpreter paths and their newlines.
+                command = "\n".join(
+                    replacements.get(line, line)
+                    for line in command.split("\n")
+                    if line != "python -m pip install --upgrade pip"
+                )
             step["run"] = command
         if uses.startswith("actions/checkout@"):
             step.setdefault("with", {})["fetch-depth"] = 0
