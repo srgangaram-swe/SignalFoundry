@@ -22,10 +22,20 @@ Root checks:
 
 ```bash
 uv sync --locked --extra dev
-uv run black --check foundry_build tests
-uv run ruff check foundry_build tests
-uv run mypy foundry_build
-uv run pytest --cov=foundry_build --cov-branch --cov-fail-under=90
+uv sync --project packages/alphaforge --locked --extra dev --extra data
+uv sync --project packages/signalattice --locked --extra dev
+uv run python -m foundry_build.context alphaforge
+uv run python -m foundry_build.context signalattice
+uv run black --check foundry_build signal_foundry tests
+uv run ruff check foundry_build signal_foundry tests
+uv run mypy foundry_build signal_foundry
+FOUNDRY_TEST_COVERAGE=1 uv run pytest --cov=foundry_build \
+  --cov=signal_foundry --cov-branch --cov-fail-under=90
+uv run python -m foundry_build.contracts --check
+npm --prefix contracts ci --ignore-scripts
+npm --prefix contracts run generate
+npm --prefix contracts run check
+git diff --exit-code -- contracts
 uv run python -m foundry_build.workflows --check
 uv run python -m foundry_build.assembly verify
 ```
@@ -35,6 +45,15 @@ action pins and minimum permissions. Its reviewed adaptations are package workin
 directories, Git compatibility contexts, locked environment bootstrap, prefixed
 cache/artifact paths and explicit timeouts. Source release publication is not
 activated here; the source release dry-run gate remains mandatory.
+
+Research integration tests instrument the real isolated package workers when
+`FOUNDRY_TEST_COVERAGE=1`; this is a test-only boundary, not a runtime feature or
+inherited provider environment. There is no skipped stand-in for these tests.
+The two source locks remain independent, including their pandas major versions.
+Optional source model backends are catalogued as unavailable until explicitly
+installed through their own locked extras. Root typing treats these independently
+installed packages as external dependencies; typed wire validation and actual
+cross-package tests qualify their composition.
 
 PRs must map acceptance criteria to evidence, explain trust boundaries, algorithms,
 complexity, errors, tests, compatibility, resource limits, measured outcomes,
