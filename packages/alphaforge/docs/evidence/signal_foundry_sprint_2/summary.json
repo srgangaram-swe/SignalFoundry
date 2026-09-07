@@ -1,0 +1,111 @@
+{
+  "calibration": {
+    "interpretation": "descriptive regression intercept/slope/RMSE; not probability calibration",
+    "method": "OOF linear regression of realized target on prediction"
+  },
+  "compute": {
+    "compute_path": "single-process CPU with each model backend bounded to one worker",
+    "environment": {
+      "dependencies": {
+        "PyYAML": "6.0.3",
+        "alphaforge": "0.2.1",
+        "lightgbm": "4.7.0",
+        "matplotlib": "3.11.1",
+        "numpy": "2.5.1",
+        "pandas": "3.0.5",
+        "pyarrow": "25.0.0",
+        "pydantic": "2.13.4",
+        "scikit-learn": "1.9.0",
+        "scipy": "1.18.0",
+        "seaborn": "0.13.2",
+        "tensorflow": "not-installed",
+        "torch": "2.13.0",
+        "xgboost": "3.3.0"
+      },
+      "environment": {},
+      "hardware": {
+        "accelerator": {
+          "backend": "mps",
+          "cuda_runtime": "not-available",
+          "devices": [
+            "Apple Metal Performance Shaders"
+          ]
+        },
+        "logical_cpu_count": 10,
+        "processor": "arm"
+      },
+      "operating_system": {
+        "machine": "arm64",
+        "release": "24.5.0",
+        "system": "Darwin"
+      },
+      "python": {
+        "executable_name": "python",
+        "implementation": "CPython",
+        "version": "3.13.11"
+      }
+    },
+    "maximum_resident_set_bytes": 634765312,
+    "model_fit_count": 56,
+    "peak_memory_footprint_bytes": 413861472,
+    "prediction_rows": 29106,
+    "reported_training_iterations": 3149,
+    "scope": "one local seven-candidate cached-bundle governed study",
+    "system_cpu_seconds": 0.89,
+    "user_cpu_seconds": 60.77,
+    "wall_seconds": 62.39
+  },
+  "decision": "REJECT_PAPER_ADVANCEMENT",
+  "evidence_schema_version": "1.0.0",
+  "evidence_type": "aggregate governed seven-candidate historical baseline study",
+  "limitations": [
+    "The cached Nasdaq WIKI panel ends in 2018 and is not current trading data.",
+    "Universe membership, revisions, delistings, and corporate actions are incomplete.",
+    "Development t-tests treat matched fold differences as the analysis unit and have low power.",
+    "Regression calibration slope is descriptive and is not probability calibration.",
+    "Backtested returns are not realized profits and do not establish a persistent edge."
+  ],
+  "readiness_decision": "NOT_READY",
+  "selected_candidate": "linear",
+  "selected_candidate_evidence": {
+    "adjusted_p_value": 0.08409084120131886,
+    "incremental_rank_ic": 0.14897249271454555,
+    "kill_reasons": [
+      "multiplicity_adjusted_evidence"
+    ],
+    "max_drawdown": -0.0509650144848725,
+    "mean_rank_ic": 0.08635363414877059,
+    "net_annual_return": 0.0055710920916889,
+    "raw_p_value": 0.012012977314474123
+  },
+  "source": {
+    "bundle_id": "63bc9af39ed5199cf4027355163c95767c8530b31af9d986a9e7a18006c0e26f",
+    "date_max": "2018-03-27",
+    "date_min": "2013-01-02",
+    "final_holdout_artifacts_published": false,
+    "licensed_observations_published": false,
+    "point_in_time_limits": {
+      "corporate_actions_complete": false,
+      "historical_revisions_complete": false,
+      "universe_membership_point_in_time": false
+    },
+    "provider_requests": 0,
+    "row_level_predictions_published": false,
+    "rows": 13169,
+    "schema_version": "1.1.0",
+    "ticker_count": 10
+  },
+  "study": {
+    "candidate_count": 7,
+    "correction": "holm_bonferroni",
+    "failed_candidate_count": 0,
+    "family_alpha": 0.05,
+    "fold_count_per_candidate": 8,
+    "ledger_head_hash": "02e7dd344443f575f776bab2786afc4f6bda45fa95a60e52eb0b5b8391c66500",
+    "ledger_record_count": 23,
+    "plan_hash": "30426f30f03a465085951044a29caec4d3569dad5d5ab25e526b8979f869a725",
+    "producer_code_sha": "881779f6cc7b1b0ce3261cc8d3819a6ab87e6fd7",
+    "research_run_id": "f50fde355139317a9d93685c68c148e35f954e3b4cafea18d29900d127a88a9b",
+    "study_id": "30426f30f03a465085951044a29caec4d3569dad5d5ab25e526b8979f869a725"
+  }
+}

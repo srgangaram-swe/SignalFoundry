@@ -1,0 +1,209 @@
+{
+  "artifacts": {
+    "class_balance.csv": {
+      "bytes": 1579,
+      "sha256": "f75221a92db2d58cc73c58f8c33bf7a90f4833a70ebbb1f6410b18d496d66d15"
+    },
+    "parameter_sensitivity.csv": {
+      "bytes": 2908,
+      "sha256": "00eb3c5c9ec78addbea30fe1cfd096cd1cd7ac816a399bade61cca7220c1331f"
+    },
+    "plots/class_balance.png": {
+      "bytes": 40520,
+      "sha256": "16d7776f447754a0579f5e7e87c04736c70bfd58c4c7f6baff13cf8ebc373cae"
+    },
+    "plots/dependence.png": {
+      "bytes": 55154,
+      "sha256": "33ccca683136c3ee663d5ef96aac7ffe76e6027aeb60d81ef5ad10e85176480e"
+    },
+    "plots/parameter_sensitivity.png": {
+      "bytes": 77213,
+      "sha256": "f887066bc77928ab2f301530d84102bf97f8196ccb795aa1e3ed54893d87d27c"
+    },
+    "plots/temporal_stability.png": {
+      "bytes": 145843,
+      "sha256": "17722af6fc9d2dcd148f8ee441a8e250247bff959af6f156005d512137af49f1"
+    },
+    "summary.csv": {
+      "bytes": 2021,
+      "sha256": "bfc1caef19541a42d79c59588607e76144df2a9c33d8d50ca30f7dd59b5713f8"
+    },
+    "temporal_stability.csv": {
+      "bytes": 5454,
+      "sha256": "60d91f6efd123205972765fbec6f137993a68cd886991adc84ca2fcb74737325"
+    }
+  },
+  "data": {
+    "licensed_observations": false,
+    "market_evidence": false,
+    "seed": 20260725,
+    "sessions": 756,
+    "source": "alphaforge synthetic market",
+    "tradable_symbols": 10
+  },
+  "diagnostics": {
+    "autocorrelation_lag": 1,
+    "sensitivity_scales": [
+      0.5,
+      1.0,
+      2.0
+    ],
+    "temporal_periods": 4
+  },
+  "evidence_type": "deterministic synthetic label diagnostics",
+  "label_dataset": {
+    "contract": {
+      "benchmark_symbol": "SPY",
+      "definitions": [
+        {
+          "horizon_sessions": 1,
+          "identity": "245f21648bc7632d6fc2cb498b63d1ee69082114591480718b734ba38c06ff13",
+          "kind": "regression",
+          "name": "fwd_ret_1",
+          "overlap_policy": "allow",
+          "parameters": {},
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "e539337c1a0fce0b6ee52ad48639a316ca31c336e91a69a8b2ed3902839ee138",
+          "kind": "regression",
+          "name": "fwd_ret_5",
+          "overlap_policy": "allow",
+          "parameters": {},
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 20,
+          "identity": "113ba3b848b305fb9905c1df8bae0499db9bdd86fe909227054b5f33342fcff4",
+          "kind": "regression",
+          "name": "fwd_ret_20",
+          "overlap_policy": "allow",
+          "parameters": {},
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "d5987565e79bbdb14ae12c903a945381fc26351c09aff075a4762dcd67c83d6f",
+          "kind": "classification",
+          "name": "fwd_direction_5",
+          "overlap_policy": "allow",
+          "parameters": {},
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "2d924ee44d015363315b1ca268903e0b3c7d35ad7c6586a438a4e520021e0ddd",
+          "kind": "threshold",
+          "name": "fwd_threshold_5",
+          "overlap_policy": "allow",
+          "parameters": {
+            "threshold": 0.01
+          },
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "0c1b9d9d4228f6d15252f26e532206448f38aa950b27f36cdaf697a55f62890d",
+          "kind": "quantile",
+          "name": "fwd_quantile_5",
+          "overlap_policy": "allow",
+          "parameters": {
+            "quantiles": 5
+          },
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 20,
+          "identity": "474707320072c75ebb06da64d241c8234e1454bfc8af63ce3fa94bb29ceaed7f",
+          "kind": "triple_barrier",
+          "name": "triple_barrier_20",
+          "overlap_policy": "allow",
+          "parameters": {
+            "lower_barrier": 0.03,
+            "upper_barrier": 0.04
+          },
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "c3bdb79598c458e03b155a2602f677728cc8c0967f8aca45f8388cc711df1983",
+          "kind": "volatility_scaled",
+          "name": "fwd_vol_scaled_5",
+          "overlap_policy": "allow",
+          "parameters": {
+            "volatility_window": 20
+          },
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        },
+        {
+          "horizon_sessions": 5,
+          "identity": "522da49d3edb403be84e64e2165b789ed674a638c4ae0a4c6e80522326a676b0",
+          "kind": "meta_label",
+          "name": "lagged_side_meta_5",
+          "overlap_policy": "allow",
+          "parameters": {
+            "side_source": "lagged_return",
+            "threshold": 0.005
+          },
+          "price_field": "close",
+          "required_future_interval": "(t, t+h]",
+          "timing_convention": "close_to_close",
+          "version": "1.0.0"
+        }
+      ],
+      "identity": "3a4a0a50853913a229e457a90352b9756b17825fc51a4d977db1c410a5f2f081",
+      "missing_price_policy": "raise",
+      "protected_boundaries": [],
+      "version": "1.0.0"
+    },
+    "date_end": "2017-11-24",
+    "date_start": "2015-01-02",
+    "event_rows": 68040,
+    "observable_event_rows": 67330,
+    "rows": 7560,
+    "schema_version": "1.0.0",
+    "symbols": [
+      "SYN000",
+      "SYN001",
+      "SYN002",
+      "SYN003",
+      "SYN004",
+      "SYN005",
+      "SYN006",
+      "SYN007",
+      "SYN008",
+      "SYN009"
+    ]
+  },
+  "limitations": [
+    "Synthetic distributions validate engineering behavior, not trading value.",
+    "Dependence and class balance on generated data do not predict live behavior.",
+    "Sensitivity scales were predeclared and were not selected on a final holdout."
+  ],
+  "schema_version": "1.0.0"
+}

@@ -1,0 +1,30 @@
+{
+  "config_id": "db5eb3efd5af60821ffe85d92fdf7e4a6215ae006f8d1e01ee15d31d981b36b1",
+  "files": [
+    {
+      "bytes": 4623,
+      "path": "candidate_summary.csv",
+      "sha256": "a9d615ece13d8dd7aa063920181c5c5c87aadfa09fb14af0571c126cd91b37ee"
+    },
+    {
+      "bytes": 2742,
+      "path": "summary.json",
+      "sha256": "d42455df8fd067c4f366d30cdf2b27a87a8d6b9984ca1e37bec6c8cefa8c974d"
+    },
+    {
+      "bytes": 317818,
+      "path": "plots/representation_comparison.png",
+      "sha256": "f85d367e8022d082e861c38de8dfefa919fcb2dcea06a4112803fbc245884bb6"
+    }
+  ],
+  "kind": "aggregate_only_representation_evidence",
+  "publication": {
+    "credentials": false,
+    "embeddings": false,
+    "model_weights": false,
+    "predictions": false,
+    "raw_rows": false,
+    "targets": false
+  },
+  "schema_version": "1.0.0"
+}

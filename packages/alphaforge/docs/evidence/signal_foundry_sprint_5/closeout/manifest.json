@@ -1,0 +1,141 @@
+{
+  "absolute_code_ceiling_usd": "1000",
+  "artifacts": {
+    "checklist.json": {
+      "bytes": 5123,
+      "sha256": "f679cd5208f7eb59dc968adc22e5b4fe3a3cd59ee1e7ffca8592c2e9b2e6aa0f"
+    },
+    "delivery_inventory.json": {
+      "bytes": 16459,
+      "sha256": "85cfbbd411981afbefbc1293861f21edca31ebaa4a607733b38ab1ca4817d581"
+    },
+    "distribution_crossover.csv": {
+      "bytes": 2134,
+      "sha256": "cb921a7c955692183106ee5e0f9b4b956806c6ff484315d070a9cb8af4c7ddf3"
+    },
+    "distribution_crossover_raw.json": {
+      "bytes": 21644,
+      "sha256": "31774a207c53025bb383e0349a686dc896066f97142e336745ac7fc17b9c9e3c"
+    },
+    "readiness_decision.json": {
+      "bytes": 4698,
+      "sha256": "ba7d5c08fca6131126b1f2280b662fe4597fbfe6d0a30bc9b91f97d7feb7198e"
+    },
+    "readiness_report.md": {
+      "bytes": 1996,
+      "sha256": "6ea899b9e81df1e8a5d2c2148001bf8295f606e6f7efee5a82f09f92a89873d6"
+    },
+    "sprint_5_closeout.png": {
+      "bytes": 314355,
+      "sha256": "d01beda1d4e3fa2cf15238a9b07719505a789b9ca75b916bd0bec292ee4e42fa"
+    }
+  },
+  "bundle_id": "70e28564a4b843c7e805907f71c12bc9c29336153e54c07bc147c71ce1aca8de",
+  "capital_at_risk_usd": "0",
+  "checklist_identity": "e6eedb99ae73e9f775d51997636be9799a34b25dfa9ebd33423cc13527f66b3c",
+  "delivery_source_head": "60f572b933d925dcdbd48c167e810be2910b3d25",
+  "generator": {
+    "callable": "alphaforge.readiness.sprint_5_evidence.publish_sprint_5_evidence",
+    "render_dependencies": {
+      "Pillow": "12.3.0",
+      "matplotlib": "3.11.1",
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "seaborn": "0.13.2"
+    },
+    "render_runtime": {
+      "freetype_version": "2.14.3",
+      "libc_name": "unknown",
+      "libc_version": "unknown",
+      "machine": "arm64",
+      "matplotlib_backend": "Agg",
+      "platform_release": "24.5.0",
+      "platform_system": "Darwin",
+      "python_implementation": "CPython",
+      "python_version": "3.13.11"
+    },
+    "source_files": {
+      "alphaforge/distributed/benchmark_evidence.py": {
+        "bytes": 82950,
+        "sha256": "1e966803778fabdc8dcc7770556f4e4cd72792abe7115d23885cf937db96f3d4"
+      },
+      "alphaforge/distributed/executor.py": {
+        "bytes": 15141,
+        "sha256": "b7091bf8e8f199383f8a9d10d530c569bf1f22fe0eac7427d6aaaa9ca1a37dad"
+      },
+      "alphaforge/distributed/tasks.py": {
+        "bytes": 10361,
+        "sha256": "edeeccbe848c07928735ab51418007908684db481ad9cf411e0acffa9be17561"
+      },
+      "alphaforge/readiness/capital.py": {
+        "bytes": 15771,
+        "sha256": "d24a001ff2369d06394313ea522552852481bd5cfe8fd57e33a2993e6255bf14"
+      },
+      "alphaforge/readiness/checklist.py": {
+        "bytes": 24577,
+        "sha256": "f36a1c527d9e0f972f777cf756441498302f40fdbb34e806b81fc4b582da10f3"
+      },
+      "alphaforge/readiness/sprint_5_evidence.py": {
+        "bytes": 72516,
+        "sha256": "d46a74c9d188c79de6c3a6961e88a22c3dcb6c1d1cb26df3d6392674050b3189"
+      },
+      "alphaforge/readiness/sprint_5_inventory.py": {
+        "bytes": 38572,
+        "sha256": "02c98f4f52efe36a95f6aee2f6ce797a7df004693a7507e2562e2cd6066c26b1"
+      },
+      "alphaforge/research/_bounded_io.py": {
+        "bytes": 9906,
+        "sha256": "63b212e766e94e48cacce8c7579764be1a54a510fe06092ce9f2f01d63affab3"
+      },
+      "benchmarks/benchmark_distributed_crossover.py": {
+        "bytes": 7262,
+        "sha256": "e619e7660321c94e78d813a835ff09e1518f8b48f2e4e29ec82f16722802ee98"
+      },
+      "pyproject.toml": {
+        "bytes": 2425,
+        "sha256": "718b033eef0828bb9f7465d11b160ad63fc372fd80a330f7e4552caa70d38e6e"
+      },
+      "scripts/publish_sprint_5_evidence.py": {
+        "bytes": 1597,
+        "sha256": "29ce71716770bc348be3d0009f8d19377346de9d7662fc4361e4bfcc42735545"
+      },
+      "uv.lock": {
+        "bytes": 535376,
+        "sha256": "348d69a0fd0c387f2ca30d966c4540f8341fa5d0e57ed78393674183951275e5"
+      }
+    }
+  },
+  "inputs": {
+    "benchmark_id": "89c0ac6233df42d218e658f047e8ec3e31a6ab77d8af779ae0a3992bbb139df8",
+    "benchmark_sha256": "31774a207c53025bb383e0349a686dc896066f97142e336745ac7fc17b9c9e3c",
+    "delivery_inventory_id": "f727a1b4e7be21e3f7c2522804358b1d3b4f2dc96337456cd125f449872e97a0",
+    "delivery_inventory_sha256": "85cfbbd411981afbefbc1293861f21edca31ebaa4a607733b38ab1ca4817d581"
+  },
+  "limitations": [
+    "Synthetic deterministic workload and Git metadata only; no market data or broker connection.",
+    "Single-machine wall-clock measurements are environment-specific and are not a performance SLA or a cluster benchmark.",
+    "Per-slice changed-path record counts describe frozen Git scope; a repository path can appear in more than one slice, and the counts are not tests, quality, effort, or semantic complexity metrics.",
+    "The readiness framework records but cannot independently verify human policy or legal attestations.",
+    "No strategy is qualified; no paper/live trading or capital is authorized."
+  ],
+  "manifest_integrity": "The manifest does not recursively hash itself. Git anchors manifest.json; this index hashes every other artifact.",
+  "measurement_environment": {
+    "logical_cpu_count": 10,
+    "machine": "arm64",
+    "platform": "Darwin",
+    "platform_release": "24.5.0",
+    "process_start_method": "spawn",
+    "python_implementation": "CPython",
+    "python_version": "3.13.11",
+    "timing_clock_adjustable": false,
+    "timing_clock_implementation": "mach_absolute_time()",
+    "timing_clock_monotonic": true,
+    "timing_clock_resolution_seconds": 4.166666666666666e-08
+  },
+  "schema_version": "2.0.0",
+  "sprint": 5,
+  "total_items": 17,
+  "track": "AlphaForge",
+  "unmet_count": 17,
+  "verdict": "NOT_READY"
+}

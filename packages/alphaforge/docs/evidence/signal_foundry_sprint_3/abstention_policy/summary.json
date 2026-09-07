@@ -1,0 +1,143 @@
+{
+  "abstention_reason_counts": {
+    "drift_detected": 220,
+    "excess_cost": 188,
+    "excess_uncertainty": 1000,
+    "future_data": 46,
+    "high_disagreement": 1215,
+    "insufficient_margin": 1928,
+    "stale_data": 166,
+    "uncertain_regime": 1219,
+    "unsupported_regime": 218
+  },
+  "compute": {
+    "algorithmic_complexity": "O(n) validation/evaluation plus O(n log n) deterministic ordering; O(n) bounded study memory",
+    "device": "cpu",
+    "maximum_batch_size": 4096,
+    "numpy": "2.5.1",
+    "numpy_bit_generator": "PCG64",
+    "observations_evaluated": 2400,
+    "pandas": "3.0.5",
+    "python": "3.13.11",
+    "seaborn": "0.13.2",
+    "seed": 20260726
+  },
+  "configuration": {
+    "policy": {
+      "cost_multiplier": 1.25,
+      "cost_uncertainty_multiplier": 2.0,
+      "maximum_absolute_expected_return": 0.2,
+      "maximum_batch_size": 4096,
+      "maximum_data_age_seconds": 86400,
+      "maximum_drift_score": 0.25,
+      "maximum_model_disagreement": 0.3,
+      "maximum_prediction_uncertainty": 0.002,
+      "maximum_regime_uncertainty": 0.35,
+      "maximum_total_cost": 0.003,
+      "required_margin": 0.0005,
+      "schema_version": "1.0.0",
+      "uncertainty_penalty": 1.5
+    },
+    "study": {
+      "anchor_time": "2026-07-26T12:00:00Z",
+      "baselines": [
+        "always_trade",
+        "never_trade"
+      ],
+      "broker_access": false,
+      "cost_uncertainty_scale": 0.0004,
+      "disagreement_scale": 0.45,
+      "drift_probability": 0.1,
+      "expected_return_scale": 0.0035,
+      "future_probability": 0.02,
+      "interpretation": "Synthetic engineering evidence for policy mechanics; not market, paper, or live evidence.",
+      "maximum_expected_cost": 0.0015,
+      "minimum_expected_cost": 0.0002,
+      "observation_count": 2400,
+      "period_capacity": 250000.0,
+      "period_count": 120,
+      "prediction_uncertainty_scale": 0.0025,
+      "protected_holdout_access": false,
+      "realized_noise_scale": 0.0015,
+      "regime_uncertainty_scale": 0.55,
+      "schema_version": "1.0.0",
+      "scope": "synthetic_engineering_only",
+      "seed": 20260726,
+      "stale_probability": 0.08,
+      "unit_notional": 10000.0,
+      "unit_turnover": 2.0,
+      "unsupported_regime_probability": 0.1
+    }
+  },
+  "evidence": {
+    "aggregate_rows_published": 12,
+    "artifacts": {
+      "abstention_reasons.csv": "6b6cc7adf9afd5a81d7ec115ea83360a32919fb7e87ca4ba3b14321ba8cf1b51",
+      "aggregate_metrics.csv": "8f20f4930fd2a6fa48ecc65114932c979fb3c89825db5f1fc842402324f9ee84",
+      "decision_policy_study.png": "daa532a67d99014b35730c5422891f8ee6e2539cf309c4fa5360660002c14417"
+    },
+    "broker_access": false,
+    "orders_emitted": 0,
+    "protected_holdout_access": false,
+    "row_level_outcomes_published": 0,
+    "row_level_signals_published": 0
+  },
+  "interpretation": "Synthetic engineering evidence for policy mechanics; not market, paper, or live evidence.",
+  "limitations": [
+    "Synthetic engineering evidence is not market, backtest, paper, or live evidence.",
+    "The generator is not calibrated to historical execution or forecast distributions.",
+    "Capacity and turnover are demand proxies before portfolio construction, not fills.",
+    "Abstention reduces declared exposure; it cannot guarantee against loss.",
+    "Thresholds were not selected on a protected final holdout."
+  ],
+  "mathematics": {
+    "eligibility": "abs(expected_return) - cost_multiplier * (expected_cost + cost_uncertainty_multiplier * cost_uncertainty) - uncertainty_penalty * prediction_uncertainty > required_margin",
+    "never_trade_selective_risk": null,
+    "selective_risk": "loss count among eligible decisions / eligible decision count"
+  },
+  "metrics": [
+    {
+      "abstention_count": 2329,
+      "coverage": 0.029583333333333333,
+      "mean_capacity_demand": 0.023666666666666666,
+      "mean_net_value": 0.00011950589726969542,
+      "mean_turnover_per_period": 1.1833333333333333,
+      "missed_opportunity": 0.001908625475073927,
+      "observation_count": 2400,
+      "peak_capacity_demand": 0.12,
+      "policy": "abstention_policy",
+      "selective_risk": 0.04225352112676056,
+      "trade_count": 71
+    },
+    {
+      "abstention_count": 0,
+      "coverage": 1.0,
+      "mean_capacity_demand": 0.8000000000000002,
+      "mean_net_value": 0.0016755030841476822,
+      "mean_turnover_per_period": 40.0,
+      "missed_opportunity": 0.0,
+      "observation_count": 2400,
+      "peak_capacity_demand": 0.8,
+      "policy": "always_trade",
+      "selective_risk": 0.27541666666666664,
+      "trade_count": 2400
+    },
+    {
+      "abstention_count": 2400,
+      "coverage": 0.0,
+      "mean_capacity_demand": 0.0,
+      "mean_net_value": 0.0,
+      "mean_turnover_per_period": 0.0,
+      "missed_opportunity": 0.002028440084210274,
+      "observation_count": 2400,
+      "peak_capacity_demand": 0.0,
+      "policy": "never_trade",
+      "selective_risk": null,
+      "trade_count": 0
+    }
+  ],
+  "policy_id": "policy-b11a1120f24e0993b356b23743b56748e4aff9348f149cfbeedbbaa94251a5c3",
+  "schema_version": "1.0.0",
+  "scope": "synthetic_engineering_only",
+  "study_id": "decision-study-3bca0155fd25f3c6bd72ca8298c490dde6eab00cf44cc5c418fb5d4137d2511f"
+}

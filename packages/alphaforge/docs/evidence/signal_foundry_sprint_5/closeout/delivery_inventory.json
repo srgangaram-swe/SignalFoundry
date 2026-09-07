@@ -1,0 +1,537 @@
+{
+  "inventory_id": "f727a1b4e7be21e3f7c2522804358b1d3b4f2dc96337456cd125f449872e97a0",
+  "schema_version": "1.0.0",
+  "slices": [
+    {
+      "category_counts": {
+        "documentation": 4
+      },
+      "changed_path_count": 4,
+      "commit": "975e015896d5cdf4f8f9808d44bad13362b83b9a",
+      "issue_number": 99,
+      "mr_group": "SF-S5-MR2",
+      "parent": "c66e266b19c8c47e2deb2606a4791705986a36ed",
+      "paths": [
+        {
+          "blob": "b11c7585b4b83acf16c90fad308482b6ed6ed5e4",
+          "bytes": 8447,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0015-broker-selection-for-paper-and-live-trading.md",
+          "status": "A"
+        },
+        {
+          "blob": "b52ec2d720ad69c8964b41abab2a922b261f4d77",
+          "bytes": 8228,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/backtesting.md",
+          "status": "M"
+        },
+        {
+          "blob": "3d9275eb4c9683b03c00021d43433eb56cf8f73c",
+          "bytes": 15752,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/broker_connectivity_requirements.md",
+          "status": "A"
+        },
+        {
+          "blob": "b25cd5716f09dbe23e91ddfcedf7c411adb0249b",
+          "bytes": 11859,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/signal_foundry.md",
+          "status": "M"
+        }
+      ],
+      "tree": "2cc7cabc3209e78c884147c29551e0b554a7bd2c"
+    },
+    {
+      "category_counts": {
+        "documentation": 2,
+        "repository": 1,
+        "source": 4,
+        "tests": 2
+      },
+      "changed_path_count": 9,
+      "commit": "70fd5d76fedf21a18883a14e406ee8714c6015f7",
+      "issue_number": 45,
+      "mr_group": "SF-S5-MR3",
+      "parent": "975e015896d5cdf4f8f9808d44bad13362b83b9a",
+      "paths": [
+        {
+          "blob": "cef8ad6646633a7d837e0cea93c9dc9dfa113e8c",
+          "bytes": 25434,
+          "category": "repository",
+          "mode": "100644",
+          "path": "README.md",
+          "status": "M"
+        },
+        {
+          "blob": "7115b81b3c96e61479daa66dadbee61a5751ab2a",
+          "bytes": 2992,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/__init__.py",
+          "status": "A"
+        },
+        {
+          "blob": "003439d81db1d6d37fce59cb23353e7e42037eaf",
+          "bytes": 13747,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/config.py",
+          "status": "A"
+        },
+        {
+          "blob": "9f79182762fd842affec9ca686f9f6663b8b047e",
+          "bytes": 28563,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/contracts.py",
+          "status": "A"
+        },
+        {
+          "blob": "80c19b66f115b8d9082ce659006a313400b64ddd",
+          "bytes": 19459,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/paper_adapter.py",
+          "status": "A"
+        },
+        {
+          "blob": "6835d46ddd4a400b38c0afbd9d006a48472cb2e6",
+          "bytes": 5255,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0016-deny-by-default-broker-authorization.md",
+          "status": "A"
+        },
+        {
+          "blob": "74e89197e86d25fe4ba7a7a6a56dc7d41671eb87",
+          "bytes": 10584,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/broker_contract_and_paper_adapter.md",
+          "status": "A"
+        },
+        {
+          "blob": "e2b19604fecda70a0f6512ab22db5657eab91bc2",
+          "bytes": 15911,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_broker_contracts.py",
+          "status": "A"
+        },
+        {
+          "blob": "5cc9a63f63490f50db2cd1af68c2b17784b40816",
+          "bytes": 23250,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_broker_paper_adapter.py",
+          "status": "A"
+        }
+      ],
+      "tree": "7452f74aab723996a037c5d409872d90edbc96a2"
+    },
+    {
+      "category_counts": {
+        "documentation": 2,
+        "repository": 1,
+        "source": 3,
+        "tests": 1
+      },
+      "changed_path_count": 7,
+      "commit": "b10aaf25f3407f6b61b37ac8c136534387a330dc",
+      "issue_number": 46,
+      "mr_group": "SF-S5-MR4",
+      "parent": "70fd5d76fedf21a18883a14e406ee8714c6015f7",
+      "paths": [
+        {
+          "blob": "992cf7287e26cf61df5194968747fa71cb5bca21",
+          "bytes": 26084,
+          "category": "repository",
+          "mode": "100644",
+          "path": "README.md",
+          "status": "M"
+        },
+        {
+          "blob": "0178fb747dc92f3f47f30cf188824ea3993aaba9",
+          "bytes": 4327,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/__init__.py",
+          "status": "M"
+        },
+        {
+          "blob": "315fdffbdbb4dfc282daaa46d4948f8e72666656",
+          "bytes": 27100,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/durable.py",
+          "status": "A"
+        },
+        {
+          "blob": "f32d8b1f4e2bff18a52fc3f0993b0ae48f2f5d75",
+          "bytes": 17450,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/broker/reconciliation.py",
+          "status": "A"
+        },
+        {
+          "blob": "a458fb0d6227bb174d986216ccc1015370042391",
+          "bytes": 5681,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0017-durable-session-state-and-halt-on-divergence.md",
+          "status": "A"
+        },
+        {
+          "blob": "373039d13e812a5573396fe74a033af3419c9c0c",
+          "bytes": 9955,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/durable_state_and_reconciliation.md",
+          "status": "A"
+        },
+        {
+          "blob": "10162745da258bacc47dd3f70d16ff0af919a6db",
+          "bytes": 23334,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_broker_durable_state.py",
+          "status": "A"
+        }
+      ],
+      "tree": "9c4a31c5fe2d98e2fa6e09a0e7059b0e54941980"
+    },
+    {
+      "category_counts": {
+        "benchmarks": 1,
+        "documentation": 2,
+        "repository": 1,
+        "source": 4,
+        "tests": 1
+      },
+      "changed_path_count": 9,
+      "commit": "cb3a60efc47b4c7eba2a86054561126cecdd41fa",
+      "issue_number": 47,
+      "mr_group": "SF-S5-MR8",
+      "parent": "b10aaf25f3407f6b61b37ac8c136534387a330dc",
+      "paths": [
+        {
+          "blob": "13d52c00d26b539d51f28db5e9031c2b2c76a66a",
+          "bytes": 26790,
+          "category": "repository",
+          "mode": "100644",
+          "path": "README.md",
+          "status": "M"
+        },
+        {
+          "blob": "0ee3960d7a8324629e1fa2431ed5a14f0eb7b77b",
+          "bytes": 1935,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/__init__.py",
+          "status": "A"
+        },
+        {
+          "blob": "212b8b510d7aa42f51fc873cef3681d1e5e7977e",
+          "bytes": 15141,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/executor.py",
+          "status": "A"
+        },
+        {
+          "blob": "d5ecd58f89bfecab6236b81ba1230a05b1de0840",
+          "bytes": 8898,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/profiling.py",
+          "status": "A"
+        },
+        {
+          "blob": "41651a87dbe33cf5266430d3fa4ac921b873912a",
+          "bytes": 10361,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/tasks.py",
+          "status": "A"
+        },
+        {
+          "blob": "0d25f57c92cf97e1b4e622d35bd39b8658a840ac",
+          "bytes": 3592,
+          "category": "benchmarks",
+          "mode": "100644",
+          "path": "benchmarks/benchmark_distributed_crossover.py",
+          "status": "A"
+        },
+        {
+          "blob": "3404bf5749fbf209aea1364656ff358c55bad508",
+          "bytes": 7473,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0018-bounded-distributed-research-execution.md",
+          "status": "A"
+        },
+        {
+          "blob": "76be67b10b0737858d30c94172a8b612dafdf723",
+          "bytes": 7637,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/distributed_execution.md",
+          "status": "A"
+        },
+        {
+          "blob": "2114769b76bfa1c0d8e4db0779945a38eefbd235",
+          "bytes": 15780,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_distributed_execution.py",
+          "status": "A"
+        }
+      ],
+      "tree": "bb3721d5f2a51be7470f44ef4c41b1046d97ef45"
+    },
+    {
+      "category_counts": {
+        "documentation": 2,
+        "repository": 1,
+        "source": 3,
+        "tests": 1
+      },
+      "changed_path_count": 7,
+      "commit": "cb2310f4e4e8a25db07365d9ef77c45df1168a19",
+      "issue_number": 48,
+      "mr_group": "SF-S5-MR9",
+      "parent": "cb3a60efc47b4c7eba2a86054561126cecdd41fa",
+      "paths": [
+        {
+          "blob": "767c606b3a6d7f0666b1615a79281581a3783a6d",
+          "bytes": 27250,
+          "category": "repository",
+          "mode": "100644",
+          "path": "README.md",
+          "status": "M"
+        },
+        {
+          "blob": "ee1a5f2b35b29cff26a7f53d356948abb17a079f",
+          "bytes": 3378,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/__init__.py",
+          "status": "M"
+        },
+        {
+          "blob": "c9f7bd76c00de7b3c001ce83ed3b81897c371257",
+          "bytes": 13417,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/budgets.py",
+          "status": "A"
+        },
+        {
+          "blob": "fc3501bad9bb337c5633180f002d52ea7b7e703f",
+          "bytes": 17608,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/distributed/checkpoints.py",
+          "status": "A"
+        },
+        {
+          "blob": "465199acc86e9c86e18c192e987679db807a9121",
+          "bytes": 4832,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0019-checkpoint-bindings-and-hard-budgets.md",
+          "status": "A"
+        },
+        {
+          "blob": "2d59038607ce24161a4a63e25b1ad4cca6a4a70b",
+          "bytes": 5687,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/checkpointing_and_budgets.md",
+          "status": "A"
+        },
+        {
+          "blob": "8b7d3c7060722ba5341c40466ecd3e3bfad83dd9",
+          "bytes": 20615,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_checkpoints_and_budgets.py",
+          "status": "A"
+        }
+      ],
+      "tree": "81fac0434fb9d9af9b8d405fef5baed4bb5e43e3"
+    },
+    {
+      "category_counts": {
+        "documentation": 9,
+        "repository": 1,
+        "source": 4,
+        "tests": 2,
+        "tooling": 1
+      },
+      "changed_path_count": 17,
+      "commit": "60f572b933d925dcdbd48c167e810be2910b3d25",
+      "issue_number": 49,
+      "mr_group": "SF-S5-MR10",
+      "parent": "cb2310f4e4e8a25db07365d9ef77c45df1168a19",
+      "paths": [
+        {
+          "blob": "fc22633b98a00de40d18fa483d6bb4677ca8310f",
+          "bytes": 27861,
+          "category": "repository",
+          "mode": "100644",
+          "path": "README.md",
+          "status": "M"
+        },
+        {
+          "blob": "ab268a61d2fc25244cbcd3440f32b1bfab460c02",
+          "bytes": 1808,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/readiness/__init__.py",
+          "status": "A"
+        },
+        {
+          "blob": "174aeaee40dec3ddca672568b4f1f83179ebad54",
+          "bytes": 15771,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/readiness/capital.py",
+          "status": "A"
+        },
+        {
+          "blob": "c1bbb89eccc1c6947fa9ddf5582abb2ad53fb197",
+          "bytes": 24577,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/readiness/checklist.py",
+          "status": "A"
+        },
+        {
+          "blob": "ee927dafc67ee9123b959fedd6bb82e61e5c3767",
+          "bytes": 9238,
+          "category": "source",
+          "mode": "100644",
+          "path": "alphaforge/readiness/sprint_5_evidence.py",
+          "status": "A"
+        },
+        {
+          "blob": "3e81a7570de0a90c830391e32f64a1c44d929709",
+          "bytes": 5672,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/adr/0020-live-readiness-gate-and-inert-capital.md",
+          "status": "A"
+        },
+        {
+          "blob": "4e1ff34c27152581a444cd8854d0f4e20b4b1dda",
+          "bytes": 5123,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/checklist.json",
+          "status": "A"
+        },
+        {
+          "blob": "590df018f996ec878fc6a0ec20a2940120a004bd",
+          "bytes": 72,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/distribution_crossover.csv",
+          "status": "A"
+        },
+        {
+          "blob": "bdfea04efcec2dcabc57cf477167eeff3bf5306b",
+          "bytes": 1460,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/manifest.json",
+          "status": "A"
+        },
+        {
+          "blob": "d1e03eaab88231bb3c2d8a4cd3d6c77476a21240",
+          "bytes": 4698,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/readiness_decision.json",
+          "status": "A"
+        },
+        {
+          "blob": "b13d998b3bbd0efe2312d54334a9639dbf26294c",
+          "bytes": 1996,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/readiness_report.md",
+          "status": "A"
+        },
+        {
+          "blob": "fcf3eef3701c7009a800db64ac28392fe5f5b156",
+          "bytes": 280774,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/evidence/signal_foundry_sprint_5/closeout/sprint_5_closeout.png",
+          "status": "A"
+        },
+        {
+          "blob": "8f1f4c691a1f4c8d53247100ba30cf6d2aad79d5",
+          "bytes": 6919,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/live_readiness.md",
+          "status": "A"
+        },
+        {
+          "blob": "da7a9be136fd37c6d81be1d1b838f2ff28833384",
+          "bytes": 5785,
+          "category": "documentation",
+          "mode": "100644",
+          "path": "docs/sprint_5_report.md",
+          "status": "A"
+        },
+        {
+          "blob": "8631ba3fadcdca171fcafdedd68608393c057734",
+          "bytes": 1027,
+          "category": "tooling",
+          "mode": "100644",
+          "path": "scripts/publish_sprint_5_evidence.py",
+          "status": "A"
+        },
+        {
+          "blob": "c1a13ddad550303c77b300a6176e44153cab6d37",
+          "bytes": 22387,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_live_readiness.py",
+          "status": "A"
+        },
+        {
+          "blob": "da564f7f2b52ed9b6e832b5a10f23eebb7447a8e",
+          "bytes": 4487,
+          "category": "tests",
+          "mode": "100644",
+          "path": "tests/test_sprint_5_evidence.py",
+          "status": "A"
+        }
+      ],
+      "tree": "15d87857c55ad5d5ba91d5b9af99d9c9e8ad54fa"
+    }
+  ],
+  "source_head": "60f572b933d925dcdbd48c167e810be2910b3d25",
+  "totals": {
+    "category_counts": {
+      "benchmarks": 1,
+      "documentation": 21,
+      "repository": 5,
+      "source": 18,
+      "tests": 7,
+      "tooling": 1
+    },
+    "changed_path_count": 53
+  }
+}

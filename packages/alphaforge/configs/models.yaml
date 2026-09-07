@@ -1,0 +1,58 @@
+# Model & walk-forward experiment configuration
+target: fwd_ret_5            # label column to predict
+horizons: [1, 5, 20]         # label horizons generated
+
+models:                      # models to train & compare
+  - name: zero_baseline
+  - name: momentum_baseline
+    params: { feature: momentum_20, scale: 0.05 }
+  - name: ridge
+    params: { alpha: 10.0 }
+  - name: elastic_net
+    params: { alpha: 0.001, l1_ratio: 0.5 }
+  - name: random_forest
+    params: { n_estimators: 200, max_depth: 6, min_samples_leaf: 50, n_jobs: 1 }
+  - name: gradient_boosting
+    params: { backend: sklearn, max_iter: 300, max_depth: 4, learning_rate: 0.05, l2_regularization: 1.0 }
+  - name: ensemble
+    params:
+      weighting: ic          # weight members by rank IC on a chronological inner split
+      members:
+        - { name: ridge, params: { alpha: 10.0 } }
+        - { name: gradient_boosting, params: { backend: sklearn, max_iter: 300, max_depth: 4, learning_rate: 0.05 } }
+  # LightGBM is the primary optional tabular benchmark for governed comparison
+  # runs. Install the locked `ml` extra, then add:
+  # - name: lightgbm
+  #   params: { n_estimators: 300, max_depth: 4, learning_rate: 0.05, min_samples_leaf: 20, n_jobs: 1 }
+  # Neural temporal model (requires `pip install 'alphaforge[torch]'`).
+  # Uncomment to include it in walk-forward comparisons; it is also trained
+  # standalone by `make train` using the `temporal:` block below.
+  # - name: temporal_alpha
+  #   params: { max_epochs: 40, seq_len: 64 }
+
+# Hyperparameters for the standalone training loop (scripts/train_model.py).
+temporal:
+  seq_len: 64
+  hidden_size: 64
+  n_blocks: 4
+  dropout: 0.15
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  max_epochs: 60
+  patience: 8
+  dates_per_batch: 16
+  ic_loss_weight: 1.0
+  aux_loss_weight: 0.3
+  val_fraction: 0.15
+  seed: 42
+
+walk_forward:
+  scheme: expanding          # expanding | rolling
+  min_train_days: 756        # ~3 years before first test window
+  test_days: 126             # ~6 months per test window
+  step_days: 126
+  embargo_days: 21           # >= max label horizon; prevents label overlap leakage
+  max_windows: null          # null = as many as data allows
+
+seed: 42
+runs_dir: runs

@@ -1,0 +1,43 @@
+version: "1.0.0"
+policy:
+  schema_version: "1.0.0"
+  required_margin: 0.0005
+  cost_multiplier: 1.25
+  cost_uncertainty_multiplier: 2.0
+  uncertainty_penalty: 1.5
+  maximum_total_cost: 0.003
+  maximum_prediction_uncertainty: 0.002
+  maximum_model_disagreement: 0.30
+  maximum_regime_uncertainty: 0.35
+  maximum_drift_score: 0.25
+  maximum_data_age_seconds: 86400
+  maximum_absolute_expected_return: 0.20
+  maximum_batch_size: 4096
+study:
+  schema_version: "1.0.0"
+  scope: synthetic_engineering_only
+  baselines:
+    - always_trade
+    - never_trade
+  seed: 20260726
+  observation_count: 2400
+  period_count: 120
+  anchor_time: "2026-07-26T12:00:00Z"
+  expected_return_scale: 0.0035
+  realized_noise_scale: 0.0015
+  minimum_expected_cost: 0.0002
+  maximum_expected_cost: 0.0015
+  cost_uncertainty_scale: 0.0004
+  prediction_uncertainty_scale: 0.0025
+  disagreement_scale: 0.45
+  regime_uncertainty_scale: 0.55
+  unsupported_regime_probability: 0.10
+  stale_probability: 0.08
+  future_probability: 0.02
+  drift_probability: 0.10
+  unit_turnover: 2.0
+  unit_notional: 10000.0
+  period_capacity: 250000.0
+  interpretation: "Synthetic engineering evidence for policy mechanics; not market, paper, or live evidence."
+  protected_holdout_access: false
+  broker_access: false
