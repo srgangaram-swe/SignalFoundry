@@ -1,0 +1,138 @@
+# Local-only runtime profiles. No service joins a Docker network by default;
+# operators must make any broader authority an explicit, separately reviewed
+# deployment decision.
+services:
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: service
+      pull: true
+    image: signalattice-service:local
+    pull_policy: never
+    init: true
+    user: "10001:10001"
+    privileged: false
+    read_only: true
+    network_mode: none
+    restart: "no"
+    stop_signal: SIGTERM
+    stop_grace_period: 15s
+    logging:
+      driver: local
+      options:
+        max-size: "8m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # The application admits at most 24 synchronous data routes, while the
+    # remaining bounded headroom covers the ASGI loop, AnyIO workers, init,
+    # operations probes, and Docker's healthcheck without weakening the
+    # application-level concurrency gate.
+    pids_limit: 64
+    cpus: 1.0
+    mem_limit: 768m
+    mem_reservation: 256m
+    shm_size: 16m
+    ulimits:
+      core:
+        soft: 0
+        hard: 0
+      nofile:
+        soft: 256
+        hard: 256
+      nproc:
+        soft: 64
+        hard: 64
+    environment:
+      HOME: /nonexistent
+      SIGNALATTICE_REGISTRY_DB: /var/lib/signalattice/registry/registry.sqlite3
+      SIGNALATTICE_CAS_ROOT: /var/lib/signalattice/cas
+      SIGNALATTICE_API_SOCKET: /run/signalattice/api.sock
+    command:
+      - --registry-db
+      - /var/lib/signalattice/registry/registry.sqlite3
+      - --cas-root
+      - /var/lib/signalattice/cas
+      - --socket-path
+      - /run/signalattice/api.sock
+      - --digest-key-file
+      - /run/secrets/registry-digest-key
+    volumes:
+      - type: bind
+        source: ${SIGNALATTICE_REGISTRY_DIR:-./data/registry}
+        target: /var/lib/signalattice/registry
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SIGNALATTICE_CAS_DIR:-./data/cas}
+        target: /var/lib/signalattice/cas
+        read_only: true
+        bind:
+          create_host_path: false
+    secrets:
+      - source: registry-digest-key
+        target: registry-digest-key
+        uid: "10001"
+        gid: "10001"
+        mode: 0400
+    tmpfs:
+      - /run/signalattice:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=10001,gid=10001
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1770,uid=10001,gid=10001
+
+  # The existing research CLI remains available explicitly through
+  # `docker compose --profile cli run --rm platform ...`.
+  platform:
+    profiles: [cli]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cli
+      pull: true
+    image: signalattice:latest
+    pull_policy: never
+    init: true
+    user: "10001:10001"
+    privileged: false
+    read_only: true
+    network_mode: none
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 64
+    mem_limit: 2g
+    ulimits:
+      core:
+        soft: 0
+        hard: 0
+      nofile:
+        soft: 512
+        hard: 512
+      nproc:
+        soft: 64
+        hard: 64
+    environment:
+      SIGNALATTICE_LOG_LEVEL: ${SIGNALATTICE_LOG_LEVEL:-INFO}
+      SIGNALATTICE_SEED: ${SIGNALATTICE_SEED:-42}
+      SIGNALATTICE_TRACKING_BACKEND: ${SIGNALATTICE_TRACKING_BACKEND:-sqlite}
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./experiments:/app/experiments
+      - ./models:/app/models
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m,mode=1770,uid=10001,gid=10001
+    command: ["--help"]
+
+secrets:
+  # Compose implements uid/gid/mode for environment-backed secrets, while it
+  # silently ignores those controls for file-backed bind mounts. Operators
+  # inject this value only into the bounded Compose process from Keychain; it
+  # is mounted as a private file and is never a service-container environment.
+  registry-digest-key:
+    environment: SIGNALATTICE_REGISTRY_DIGEST_KEY

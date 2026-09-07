@@ -1,0 +1,32 @@
+version: "1.0.0"
+
+study:
+  seed: 3519
+  training_dates: 96
+  holdout_dates: 32
+  symbols: 8
+  folds: 4
+  transaction_cost_bps: 5.0
+  interpretation: synthetic_engineering_only
+
+resources:
+  max_prediction_records: 100000
+  max_audit_records: 10000
+
+bootstrap:
+  n_resamples: 512
+  block_length: 5
+  confidence_level: 0.95
+  seed: 97531
+  circular: true
+
+policies:
+  ridge_penalty: 1.0
+  bayesian_temperature: 1.0
+  dynamic_decay: 0.94
+  dynamic_temperature: 1.0
+  min_weight: 0.000001
+  regime_threshold: 0.5
+  regime_min_confidence: 0.1
+  min_regime_rows: 32
+  fallback_prediction: 0.0

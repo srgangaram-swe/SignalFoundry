@@ -1,0 +1,13 @@
+gate,passed
+accounting_reconciliation,True
+benchmark_excess,False
+capacity_liquidity,True
+deflated_sharpe,False
+drawdown,True
+holdout_sample,True
+missing_price_halt,True
+paper_controls,True
+point_in_time_evidence,False
+selection_bias,True
+stress_scenarios,False
+turnover,True

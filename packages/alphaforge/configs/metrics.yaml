@@ -1,0 +1,14 @@
+# Predeclared SF-S2-MR7 unified metric and uncertainty policy.
+version: 1.0.0
+
+minimum_prediction_samples: 20
+minimum_trading_periods: 20
+reliability_bins: 10
+benchmark_name: equal-weight investable benchmark
+
+bootstrap:
+  n_resamples: 2000
+  block_length: 20
+  confidence_level: 0.95
+  seed: 42
+  circular: true

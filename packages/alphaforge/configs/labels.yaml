@@ -1,0 +1,47 @@
+# Governed financial-label contract. Synthetic evidence only; no label is selected
+# by inspecting a protected final holdout.
+version: "1.0.0"
+benchmark_symbol: SPY
+missing_price_policy: raise
+protected_boundaries: []
+
+labels:
+  - name: fwd_ret_1
+    kind: regression
+    horizon: 1
+  - name: fwd_ret_5
+    kind: regression
+    horizon: 5
+  - name: fwd_ret_20
+    kind: regression
+    horizon: 20
+  - name: fwd_direction_5
+    kind: classification
+    horizon: 5
+  - name: fwd_threshold_5
+    kind: threshold
+    horizon: 5
+    threshold: 0.01
+  - name: fwd_quantile_5
+    kind: quantile
+    horizon: 5
+    quantiles: 5
+  - name: triple_barrier_20
+    kind: triple_barrier
+    horizon: 20
+    upper_barrier: 0.04
+    lower_barrier: 0.03
+  - name: fwd_vol_scaled_5
+    kind: volatility_scaled
+    horizon: 5
+    volatility_window: 20
+  - name: lagged_side_meta_5
+    kind: meta_label
+    horizon: 5
+    threshold: 0.005
+    side_source: lagged_return
+
+diagnostics:
+  autocorrelation_lag: 1
+  temporal_periods: 4
+  sensitivity_scales: [0.5, 1.0, 2.0]

@@ -1,0 +1,29 @@
+# Frozen statistical-governance policy for the seven-candidate Sprint 2 study.
+# Failed candidates remain in the family with p=1.0. Holm-Bonferroni controls
+# family-wise error without requiring independent trial statistics.
+version: "1.0.0"
+correction:
+  method: holm_bonferroni
+  alpha: 0.05
+  family_size: 7
+  assumptions:
+    - The eligible seven-candidate family is frozen before any holdout result is read.
+    - Every failed candidate remains in the family with a conservative p-value of 1.0.
+    - Each raw p-value comes from the same predeclared dependence-aware test.
+  failed_trial_p_value: 1.0
+kill_criteria:
+  - name: non_positive_incremental_ic
+    metric: incremental_rank_ic
+    operator: le
+    threshold: 0.0
+  - name: non_positive_net_return
+    metric: net_annual_return
+    operator: le
+    threshold: 0.0
+  - name: excessive_drawdown
+    metric: max_drawdown
+    operator: le
+    threshold: -0.25
+ledger:
+  max_records: 10000
+  max_bytes: 67108864

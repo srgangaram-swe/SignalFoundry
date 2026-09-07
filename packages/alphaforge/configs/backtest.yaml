@@ -1,0 +1,45 @@
+# Backtest configuration — deliberately conservative execution assumptions.
+strategy: long_short           # long_only_topk | long_short | rank_weighted | threshold
+strategy_params:
+  quantile: 0.2                # top/bottom 20% per side (long_short)
+
+rebalance_frequency: 5         # select every fifth close-time target for rebalancing
+execution_lag: 1               # close(t) decision fills no earlier than open(t+1)
+liquidate_at_end: true         # close the research book after the final target stream
+
+execution:
+  price_field: open            # next-open is the only supported daily-bar fill timestamp
+  adv_lookback: 20             # shifted one session before use at the open
+  volatility_lookback: 20      # close-to-close volatility, shifted before use
+  max_participation_rate: 0.05 # DAY orders may partially fill at 5% of lagged ADV
+  impact_coefficient: 0.10     # square-root participation sensitivity, not calibrated L2 impact
+  missing_price_policy: raise  # fail visibly; never mark held positions at an invented price
+
+costs:
+  commission_bps: 1.0          # per side, on traded notional
+  half_spread_bps: 2.5         # bid/ask spread approximation
+  slippage_bps: 2.0            # market impact approximation
+
+portfolio:
+  max_weight: 0.10             # per-asset cap
+  max_gross_exposure: 1.0
+  max_net_exposure: 1.0        # long_short strategies are ~dollar-neutral before caps
+  inverse_vol_scaling: true    # risk-parity-style sizing within the selected names
+  turnover_cap: null           # e.g. 0.5 = max 50% one-way turnover per rebalance
+
+risk:
+  vol_target: 0.10             # annualized; null disables volatility targeting
+  vol_lookback: 20
+  max_leverage: 1.5
+  drawdown_deleverage: 0.15    # cut exposure 50% beyond this drawdown; null disables
+  regime_filter: false         # halve gross exposure in high-volatility regimes
+
+capacity:
+  enabled: true
+  aum_multiples: [0.5, 1.0, 2.0, 5.0, 10.0]
+  max_participation_rate: 0.10 # sensitivity cap; separate from live fill-policy cap
+  impact_exponent: 0.50
+  variable_cost_fraction: 0.50
+  minimum_fill_ratio: 0.95
+
+initial_capital: 1_000_000

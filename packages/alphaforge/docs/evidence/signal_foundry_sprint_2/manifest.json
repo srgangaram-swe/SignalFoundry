@@ -1,0 +1,47 @@
+{
+  "artifacts": {
+    "README.md": {
+      "bytes": 783,
+      "sha256": "a1adb197aa50e1622d38c6f3c328f686c7a5fc4eb2965d29952472f4a77aee2a"
+    },
+    "failures.csv": {
+      "bytes": 22,
+      "sha256": "520b7ac1c671cce456e3144d4abea2c09eb982dbcd179408e16d779ff13ee623"
+    },
+    "fold_metrics.csv": {
+      "bytes": 2875,
+      "sha256": "528a45dd6ebfdeb92acf2dcec8d9ea3a0648616e95721b97ca536d2289462caa"
+    },
+    "model_summary.csv": {
+      "bytes": 2968,
+      "sha256": "28905ce658797792c83e4d3f63b0fbe75d6a80bac7bc4123e46374c30d454d28"
+    },
+    "plots/compute_accounting.png": {
+      "bytes": 72810,
+      "sha256": "5856de16a40bf612340bfb6d576523cbf2aee49d629526e99ac27a33af5e17bb"
+    },
+    "plots/costed_returns.png": {
+      "bytes": 84615,
+      "sha256": "28b5ff6fff439e474fcee39de03ce31e416f2e40b3ccad40fc03f97d92f6c428"
+    },
+    "plots/fold_rank_ic.png": {
+      "bytes": 87877,
+      "sha256": "a638eb25c2fae3797790ea866421b6cde5dc985bbdcf410b7d6d3c2a16eb331b"
+    },
+    "plots/multiplicity_correction.png": {
+      "bytes": 81097,
+      "sha256": "32af1a7d6ab763e42aa9739ae832ac01086994084f890bc062ba6c34a65710e4"
+    },
+    "summary.json": {
+      "bytes": 3959,
+      "sha256": "5aeff1e0f4c0961165ab184d2c87af594aa6c61feb49d7e3d71b17e54a6b1dbb"
+    }
+  },
+  "config_sha256": "e8c4c9a3bdfa85c9a783b16f01e65d9cb2563969f125adb45d289e03e49fe803",
+  "evidence_schema_version": "1.0.0",
+  "producer_code_sha": "881779f6cc7b1b0ce3261cc8d3819a6ab87e6fd7",
+  "publication_boundary": "aggregate-only; no licensed or row-level artifacts",
+  "source_bundle_id": "63bc9af39ed5199cf4027355163c95767c8530b31af9d986a9e7a18006c0e26f",
+  "source_run_id": "f50fde355139317a9d93685c68c148e35f954e3b4cafea18d29900d127a88a9b",
+  "source_study_id": "30426f30f03a465085951044a29caec4d3569dad5d5ab25e526b8979f869a725"
+}

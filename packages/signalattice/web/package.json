@@ -1,0 +1,51 @@
+{
+  "name": "signalattice-console",
+  "version": "0.3.1",
+  "private": true,
+  "type": "module",
+  "description": "Local-only read-only forecast-observability console for Signalattice.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "e2e": "playwright test",
+    "api:generate": "openapi-typescript ../docs/api/openapi-v1.json -o src/api/schema.ts",
+    "api:check": "node scripts/check-openapi-drift.mjs",
+    "budget": "node scripts/check-bundle-budget.mjs"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router": "8.3.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.62.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.5",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.1.0",
+    "@vitest/coverage-v8": "4.1.11",
+    "eslint": "10.8.1",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "happy-dom": "20.11.6",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.67.0",
+    "vite": "8.2.1",
+    "vitest": "4.1.11"
+  }
+}

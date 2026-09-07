@@ -1,0 +1,76 @@
+{
+  "attribution": {
+    "broad_drawdown_return": -0.08,
+    "broad_rally_return": 0.04,
+    "factor_rotation_magnitude": 0.05,
+    "factor_shrinkage": 0.2,
+    "factor_window": 252,
+    "initial_capital": 10000000.0,
+    "realized_cost_return": 0.001,
+    "specific_shrinkage": 0.2
+  },
+  "constraints": {
+    "cash_buffer": 0.0,
+    "long_only": true,
+    "max_gross": 1.0,
+    "max_leverage": 1.0,
+    "max_net": 1.0,
+    "max_position": 0.3
+  },
+  "evidence": {
+    "budget": 1.0,
+    "capital_levels": [
+      10000000.0
+    ],
+    "cost_bps": 10.0,
+    "folds": 2,
+    "formulations": [
+      "minimum_variance",
+      "target_return",
+      "maximum_utility",
+      "alpha_risk_cost"
+    ],
+    "participation": 0.05,
+    "perturbations": [
+      0.0,
+      0.25,
+      0.5
+    ],
+    "regime_window": 20,
+    "risk_aversion": 5.0,
+    "sensitivity_formulation": "maximum_utility",
+    "target_return": 2e-05,
+    "turnover_budgets": [
+      null,
+      0.25
+    ],
+    "uncertainty_strength": 0.5,
+    "volatility_target": 0.1
+  },
+  "profile_id": "sf-s4-mr2-synthetic-development",
+  "publication": {
+    "max_artifacts": 8,
+    "max_output_bytes": 4194304,
+    "max_runtime_seconds": 120.0,
+    "max_solver_calls": 512,
+    "plot_dpi": 160
+  },
+  "schema_version": "1.0.0",
+  "scope": "synthetic_development_only",
+  "synthetic": {
+    "average_daily_volume_dollars": 100000000.0,
+    "development_observations": 24,
+    "factor_volatility": 0.006,
+    "history_observations": 270,
+    "n_assets": 8,
+    "n_factors": 3,
+    "periods_per_year": 252,
+    "planted_signal_strength": 0.5,
+    "reserved_holdout_observations": 63,
+    "seed": 20260801,
+    "signal_persistence": 0.35,
+    "signal_volatility": 0.001,
+    "specific_volatility": 0.008,
+    "start_date": "2018-01-02"
+  }
+}
