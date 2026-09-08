@@ -1,5 +1,10 @@
 /** Bounded same-origin transport. No retries, credentials or executable inputs. */
 import * as guards from "./generated/validators.cjs";
+import type { components } from "../../../contracts/research-v1";
+import type { Resolved } from "./types";
+export type PaperStatus = Resolved<components["schemas"]["PaperStatus"]>;
+export type PaperResult = Resolved<components["schemas"]["PaperResult"]>;
+export type PaperAction = Resolved<components["schemas"]["Action"]>;
 import type {
   AuditTrail,
   Catalog,
@@ -193,7 +198,26 @@ async function boundedJson(
 }
 
 export class ResearchClient {
+  async paperStatus(signal: AbortSignal): Promise<PaperStatus> {
+    return this.request("paper", guards.isPaperStatus, signal);
+  }
+
+  async paperAction(
+    action: PaperAction,
+    signal: AbortSignal,
+  ): Promise<PaperResult> {
+    const emergency = action.operation === "stop";
+    return this.request(
+      emergency ? "paper/stop" : "paper",
+      guards.isPaperResult,
+      signal,
+      {
+        body: emergency ? {} : action,
+      },
+    );
+  }
   private active = 0;
+  private stopActive = 0;
 
   constructor(
     private readonly transport: typeof globalThis.fetch = globalThis.fetch.bind(
@@ -206,15 +230,22 @@ export class ResearchClient {
     path: string,
     guard: Guard<T>,
     signal: AbortSignal,
-    mutation?: { body: ResearchRequest | Record<string, never>; key?: string },
+    mutation?: {
+      body: ResearchRequest | PaperAction | Record<string, never>;
+      key?: string;
+    },
   ): Promise<T> {
-    if (this.active >= MAX_IN_FLIGHT) {
+    const emergency = path === "paper/stop";
+    if (emergency ? this.stopActive >= 1 : this.active >= MAX_IN_FLIGHT) {
       throw new ApiError(
         "client_busy",
-        "Four local requests are already in progress.",
+        emergency
+          ? "An emergency stop is already in progress."
+          : "Four local requests are already in progress.",
       );
     }
-    this.active += 1;
+    if (emergency) this.stopActive += 1;
+    else this.active += 1;
     const deadline = new AbortController();
     const timer = setTimeout(() => {
       deadline.abort();
@@ -285,7 +316,8 @@ export class ResearchClient {
     } finally {
       clearTimeout(timer);
       deadline.abort();
-      this.active -= 1;
+      if (emergency) this.stopActive -= 1;
+      else this.active -= 1;
     }
   }
 

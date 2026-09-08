@@ -9,9 +9,12 @@ remain intact. A typed, loopback-only control plane now runs bounded research jo
 and publishes immutable diagnostic evidence. The Nexus workstation adds a typed,
 accessible browser workflow for configuring, comparing and inspecting research.
 
-**Research and simulation only. No broker connection or live-order route.**
+**Research and explicit Alpaca paper operations. Live capability is absent.**
 The recorded capital-readiness verdict remains `NOT_READY`. Tests establish
-software properties, not a profitable trading strategy.
+software properties, not a profitable trading strategy. The optional
+[paper workflow](docs/paper-operations.md) adds bounded intraday acquisition,
+qualification, reconciliation and operator controls; actual broker credentials
+and independently qualified research remain required.
 
 ## Repository layout
 

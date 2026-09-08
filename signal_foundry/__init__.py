@@ -1,3 +1,3 @@
-"""Versioned local-only research control plane; no broker execution authority."""
+"""Local research and explicit paper operations; live capability is absent."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

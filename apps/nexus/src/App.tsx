@@ -1,4 +1,6 @@
 import { ResearchClient } from "./api";
+import { PaperConsole } from "./PaperConsole";
+import { useState } from "react";
 import { EvidenceView } from "./EvidenceView";
 import { ConfigurationFields } from "./ConfigurationFields";
 import { useWorkstation } from "./useWorkstation";
@@ -11,6 +13,7 @@ export function App({
 }: {
   readonly client?: ResearchClient;
 }) {
+  const [paperOpen, setPaperOpen] = useState(false);
   const {
     catalog,
     text,
@@ -362,10 +365,19 @@ export function App({
           </section>
         )}
         <footer>
-          Loopback only · No credentials or live-order controls · Legacy
-          research and data consoles remain available through their documented
-          launch commands.
+          <button
+            aria-expanded={paperOpen}
+            onClick={() => {
+              setPaperOpen(!paperOpen);
+            }}
+          >
+            {paperOpen ? "Hide paper operations" : "Open paper operations"}
+          </button>
+          Loopback only · No credentials in the browser; live capability absent
+          · Legacy research and data consoles remain available through their
+          documented launch commands.
         </footer>
+        {paperOpen && <PaperConsole client={client} />}
       </main>
     </div>
   );
