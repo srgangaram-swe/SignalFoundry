@@ -1,0 +1,118 @@
+# =============================================================================
+# Fully OFFLINE demo configuration.
+#
+# Uses the deterministic synthetic data generator so the whole pipeline runs
+# with no network access (this is what CI's smoke test uses). Great for a quick
+# `make demo` to see end-to-end output in ~10-20 seconds.
+#
+# Run:  quant-platform run-full-pipeline --config configs/synthetic.yaml
+# =============================================================================
+
+project:
+  name: synthetic_calibrated_ensemble
+  seed: 42
+  description: "Offline reproducible demo on factor-structured synthetic data."
+
+data:
+  source: synthetic
+  tickers: [SPY, QQQ, AAPL, MSFT, NVDA, JPM, TLT, XOM, GLD, IWM]
+  benchmark: SPY
+  start: "2015-01-01"
+  end: null
+  price_field: adj_close
+  min_observations: 252
+  synthetic:
+    n_days: 2200
+    start: "2015-01-01"
+    annual_drift: 0.08
+    annual_vol: 0.22
+    market_beta_mean: 1.0
+    market_vol: 0.16
+    # Declared, recoverable dynamics for engineering validation. Set both to
+    # zero for a null-edge test; neither implies live-market predictability.
+    market_autocorrelation: 0.30
+    idiosyncratic_autocorrelation: 0.20
+
+features:
+  vol_windows: [5, 21, 63]
+  ma_windows: [10, 20, 50, 200]
+  ema_windows: [12, 26]
+  sharpe_window: 63
+  rsi_window: 14
+  macd: {fast: 12, slow: 26, signal: 9}
+  bollinger: {window: 20, n_std: 2.0}
+  momentum_windows: [21, 63, 126, 252]
+  beta_window: 63
+  realized_vol_window: 21
+  drawdown_window: 252
+  cross_sectional: true
+  dropna: true
+
+model:
+  task: classification
+  target: direction
+  forward_horizon: 1
+  type: ensemble
+  standardize: true
+  ensemble:
+    candidates: [logistic, random_forest, gradient_boosting]
+    calibration_fraction: 0.20
+    calibration_method: sigmoid
+    min_calibration_dates: 40
+    candidate_params:
+      random_forest: {n_estimators: 250, max_depth: 6, min_samples_leaf: 50}
+      gradient_boosting: {n_estimators: 160, max_depth: 3, learning_rate: 0.05}
+  cv:
+    scheme: walk_forward
+    n_splits: 4
+    test_size: 126
+    min_train_size: 504
+    embargo: 5
+
+backtest:
+  strategy: long_short
+  signal: model
+  top_quantile: 0.3
+  cost_bps: 1.0
+  slippage_bps: 0.5
+  initial_capital: 1000000
+  max_leverage: 1.0
+  position_sizing: equal_weight
+  signal_selection: quantile
+  vol_target_annual: 0.10
+  max_position_weight: 0.34
+  rebalance_threshold: 0.02
+  execution_lag: 2
+
+evaluation:
+  cost_grid_bps: [0.0, 1.5, 3.0, 5.0, 10.0, 25.0]
+  delay_bars: [0, 1, 2, 3, 5]
+  aum_grid_usd: [1000000, 5000000, 10000000, 25000000]
+  readiness_aum_usd: 1000000
+  max_participation_rate: 0.01
+  latency_budget_ms: 1000.0
+  min_roc_auc: 0.52
+  max_ece: 0.05
+  min_positive_fold_fraction: 0.60
+  min_net_sharpe: 0.50
+  min_cost_multiple: 2.0
+
+risk:
+  var_confidence: 0.95
+  trading_days: 252
+  stress_scenarios:
+    equity_-10pct: -0.10
+    equity_-20pct: -0.20
+    vol_spike_2x: 2.0
+
+tracking:
+  backend: sqlite
+  experiment_name: synthetic_calibrated_ensemble
+  db_path: experiments/experiments.sqlite
+  json_dir: experiments/runs
+
+report:
+  output_dir: reports/example
+  figures_dir: reports/example/figures
+  format: markdown
+  title: "Signalattice — Synthetic Forecast Decision-Readiness"

@@ -1,0 +1,9 @@
+{
+  "alphaforge": {
+    "eaf3808ed56a95ef2c324c019309893885be96c3f9e56fe24f2dbfd295423393": "MIT; original Saif Gangaram copyright; preserve exact notice"
+  },
+  "signalattice": {
+    "ec1e512f1009e289ecb15fbceee1f361dd3e843d336751477baf9e2b5804e7e1": "MIT canonical v0.3.1; retain separate DISCLAIMER.md",
+    "c735309baac69e9ef2b0d134a1089e4e397adcfd6c274898d6fe267b0ee3c9e2": "Historical MIT with appended trading disclaimer; retain exact historical bytes, not rewrite"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "artifacts": {
+    "README.md": {
+      "bytes": 584,
+      "sha256": "6818ca3e95c4ce91f527fe636adc0a856d08d6d3411a2931873c8c7b734a22b8"
+    },
+    "capacity_sensitivity.csv": {
+      "bytes": 625,
+      "sha256": "33e1bc31a67e4c9ba3da56d926d0cc652072e36aa30bd7d3f4c5759c0c4b5214"
+    },
+    "plots/capacity_sensitivity.png": {
+      "bytes": 38957,
+      "sha256": "ef7833b5c5337492bf0331bf795080d5c6fa48aaf86bd043cab33d2ccd387da1"
+    },
+    "plots/readiness_gates.png": {
+      "bytes": 63396,
+      "sha256": "edb3bbce6d28853750f2ace784be66b576eeff504dbe070bbd42f4de429e9409"
+    },
+    "plots/scenario_returns.png": {
+      "bytes": 58062,
+      "sha256": "5ad071f00664482e1051da62f7ff1de1edcb3496ebf7957cc2eead1a6d92bb3f"
+    },
+    "readiness_gates.csv": {
+      "bytes": 276,
+      "sha256": "484a95f0ce6fc8528da4fb94b87e6f97995dc13b9dbc21a5d887fe82912ec595"
+    },
+    "scenario_metrics.csv": {
+      "bytes": 1443,
+      "sha256": "8ee84b367ac8d22a2c813bdfad6d043b1f5b0a07216af07da32283e4283cff97"
+    },
+    "summary.json": {
+      "bytes": 3888,
+      "sha256": "54346375b2c726f2c395dc84e99e32d52205f2e1a8aa676d7b5c91986c996e6c"
+    }
+  },
+  "config_sha256": "a01e466c3ddcc48f91793eb8d500ded2fba0b4701d3e8ae67cb388512d62bec3",
+  "evidence_schema_version": "1.0.0",
+  "publication_boundary": "aggregate-only; no licensed rows",
+  "source_bundle_id": "63bc9af39ed5199cf4027355163c95767c8530b31af9d986a9e7a18006c0e26f",
+  "source_run_id": "ec76e4129e8b9a4a26c6bdc9435444e4bdd575b57b36613467deb9bd73462a49"
+}

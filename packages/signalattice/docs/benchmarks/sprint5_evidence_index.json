@@ -1,0 +1,108 @@
+{
+  "adr_index": [
+    "0001-probabilistic-forecastops.md",
+    "0002-durable-local-registry.md",
+    "0003-local-read-only-evidence-api.md",
+    "0004-bounded-service-operability.md",
+    "0005-champion-challenger-promotion-governance.md",
+    "0006-local-forecast-observability-console.md",
+    "0007-reproducible-signed-release.md",
+    "0008-release-signing-and-remote-verification.md"
+  ],
+  "entries": [
+    {
+      "claim": "The bounded read-only service holds its admission, latency, and response bounds.",
+      "collection_method": "scripts/benchmark_service_operability.py against an in-process app",
+      "environment": "single local machine, CPython, no network",
+      "evidence_class": "local_engineering",
+      "issue": "#20",
+      "limitations": "Laptop-scale measurements from one process. Not a service level objective, a capacity claim, or evidence of production readiness.",
+      "sample_context": "aggregate percentiles over synthetic request scenarios",
+      "sha256": "b55e537f963e8ecbeeebcab18f6f3a3f17ff9e364c4899321ccf38119adabd15",
+      "size_bytes": 21846,
+      "source_path": "docs/benchmarks/service_operability_2026-09-06_patch1.json"
+    },
+    {
+      "claim": "The console meets its resource budgets, renders every honest state, and passes accessibility checks across four browser targets.",
+      "collection_method": "scripts/collect_console_evidence.py from real build and test runs",
+      "environment": "single local machine, Node 24 toolchain, Chromium/Firefox/WebKit",
+      "evidence_class": "local_engineering",
+      "issue": "#19",
+      "limitations": "Measured on one machine. Panel 4 of the figure is a static property of the view sources, not a claim about which states were exercised.",
+      "sample_context": "130 browser tests, 172 unit tests, 3 measured budgets",
+      "sha256": "abe8e7bd14974da21e377ba40747165588c0929b5b19d7b76e99df2fbdac0071",
+      "size_bytes": 2614,
+      "source_path": "docs/benchmarks/console_evidence_2026-08-20.json"
+    },
+    {
+      "claim": "The release dry run verifies end to end and refuses six deliberate tamper cases.",
+      "collection_method": "scripts/collect_release_evidence.py against a non-publishing dry run",
+      "environment": "single local machine, CPython 3.13, Node 24",
+      "evidence_class": "local_engineering",
+      "issue": "#23",
+      "limitations": "Digests establish content identity, not economic validity, independent review, or production readiness. No signing material exists yet.",
+      "sample_context": "24 release subjects, 439 SBOM components, 6 tamper cases",
+      "sha256": "1e232943312f96b48f4c8ef6061bfa0b56231ddffe5e67e7c635576c28794eb4",
+      "size_bytes": 2737,
+      "source_path": "docs/benchmarks/release_dry_run_2026-08-20.json"
+    },
+    {
+      "claim": "Two clean builds of one commit produce byte-identical release artifacts.",
+      "collection_method": "scripts/check_release_reproducible.py, two full builds compared",
+      "environment": "single local machine; one platform only",
+      "evidence_class": "local_engineering",
+      "issue": "#23",
+      "limitations": "Cross-platform byte identity is not established, and the container image is not yet a dry-run subject.",
+      "sample_context": "27 artifacts compared byte for byte",
+      "sha256": "f14310b437562a9532cdc6715864e50827a0c39b56601a62d4c5752d9bdf9167",
+      "size_bytes": 196,
+      "source_path": "docs/benchmarks/release_reproducibility_2026-08-20.json"
+    },
+    {
+      "claim": "The date-block bootstrap holds its nominal false-positive rate under intraday dependence where a naive per-forecast bootstrap does not.",
+      "collection_method": "scripts/plot_governance_evidence.py, seeded null-calibration study",
+      "environment": "single local machine, seeded numpy generator",
+      "evidence_class": "deterministic_synthetic",
+      "issue": "#22",
+      "limitations": "Simulated evidence. It establishes the estimator's operating characteristics, not any model's performance, and is not market evidence.",
+      "sample_context": "400 synthetic null cohorts per dependence level, seed 20260811",
+      "sha256": "f597c73efcde794d3cc482395fe62278723658119c1f01acf97bc6c73ef2df62",
+      "size_bytes": 1768,
+      "source_path": "reports/figures/governance_promotion_evidence.json"
+    },
+    {
+      "claim": "The Signal Foundry dataset contract round-trips a verified historical panel with recorded provenance.",
+      "collection_method": "scripts/benchmark_signal_foundry_contract.py over cached vintages",
+      "environment": "single local machine, immutable verified cache, zero provider requests",
+      "evidence_class": "historical_replay",
+      "issue": "#18",
+      "limitations": "Stale current-vintage public-domain data through 2018-03-27. Not a point-in-time universe, and vulnerable to survivorship and selection bias.",
+      "sample_context": "aggregate counts and hashes only; raw rows remain local",
+      "sha256": "9c23d108a56dd8fd2b16b71b392427eca1dc14a219585fb3931ac7d645984b85",
+      "size_bytes": 2181,
+      "source_path": "docs/benchmarks/signal_foundry_contract_1_1_2026-07-25.json"
+    },
+    {
+      "claim": "Deterministic cache replay reproduces an acquired panel without a provider request.",
+      "collection_method": "scripts/benchmark_nasdaq_cache_replay.py against the immutable cache",
+      "environment": "single local machine, cache-first, no network",
+      "evidence_class": "historical_replay",
+      "issue": "#18",
+      "limitations": "Replay of already-acquired data. Establishes mechanics, not data quality.",
+      "sample_context": "aggregate row counts and digests",
+      "sha256": "c99dccedf135190fc09da9c8f08fd53620bb3ffef33625bcb8f926b7283f83d6",
+      "size_bytes": 1111,
+      "source_path": "docs/benchmarks/nasdaq_cache_replay_2026-07-24.json"
+    }
+  ],
+  "evidence_classes": [
+    "deterministic_synthetic",
+    "historical_replay",
+    "local_engineering",
+    "prospective_wallclock"
+  ],
+  "prospective_wallclock_evidence": null,
+  "prospective_wallclock_note": "Sprint 5 produced no prospective wall-clock evidence. Every readiness question defers to #63, and no result here may be read as live or paper-trading evidence.",
+  "schema_version": 1,
+  "sprint": "Signal Foundry Sprint 5 \u2014 Local ForecastOps, Shadow Evidence & Governance"
+}

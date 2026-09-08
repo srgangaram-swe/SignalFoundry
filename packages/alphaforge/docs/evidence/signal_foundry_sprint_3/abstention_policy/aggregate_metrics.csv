@@ -1,0 +1,4 @@
+policy,observation_count,trade_count,abstention_count,coverage,selective_risk,mean_net_value,missed_opportunity,mean_turnover_per_period,mean_capacity_demand,peak_capacity_demand
+abstention_policy,2400,71,2329,0.0295833333333,0.0422535211268,0.00011950589727,0.00190862547507,1.18333333333,0.0236666666667,0.12
+always_trade,2400,2400,0,1,0.275416666667,0.00167550308415,0,40,0.8,0.8
+never_trade,2400,0,2400,0,,0,0.00202844008421,0,0,0

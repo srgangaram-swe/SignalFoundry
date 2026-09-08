@@ -1,0 +1,82 @@
+{
+  "dataset": {
+    "bundle_id": "63bc9af39ed5199cf4027355163c95767c8530b31af9d986a9e7a18006c0e26f",
+    "date_max": "2018-03-27",
+    "date_min": "2013-01-02",
+    "point_in_time": {
+      "adjustment_states": [
+        "provider_adjusted_close_unadjusted_ohlc"
+      ],
+      "corporate_action_risk": true,
+      "corporate_actions_complete": false,
+      "has_corporate_action_records": false,
+      "has_universe_records": false,
+      "historical_revisions_complete": false,
+      "schema_version": "1.1.0",
+      "survivorship_risk": true,
+      "universe_membership_point_in_time": false,
+      "warnings": [
+        "historical provider revisions are incomplete",
+        "point-in-time universe membership is incomplete; survivorship risk remains",
+        "corporate-action history is incomplete; adjustment risk remains",
+        "schema 1.1 bundle contains no universe-membership records",
+        "schema 1.1 bundle contains no corporate-action records"
+      ]
+    },
+    "rows": 13169,
+    "schema_version": "1.1.0",
+    "symbols": 10
+  },
+  "environment": {
+    "executable_platform": "darwin",
+    "lightgbm": "4.7.0",
+    "logical_cpu_count": 10,
+    "machine": "arm64",
+    "measurement_samples_per_fit": 1,
+    "numpy": "2.5.1",
+    "operating_system": "macOS-15.5-arm64-arm-64bit-Mach-O",
+    "pandas": "3.0.5",
+    "processor": "arm",
+    "python": "3.13.11",
+    "python_implementation": "CPython",
+    "reference_device": "cpu",
+    "seaborn": "0.13.2",
+    "torch": "2.13.0",
+    "warmup_runs": 0
+  },
+  "evidence": {
+    "aggregate_rows": 6,
+    "folds": 1,
+    "plot": "model_comparison.png",
+    "prediction_rows_published": 0,
+    "summary": "model_summary.csv"
+  },
+  "limitations": [
+    "Development-only evidence; no protected final holdout was accessed.",
+    "The simple costed diagnostic is not the event-driven execution simulator.",
+    "WIKI bootstrap data is stale and incomplete point-in-time engineering data.",
+    "No historical result authorizes paper or live trading or guarantees profit."
+  ],
+  "schema_version": "1.0.0",
+  "study": {
+    "benchmark_symbol": "AAPL",
+    "candidate_order": [
+      "lightgbm",
+      "sequence_cnn",
+      "sequence_tcn",
+      "sequence_lstm",
+      "sequence_gru",
+      "sequence_transformer"
+    ],
+    "horizons": [
+      1,
+      5,
+      20
+    ],
+    "interpretation": "Development-only architecture control; not a final-holdout or trading-readiness result.",
+    "seed": 42,
+    "selection_fraction": 0.2,
+    "target": "fwd_ret_5",
+    "transaction_cost_bps": 5.5
+  }
+}

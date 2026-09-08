@@ -1,0 +1,63 @@
+{
+  "bars": 756,
+  "blocking_failures": [
+    "adjusted_p_value",
+    "capacity_utilization",
+    "max_drawdown",
+    "net_return_over_baseline",
+    "stress_downside_net_return",
+    "top_name_concentration",
+    "uncertainty_lower_bound"
+  ],
+  "data": "deterministic synthetic development path",
+  "failure_report": {
+    "baseline_net_return": -0.1967726271960505,
+    "caveat": "Monte Carlo frequency under a declared perturbation family is not a probability of loss in the market.",
+    "deepest_drawdown_kind": "signal_timestamp",
+    "grid_identity": "ea7bfaa977295fc586a9637dd26ecfbbc080d27667d3a8139bd03a4f0f9dc765",
+    "kinds_with_insolvency": [],
+    "kinds_with_unreconciled_paths": [],
+    "median_degradation": {
+      "cost_multiplier": -0.029723260037851695,
+      "delayed_trade": -5.027016750053237e-05,
+      "execution_price": 0.0010042169448817306,
+      "liquidity_haircut": 0.0039648009749470026,
+      "missing_trade": 0.0012592504547222494,
+      "partial_fill": 0.016001492781352322,
+      "position_size": -0.001185779312180557,
+      "signal_timestamp": 0.003288286658997275,
+      "trade_order": -1.5543122344752192e-15
+    },
+    "most_damaging_kinds": [
+      "signal_timestamp",
+      "missing_trade",
+      "execution_price"
+    ],
+    "simulation_only": true,
+    "worst_case_net_return": -0.33031676386895814,
+    "worst_drawdown_by_kind": {
+      "cost_multiplier": -0.37431770858483326,
+      "delayed_trade": -0.35228581528140446,
+      "execution_price": -0.40016151133478395,
+      "liquidity_haircut": -0.3663813080664653,
+      "missing_trade": -0.41996490362838745,
+      "partial_fill": -0.35810404421860365,
+      "position_size": -0.3834658524591579,
+      "signal_timestamp": -0.5381358243510961,
+      "trade_order": -0.5225690114509918
+    }
+  },
+  "generated_by": "alphaforge.research.sprint_4_evidence.publish_sprint_4_evidence",
+  "limitations": [
+    "Synthetic development data. Not a backtest on licensed point-in-time data.",
+    "Monte Carlo frequencies come from a declared perturbation family and are not probabilities of loss in the market.",
+    "The REJECTED verdict is the honest outcome for a candidate with no trial ledger, capacity measurement, or dependence-aware uncertainty evidence.",
+    "No strategy is qualified, no capital is at risk, and no live or paper trading is authorized."
+  ],
+  "perturbation_grid_identity": "ea7bfaa977295fc586a9637dd26ecfbbc080d27667d3a8139bd03a4f0f9dc765",
+  "rubric_identity": "e8437e2b680cd922b9fb54ab7d6c62c93c2e90e86906f600aee3bd2646cd7c18",
+  "simulation_only": true,
+  "sprint": "Signal Foundry Sprint 4",
+  "synthetic_seed": 20260802,
+  "verdict": "REJECTED"
+}

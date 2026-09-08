@@ -1,0 +1,9 @@
+{
+  "artifacts": 27,
+  "differing": [],
+  "evidence_class": "measured_local_release_dry_run",
+  "identical": 27,
+  "present_in_one_build_only": [],
+  "reproducible": true,
+  "schema_version": 1
+}

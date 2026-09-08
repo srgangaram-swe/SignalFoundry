@@ -1,0 +1,66 @@
+# Frozen SF-S3-MR7 offline engineering benchmark.
+# This profile tests tensor consumption, architecture gates, and reproducibility
+# on a deterministic synthetic response. It is not market-edge evidence.
+
+study:
+  schema_version: "1.0.0"
+  seed: 20260726
+  train_fraction: 0.60
+  validation_fraction: 0.20
+  transaction_cost_bps: 5.5
+  selection_fraction: 0.20
+  interpretation: "Synthetic engineering reference; not a market, final-holdout, paper, or live-trading result."
+
+synthetic_reference:
+  dates: 80
+  symbols: 12
+  channels: 3
+  frequency_bins: 8
+  time_steps: 4
+  noise_scale: 0.25
+
+lightgbm:
+  n_estimators: 100
+  max_depth: 3
+  learning_rate: 0.05
+  min_samples_leaf: 20
+  l2_regularization: 1.0
+  n_jobs: 1
+  random_state: 20260726
+
+vision:
+  width: 12
+  residual_blocks: 2
+  vit_layers: 2
+  vit_heads: 3
+  patch_frequency: 2
+  patch_time: 1
+  dropout: 0.0
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  max_epochs: 8
+  patience: 3
+  batch_size: 128
+  gradient_clip: 1.0
+  max_parameters: 500000
+  max_tensor_bytes: 536870912
+  seed: 20260726
+  device: cpu
+  augmentation:
+    probability: 0.35
+    log_amplitude_std: 0.05
+    max_frequency_mask_bins: 1
+
+gates:
+  small_cnn_to_resnet:
+    minimum_observations: 96
+    minimum_dates: 10
+    minimum_rank_ic: 0.00
+    minimum_incremental_rank_ic: -0.10
+    maximum_rmse_ratio: 1.25
+  resnet_to_vit:
+    minimum_observations: 96
+    minimum_dates: 10
+    minimum_rank_ic: 0.05
+    minimum_incremental_rank_ic: 0.01
+    maximum_rmse_ratio: 1.00

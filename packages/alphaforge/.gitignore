@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data & artifacts (never commit market data or run outputs)
+data/raw/
+data/cache/
+data/processed/
+runs/
+*.event-journal.sqlite3
+*.event-journal.sqlite3-wal
+*.event-journal.sqlite3-shm
+*.parquet
+*.h5
+*.feather
+!tests/fixtures/**/*.parquet
+
+# Secrets
+.env
+*.pem
+*.key
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Private local planning context
+ai.md
+.preservation/

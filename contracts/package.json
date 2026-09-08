@@ -1,0 +1,14 @@
+{
+  "name": "@signal-foundry/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generated, versioned research-only control-plane bindings",
+  "scripts": {
+    "generate": "openapi-typescript openapi-v1.json --output research-v1.d.ts",
+    "check": "tsc --noEmit --strict --skipLibCheck false research-v1.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

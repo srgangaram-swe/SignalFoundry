@@ -1,0 +1,258 @@
+name: Release
+
+# Two jobs with deliberately different authority.
+#
+# `dry-run` runs on every pull request and on dev. It has read-only permissions
+# and no access to any environment, so untrusted code from a pull request cannot
+# obtain publication credentials no matter what it executes.
+#
+# `publish` is manual only, refuses anything but `main`, and runs inside a
+# protected environment that requires a human approval. It is present so the
+# path is reviewable; SF-S5-SL-MR7 does not run it, and no tag or release exists
+# as a result of that MR.
+on:
+  pull_request:
+    branches: [main, prod, dev]
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the release. Requires main and a protected-environment approval."
+        type: boolean
+        default: false
+      release_commit:
+        description: "Exact origin/main commit to publish."
+        type: string
+        required: false
+
+# Least privilege at the top level. Any job needing more must ask for it.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONHASHSEED: "0"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  dry-run:
+    name: Release dry run (publishes nothing)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: the dry run derives its deterministic timestamp from
+          # the commit date, which a shallow clone does not carry.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Set up Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked Python environment
+        run: |
+          set -euo pipefail
+          python -m pip install uv
+          # --frozen: resolve nothing. A release built against a resolution the
+          # lockfile does not describe is not the release the lockfile attests to.
+          uv sync --all-extras --frozen
+      - name: Install locked console dependencies
+        working-directory: web
+        run: npm ci
+      - name: Verify the release version agrees everywhere
+        run: uv run python -c "from pathlib import Path; from quant_platform.release.identity import assert_versions_agree; print(assert_versions_agree(Path('.')))"
+      - name: Record the tag set before the dry run
+        id: tags_before
+        run: echo "digest=$(git tag --list | sort | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Dry run
+        run: uv run python scripts/release.py dry-run --staging build/release
+      - name: Independent verification of the staged candidate
+        run: uv run python scripts/release.py verify --staging build/release
+      - name: Two clean builds are byte-identical
+        run: uv run python scripts/check_release_reproducible.py
+      - name: Assert the dry run published nothing
+        # The tool has no publication capability by construction; this proves
+        # the observable repository state is unchanged regardless, by comparing
+        # against the digest captured before the build ran.
+        run: |
+          set -euo pipefail
+          after=$(git tag --list | sort | sha256sum | cut -d' ' -f1)
+          if [ "${{ steps.tags_before.outputs.digest }}" != "$after" ]; then
+            echo "the dry run altered the tag set" >&2
+            exit 1
+          fi
+          echo "the complete tag set is unchanged"
+      - name: Upload the dry-run evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-dry-run-evidence
+          path: |
+            build/release/release-descriptor.json
+            build/release/release-inventory.json
+            build/release/sbom.cyclonedx.json
+            build/release/provenance.intoto.json
+          retention-days: 14
+
+  publish:
+    name: Publish release (protected)
+    # Manual only, and only from main. A workflow reachable from dev, prod, or a
+    # pull request must never be able to reach this job.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The protected environment is where the human approval lives. Nothing in
+    # this repository can approve on its own behalf.
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Refuse anything but the exact current origin/main commit
+        env:
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          requested="$REQUESTED_COMMIT"
+          if [ -z "$requested" ]; then
+            echo "release_commit is required for publication" >&2
+            exit 1
+          fi
+          git fetch --quiet origin main
+          current=$(git rev-parse origin/main)
+          if [ "$requested" != "$current" ] || [ "$requested" != "$(git rev-parse HEAD)" ]; then
+            echo "requested $requested is not the current origin/main ($current)" >&2
+            exit 1
+          fi
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Set up Node
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install locked environments
+        run: |
+          set -euo pipefail
+          python -m pip install uv
+          uv sync --all-extras --frozen
+          npm --prefix web ci
+      - name: Build and verify the publication candidate
+        env:
+          REQUESTED_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin dev prod main --tags
+          uv run python scripts/release.py publication --staging build/release
+          uv run python scripts/release.py verify --staging build/release
+          uv run python scripts/release.py publication-gate --staging build/release --commit "$REQUESTED_COMMIT"
+      - name: Resolve the release version and tag
+        id: release
+        run: |
+          set -euo pipefail
+          version=$(uv run python -c "from pathlib import Path; from quant_platform.release.identity import canonical_version; print(canonical_version(Path('.')))")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      - name: Refuse a reused tag
+        # Published tags are immutable. A defective release is corrected with a
+        # new version, never by moving or replacing a tag.
+        run: |
+          set -euo pipefail
+          tag="${{ steps.release.outputs.tag }}"
+          remote_tag=$(git ls-remote --tags origin "refs/tags/$tag")
+          if [ -n "$remote_tag" ]; then
+            echo "$tag already exists; publish a new version instead" >&2
+            exit 1
+          fi
+      - name: Create the immutable signed annotated tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          umask 077
+          signing_dir=$(mktemp -d "$RUNNER_TEMP/release-signing.XXXXXX")
+          trap 'rm -rf "$signing_dir"' EXIT
+          ssh-keygen -q -t ed25519 -N '' -C 'Signalattice approved release workflow' -f "$signing_dir/key"
+          mkdir build/assets
+          cp "$signing_dir/key.pub" build/assets/release-signing.pub
+          printf 'srgangaram-swe %s\n' "$(cat "$signing_dir/key.pub")" > "$signing_dir/allowed_signers"
+          git config user.name "srgangaram-swe"
+          git config user.email "srgangaram-swe@users.noreply.github.com"
+          git -c gpg.format=ssh -c user.signingkey="$signing_dir/key" tag -s "$RELEASE_TAG" "$RELEASE_COMMIT" \
+            -m "Signalattice $RELEASE_TAG; approved workflow $GITHUB_RUN_ID"
+          git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$signing_dir/allowed_signers" verify-tag "$RELEASE_TAG"
+          git cat-file tag "$RELEASE_TAG" > build/assets/release-tag.txt
+          uv run python scripts/release_transport.py pack build/release build/assets/release-stage.zip
+          cp build/release/python/* build/assets/
+          cp build/release/release-descriptor.json build/release/release-inventory.json \
+            build/release/sbom.cyclonedx.json build/release/provenance.intoto.json build/assets/
+          # Scope authentication to this push; checkout keeps credentials disabled.
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push origin "refs/tags/$RELEASE_TAG"
+      - name: Attest the release subjects
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: |
+            build/assets/*
+      - name: Stage the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.release.outputs.tag }}" \
+            --draft --verify-tag \
+            --target "$RELEASE_COMMIT" \
+            --title "Signalattice ${{ steps.release.outputs.version }}" \
+            --notes-file docs/sprint5_dossier.md \
+            build/assets/*
+      - name: Reverify the published release
+        # A partial upload is not a valid release and must not be reported as
+        # one, so the remote state is checked after the fact rather than assumed.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_COMMIT: ${{ inputs.release_commit }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_TAG"
+          git fetch --quiet origin "refs/tags/$tag:refs/tags/$tag"
+          if [ "$(git rev-list -n 1 "$tag")" != "$RELEASE_COMMIT" ]; then
+            echo "the published tag does not target the requested commit" >&2
+            exit 1
+          fi
+          gh release download "$tag" --dir build/downloaded
+          uv run python scripts/release_transport.py verify-downloads build/assets build/downloaded
+          uv run python scripts/release_transport.py verify-archive build/release build/downloaded/release-stage.zip
+          for subject in build/downloaded/*; do
+            gh attestation verify "$subject" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
+              --source-ref refs/heads/main --source-digest "$RELEASE_COMMIT" >/dev/null
+          done
+          printf 'srgangaram-swe %s\n' "$(cat build/downloaded/release-signing.pub)" > build/allowed_signers
+          git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile="$PWD/build/allowed_signers" verify-tag "$tag"
+          git cat-file tag "$tag" > build/observed-tag.txt
+          cmp build/downloaded/release-tag.txt build/observed-tag.txt
+          gh release edit "$tag" --draft=false
+          gh release view "$tag" --json isDraft --jq 'if .isDraft then error("release remains a draft") else . end'

@@ -1,0 +1,35 @@
+# Data ingestion configuration
+source: yfinance          # yfinance | csv | synthetic
+symbols:
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - NVDA
+  - META
+  - JPM
+  - XOM
+  - JNJ
+  - PG
+  - UNH
+  - V
+  - HD
+  - KO
+  - PEP
+  - COST
+  - WMT
+  - DIS
+  - CSCO
+  - INTC
+benchmark: SPY
+start: "2010-01-01"
+end: null                 # null = today
+interval: 1d
+cache_dir: data/cache
+csv_dir: data/csv         # used when source == csv; one file per symbol
+quality_report: runs/data_quality.md
+
+synthetic:                # used when source == synthetic (tests / demo)
+  n_symbols: 20
+  n_days: 2500
+  seed: 42

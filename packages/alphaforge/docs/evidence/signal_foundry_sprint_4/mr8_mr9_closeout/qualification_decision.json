@@ -1,0 +1,113 @@
+{
+  "authorization": "REJECTED. No paper or live evaluation is authorized.",
+  "blocking_failures": [
+    "adjusted_p_value",
+    "capacity_utilization",
+    "max_drawdown",
+    "net_return_over_baseline",
+    "stress_downside_net_return",
+    "top_name_concentration",
+    "uncertainty_lower_bound"
+  ],
+  "candidate_id": "sf-s4-synthetic-development",
+  "criteria": [
+    {
+      "direction": "at_most",
+      "evidence": [],
+      "failure_reason": "no observation supplied; an unmeasured criterion cannot pass",
+      "name": "adjusted_p_value",
+      "observed": null,
+      "passed": false,
+      "question": "Does the edge survive multiple-testing correction across the complete trial family?",
+      "threshold": 0.05
+    },
+    {
+      "direction": "at_most",
+      "evidence": [],
+      "failure_reason": "no observation supplied; an unmeasured criterion cannot pass",
+      "name": "capacity_utilization",
+      "observed": null,
+      "passed": false,
+      "question": "Does the strategy fit inside its measured liquidity and borrow capacity?",
+      "threshold": 1.0
+    },
+    {
+      "direction": "at_least",
+      "evidence": [],
+      "failure_reason": "missing required evidence: dataset, risk_attribution; an unevidenced metric is a failure, not a weaker pass",
+      "name": "max_drawdown",
+      "observed": -0.5381358243510961,
+      "passed": false,
+      "question": "Is the worst peak-to-trough loss within the declared tolerance?",
+      "threshold": -0.25
+    },
+    {
+      "direction": "at_least",
+      "evidence": [],
+      "failure_reason": "missing required evidence: code, configuration, dataset; an unevidenced metric is a failure, not a weaker pass",
+      "name": "net_return_over_baseline",
+      "observed": -0.1967726271960505,
+      "passed": false,
+      "question": "Does the candidate beat a simple investable baseline after all modeled costs?",
+      "threshold": 0.0
+    },
+    {
+      "direction": "at_least",
+      "evidence": [
+        {
+          "content_hash": "ea7bfaa977295fc586a9637dd26ecfbbc080d27667d3a8139bd03a4f0f9dc765",
+          "identifier": "perturbation:standard_execution",
+          "kind": "stress_study"
+        }
+      ],
+      "failure_reason": "observed -0.330317 fails required >= 0",
+      "name": "stress_downside_net_return",
+      "observed": -0.33031676386895814,
+      "passed": false,
+      "question": "Under frozen execution perturbation, does the 5th-percentile path remain non-negative?",
+      "threshold": 0.0
+    },
+    {
+      "direction": "at_most",
+      "evidence": [
+        {
+          "content_hash": "ea7bfaa977295fc586a9637dd26ecfbbc080d27667d3a8139bd03a4f0f9dc765",
+          "identifier": "perturbation:standard_execution",
+          "kind": "stress_study"
+        }
+      ],
+      "failure_reason": null,
+      "name": "stress_insolvent_paths",
+      "observed": 0.0,
+      "passed": true,
+      "question": "Did any perturbed path drive the account to insolvency?",
+      "threshold": 0.0
+    },
+    {
+      "direction": "at_most",
+      "evidence": [],
+      "failure_reason": "no observation supplied; an unmeasured criterion cannot pass",
+      "name": "top_name_concentration",
+      "observed": null,
+      "passed": false,
+      "question": "Is the result carried by more than a handful of names?",
+      "threshold": 0.35
+    },
+    {
+      "direction": "at_least",
+      "evidence": [],
+      "failure_reason": "no observation supplied; an unmeasured criterion cannot pass",
+      "name": "uncertainty_lower_bound",
+      "observed": null,
+      "passed": false,
+      "question": "Is the dependence-aware lower confidence bound on mean return above zero?",
+      "threshold": 0.0
+    }
+  ],
+  "decided_at": "2026-08-02T00:00:00",
+  "plan_hash": "ea7bfaa977295fc586a9637dd26ecfbbc080d27667d3a8139bd03a4f0f9dc765",
+  "rubric_identity": "e8437e2b680cd922b9fb54ab7d6c62c93c2e90e86906f600aee3bd2646cd7c18",
+  "rubric_version": "paper-v1",
+  "simulation_only": true,
+  "verdict": "REJECTED"
+}
