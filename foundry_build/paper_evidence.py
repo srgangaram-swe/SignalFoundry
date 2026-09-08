@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / "docs/evidence/paper"
 TESTS = [
     f"tests/test_paper_{name}.py"
-    for name in ("core", "transport", "integration", "guards")
+    for name in ("core", "transport", "integration", "guards", "stop")
 ]
 
 

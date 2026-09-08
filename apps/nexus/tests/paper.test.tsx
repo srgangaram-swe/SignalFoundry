@@ -89,10 +89,7 @@ describe("paper operation boundary", () => {
     const client = new ResearchClient(
       vi.fn(async (_url: RequestInfo | URL, options?: RequestInit) => {
         if (options?.method !== "POST") return json(status);
-        const action = JSON.parse(options.body as string) as {
-          operation: string;
-        };
-        if (action.operation === "stop")
+        if (typeof _url === "string" && _url.endsWith("/paper/stop"))
           return json({
             status: { ...status, stopped: true },
             artifact: null,
@@ -199,3 +196,86 @@ describe("paper operation boundary", () => {
     expect(signals).toHaveLength(1);
   });
 });
+
+it("reserves one emergency request while all ordinary slots are occupied", async () => {
+  let releaseOrdinary: (() => void) | undefined;
+  let releaseStop: (() => void) | undefined;
+  const ordinary = new Promise<void>((resolve) => {
+    releaseOrdinary = resolve;
+  });
+  const stop = new Promise<void>((resolve) => {
+    releaseStop = resolve;
+  });
+  const client = new ResearchClient(
+    vi.fn<typeof fetch>(async (url, options) => {
+      if (typeof url === "string" && url.endsWith("/paper/stop")) {
+        expect(options?.body).toBe("{}");
+        await stop;
+        return json({
+          status: { ...status, stopped: true },
+          artifact: null,
+          account_digest: null,
+        });
+      }
+      await ordinary;
+      return json(status);
+    }),
+  );
+  const signal = new AbortController().signal;
+  const pending = Array.from({ length: 4 }, () => client.paperStatus(signal));
+  await expect(client.paperStatus(signal)).rejects.toMatchObject({
+    code: "client_busy",
+  });
+  const emergency = client.paperAction(
+    { operation: "stop", symbol: null },
+    signal,
+  );
+  await expect(
+    client.paperAction({ operation: "stop", symbol: null }, signal),
+  ).rejects.toMatchObject({ code: "client_busy" });
+  releaseStop?.();
+  expect((await emergency).status.stopped).toBe(true);
+  expect(
+    (await client.paperAction({ operation: "stop", symbol: null }, signal))
+      .status.stopped,
+  ).toBe(true);
+  await expect(client.paperStatus(signal)).rejects.toMatchObject({
+    code: "client_busy",
+  });
+  releaseOrdinary?.();
+  await Promise.all(pending);
+  expect(await client.paperStatus(signal)).toEqual(status);
+});
+
+it.each([false, true])(
+  "releases emergency admission after a transport fault or abort (%s)",
+  async (aborted) => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new Error("private fault"))
+      .mockResolvedValue(
+        json({
+          status: { ...status, stopped: true },
+          artifact: null,
+          account_digest: null,
+        }),
+      );
+    const client = new ResearchClient(transport);
+    const controller = new AbortController();
+    if (aborted) controller.abort();
+    await expect(
+      client.paperAction(
+        { operation: "stop", symbol: null },
+        controller.signal,
+      ),
+    ).rejects.toMatchObject({ code: aborted ? "aborted" : "network" });
+    expect(
+      (
+        await client.paperAction(
+          { operation: "stop", symbol: null },
+          new AbortController().signal,
+        )
+      ).status.stopped,
+    ).toBe(true);
+  },
+);

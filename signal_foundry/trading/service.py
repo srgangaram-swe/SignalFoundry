@@ -46,6 +46,10 @@ class Action(Record):
     symbol: Symbol | None = None
 
 
+class StopRequest(Record):
+    """Closed empty body for the independently admitted emergency route."""
+
+
 class PaperResult(Record):
     status: PaperStatus
     artifact: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")

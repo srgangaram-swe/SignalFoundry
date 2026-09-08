@@ -31,7 +31,11 @@ cannot supply credentials, URLs, quantities or qualification verdicts.
   uncertain until explicit broker reconciliation; a lookup 404 never resubmits it.
 - Rebuild cash and quantities from cumulative fills. Unknown orders, external
   activity, unsupported corrections, fees or accounting breaks block admission.
-- Persist a one-way stop independently of the ordinary operation lock. Recheck it
+- Reserve one emergency-stop request at both browser and HTTP admission,
+  independently of the unchanged four/eight ordinary-request ceilings. The exact
+  stop route retains same-origin, body and closed-schema checks; it cannot admit
+  another operation. Persist a one-way stop independently of the ordinary
+  operation lock. Recheck it
   at dispatch. A stop cannot recall bytes already sent; cancel owned orders
   explicitly, then reconcile. Cancellation never silently liquidates positions.
 - Record calendar dates only after the official close and reconciliation. Missing
