@@ -111,3 +111,13 @@ reported on the MR, independently of these local results.
 The additional CLI-before-start regression and assembly checks passed together
 (77 tests, including overlapping asset cases). Black, Ruff, strict mypy,
 contract/workflow drift checks and wheel/sdist builds passed.
+
+### Catalog readiness in browser tests
+
+The catalog starts two isolated package workers; initial dependency imports can
+be slower than an ordinary DOM update on shared runners. Real-service tests
+observe the catalog response within the existing 30-second transport deadline,
+check its HTTP success, then assert rendered readiness. The generic DOM timeout
+remains 10 seconds and retries remain disabled. Synthetic browser-resource
+fixtures retain their separate 5-second cold-navigation budget. CI retains
+catalog status/timing, browser JSON and failure traces for seven days.

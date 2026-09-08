@@ -247,6 +247,16 @@ def generate(root: Path) -> dict[str, Any]:
                 "working-directory": "apps/nexus",
             },
             {"run": "npm run e2e", "working-directory": "apps/nexus"},
+            {
+                "uses": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+                "if": "always()",
+                "with": {
+                    "name": "nexus-browser-evidence",
+                    "path": "apps/nexus/test-results",
+                    "retention-days": 7,
+                    "if-no-files-found": "error",
+                },
+            },
         ],
     }
     jobs["security"] = {

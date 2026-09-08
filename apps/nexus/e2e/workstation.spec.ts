@@ -1,5 +1,25 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+
+/** Catalog starts two real isolated workers; await its existing transport boundary. */
+async function openWorkstation(page: Page) {
+  const started = performance.now();
+  const response = page.waitForResponse(
+    (value) => new URL(value.url()).pathname === "/api/v1/catalog",
+    { timeout: 30000 },
+  );
+  await page.goto("/nexus");
+  const catalog = await response;
+  await test.info().attach("catalog-readiness", {
+    body: JSON.stringify({
+      status: catalog.status(),
+      elapsed_ms: performance.now() - started,
+    }),
+    contentType: "application/json",
+  });
+  expect(catalog.ok()).toBe(true);
+  await expect(page.getByRole("textbox")).toBeVisible();
+}
 
 test("real isolated workers: configure, validate, run, inspect and audit", async ({
   page,
@@ -8,8 +28,7 @@ test("real isolated workers: configure, validate, run, inspect and audit", async
   page.on("console", (event) => {
     if (event.type() === "error") violations.push(event.text());
   });
-  await page.goto("/nexus");
-  await expect(page.getByRole("textbox")).toBeVisible();
+  await openWorkstation(page);
   await page.getByRole("button", { name: "Validate configuration" }).click();
   await expect(
     page.getByRole("button", { name: "Run simulation" }),
@@ -53,8 +72,7 @@ test("keyboard, responsive themes, reduced motion and deterministic appearance",
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto("/nexus");
-    await expect(page.getByRole("textbox")).toBeVisible();
+    await openWorkstation(page);
     await page.keyboard.press("Tab");
     await expect(
       page.getByRole("link", { name: "Skip to workspace" }),
