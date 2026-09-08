@@ -1,0 +1,5 @@
+# Risk analytics configuration
+stress_scenarios:
+  - { name: "2008-style crash", market_shock: -0.40, vol_multiplier: 3.0 }
+  - { name: "Rate shock",       market_shock: -0.15, vol_multiplier: 2.0 }
+  - { name: "Flash crash day",  market_shock: -0.09, vol_multiplier: 5.0 }

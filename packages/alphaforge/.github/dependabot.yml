@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:00"
+      timezone: America/Denver
+    open-pull-requests-limit: 5
+    labels:
+      - "type:quality"
+      - "area:security"
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "13:30"
+      timezone: America/Denver
+    open-pull-requests-limit: 5
+    labels:
+      - "type:quality"
+      - "area:security"
+    commit-message:
+      prefix: "ci"

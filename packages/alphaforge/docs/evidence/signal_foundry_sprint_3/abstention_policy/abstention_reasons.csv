@@ -1,0 +1,10 @@
+reason,count
+future_data,46
+stale_data,166
+excess_cost,188
+high_disagreement,1215
+unsupported_regime,218
+uncertain_regime,1219
+drift_detected,220
+excess_uncertainty,1000
+insufficient_margin,1928

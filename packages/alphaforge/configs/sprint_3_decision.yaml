@@ -1,0 +1,1190 @@
+schema_version: 1.0.0
+study_id: signal-foundry-sprint-3-final
+issue_number: 37
+frozen_at_utc: "2026-07-26T23:28:07Z"
+
+resource_limits:
+  maximum_families: 64
+  maximum_plan_bytes: 1048576
+  maximum_source_bytes: 33554432
+  maximum_source_references: 128
+  maximum_total_source_bytes: 67108864
+  maximum_document_depth: 64
+  maximum_document_nodes: 100000
+  maximum_diagnostic_chars: 4096
+  maximum_source_parse_variants: 384
+  maximum_output_artifacts: 7
+  maximum_output_bytes: 33554432
+
+protocol_dimensions:
+  configurations:
+    status: frozen
+    reason: >-
+      The constituent strict benchmark profiles and research-governance profile
+      pin every configuration that exists; absent experiments remain missing
+      gates rather than being reconstructed by this retrospective synthesis.
+    source_paths:
+      - configs/signal_foundry_sprint_2_study.yaml
+      - configs/research_governance.yaml
+      - configs/deep_sequence_benchmark.yaml
+      - configs/time_frequency_vision_benchmark.yaml
+      - configs/latent_representation_benchmark.yaml
+      - configs/ensemble_benchmark.yaml
+      - configs/decision_policy.yaml
+  trial_family:
+    status: frozen
+    reason: >-
+      The committed profiles and aggregate reports identify the complete
+      candidate order within each completed constituent study; the synthesis
+      does not add, remove, rerun, or rank candidates across contexts.
+    source_paths:
+      - configs/signal_foundry_sprint_2_study.yaml
+      - configs/research_governance.yaml
+      - configs/deep_sequence_benchmark.yaml
+      - configs/time_frequency_vision_benchmark.yaml
+      - configs/latent_representation_benchmark.yaml
+      - configs/ensemble_benchmark.yaml
+      - configs/decision_policy.yaml
+  ablations:
+    status: deferred
+    reason: >-
+      Matched feature and parameter ablations and governed representation
+      placebos were not completed in Sprint 3; Sprint 4 issue #41 owns this
+      work under the same leakage-safe temporal protocol.
+    source_paths: []
+  randomized_controls:
+    status: deferred
+    reason: >-
+      Feature-permutation and randomized-label controls were not completed in
+      Sprint 3; Sprint 4 issue #41 owns their frozen definitions, independent
+      seed streams, and matched evaluation.
+    source_paths: []
+  compute_budgets:
+    status: frozen
+    reason: >-
+      Existing reports pin their measured CPU boundaries, sample counts,
+      bounded configurations, and known omissions; a missing family compute
+      gate remains false.
+    source_paths:
+      - docs/evidence/signal_foundry_sprint_2/summary.json
+      - docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+      - docs/regimes.md
+      - docs/evidence/signal_foundry_sprint_3/deep_sequence/summary.json
+      - docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+      - docs/evidence/signal_foundry_sprint_3/latent_representations/summary.json
+      - docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+      - docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+  folds:
+    status: deferred
+    reason: >-
+      Constituent split boundaries remain pinned, but no matched per-family
+      calendar-year and regime fold family with dependence-aware uncertainty
+      exists; Sprint 4 issue #42 owns that temporal-stability experiment.
+    source_paths:
+      - configs/signal_foundry_sprint_2_study.yaml
+      - configs/deep_sequence_benchmark.yaml
+      - configs/time_frequency_vision_benchmark.yaml
+      - configs/latent_representation_benchmark.yaml
+      - configs/ensemble_benchmark.yaml
+  costs:
+    status: frozen
+    reason: >-
+      Cost policies are pinned for the constituent studies that report net
+      economics; simplified diagnostics remain explicitly distinct from the
+      event-driven execution simulator and absent cost evidence remains false.
+    source_paths:
+      - configs/signal_foundry_sprint_2_study.yaml
+      - configs/deep_sequence_benchmark.yaml
+      - configs/time_frequency_vision_benchmark.yaml
+      - configs/ensemble_benchmark.yaml
+      - configs/decision_policy.yaml
+  decision_thresholds:
+    status: frozen
+    reason: >-
+      Constituent rejection, progression, correction, and abstention rules are
+      pinned by their original profiles; the final synthesis advances no
+      family and has no paper, order, or capital authority.
+    source_paths:
+      - configs/research_governance.yaml
+      - configs/signal_foundry_sprint_2_study.yaml
+      - configs/time_frequency_vision_benchmark.yaml
+      - configs/latent_representation_benchmark.yaml
+      - configs/ensemble_benchmark.yaml
+      - configs/decision_policy.yaml
+
+synthesis_policy:
+  family_order:
+    - conventional_baselines
+    - spectral_descriptors
+    - adaptive_decomposition
+    - regime_change_points
+    - state_space
+    - deep_sequence
+    - time_frequency_vision
+    - latent_representations
+    - governed_ensembles
+    - abstention_policy
+  evidence_gates:
+    - out_of_sample
+    - uncertainty
+    - net_economics
+    - selection_correction
+    - feature_ablation
+    - randomized_control
+    - regime_stability
+    - year_stability
+    - compute_accounting
+  advance_requires_all_reported_gates: true
+  no_cross_context_ranking: true
+  final_holdout_reopened: false
+  aggregate_only_publication: true
+  maximum_families: 64
+
+families:
+  - family: conventional_baselines
+    context: historical_engineering
+    evaluated: true
+    disposition: reject
+    reason: >-
+      The governed seven-candidate WIKI study rejected paper advancement after
+      Holm-Bonferroni correction and retains stale, incomplete point-in-time
+      data limitations.
+    sources:
+      - path: configs/signal_foundry_sprint_2_study.yaml
+        sha256: e8c4c9a3bdfa85c9a783b16f01e65d9cb2563969f125adb45d289e03e49fe803
+      - path: configs/research_governance.yaml
+        sha256: 7cf1289e707273996eb68236c88d5072c6d1e9deb183a78725df94d786d97ed0
+      - path: docs/governed_baseline_study.md
+        sha256: e1bb1821538b2d649682c510581d8ffe54fd02efd948497e8c23529ba88dd3a1
+      - path: docs/evidence/signal_foundry_sprint_2/summary.json
+        sha256: 5aeff1e0f4c0961165ab184d2c87af594aa6c61feb49d7e3d71b17e54a6b1dbb
+      - path: docs/evidence/signal_foundry_sprint_2/model_summary.csv
+        sha256: 28905ce658797792c83e4d3f63b0fbe75d6a80bac7bc4123e46374c30d454d28
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The source report fixes embargoed expanding-window development folds
+          before execution and the aggregate table reports the resulting
+          candidate-level fold statistic.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/governed_baseline_study.md
+            locator_kind: markdown_heading
+            locator: "## Frozen boundary"
+            observed: >-
+              The frozen boundary defines embargoed expanding-window folds and
+              a separate final-holdout date before execution.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_2/model_summary.csv
+            locator_kind: csv_column
+            locator: mean_rank_ic
+            observed: >-
+              Every candidate row reports mean rank IC over the matched
+              development folds.
+        residual_limitations:
+          - >-
+            The historical panel ends in 2018 and final-holdout rows remain
+            unpublished; this gate establishes the documented temporal
+            evaluation boundary, not current market validity.
+      - gate: uncertainty
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          Fold-level matched inference and candidate standard errors quantify
+          development variability while preserving the source's low-power and
+          temporal-sampling caveat.
+        facts:
+          - roles: [uncertainty_method]
+            source_path: docs/governed_baseline_study.md
+            locator_kind: markdown_heading
+            locator: "## Statistical interpretation"
+            observed: >-
+              The report defines matched fold-level Student-t inference and
+              Holm-Bonferroni correction with folds as the analysis unit.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_2/model_summary.csv
+            locator_kind: csv_column
+            locator: rank_ic_standard_error
+            observed: >-
+              Candidate rows publish standard errors for their matched
+              fold-level rank-IC evidence.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/2
+            observed: >-
+              The source states that matched-fold development t-tests have low
+              power and depend on treating folds as the analysis unit.
+        residual_limitations:
+          - >-
+            Eight folds provide limited power, and this variability estimate
+            does not prove persistence beyond the stale engineering panel.
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The pre-execution boundary fixes a common commission, spread,
+          slippage, capacity, borrow, and financing policy and the aggregate
+          table reports net annual return and annual cost drag.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/governed_baseline_study.md
+            locator_kind: markdown_heading
+            locator: "## Frozen boundary"
+            observed: >-
+              The frozen boundary names the common portfolio, execution,
+              commission, spread, slippage, capacity, borrow, and financing
+              policy.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_2/model_summary.csv
+            locator_kind: csv_column
+            locator: net_annual_return
+            observed: >-
+              Candidate rows report net annual return after the common cost
+              model, alongside annual cost drag.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/4
+            observed: >-
+              The source states that backtested returns are not realized
+              profits and do not establish a persistent edge.
+        residual_limitations:
+          - >-
+            Historical engineering costs are not calibrated current execution
+            costs and the result rejected paper advancement.
+      - gate: selection_correction
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The complete seven-candidate family uses Holm-Bonferroni correction
+          and publishes the selected candidate's adjusted result and the
+          method's limited fold-level power.
+        facts:
+          - roles: [selection_control]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /study/correction
+            observed: >-
+              The complete candidate family declares Holm-Bonferroni
+              family-wise correction.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /selected_candidate_evidence/adjusted_p_value
+            observed: >-
+              The selected linear candidate has adjusted p-value
+              0.08409084120131886 and failed the multiplicity gate.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/2
+            observed: >-
+              The matched-fold correction remains low-powered because the fold
+              set is small.
+        residual_limitations:
+          - >-
+            Correction controls the declared seven-candidate family only; it
+            does not cover later heterogeneous Sprint 3 experiments.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The aggregate source bounds the measured single-process,
+          single-worker study and reports wall/CPU, memory, fit, iteration, and
+          prediction totals with an explicit local-data limitation.
+        facts:
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /compute/scope
+            observed: >-
+              Compute covers one local seven-candidate cached-bundle governed
+              study.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /compute/wall_seconds
+            observed: >-
+              The bounded local reference reports 62.39 wall seconds and
+              accompanying CPU, memory, fit, iteration, and prediction totals.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_2/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/0
+            observed: >-
+              The measured workload uses a stale cached Nasdaq WIKI panel that
+              ends in 2018.
+        residual_limitations:
+          - >-
+            One Apple-silicon laptop run is descriptive and is not a portable
+            throughput or production-capacity guarantee.
+    out_of_sample: true
+    uncertainty: true
+    net_economics: true
+    selection_correction: true
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 7
+    blocked_or_failed_count: 0
+
+  - family: spectral_descriptors
+    context: synthetic_engineering
+    evaluated: true
+    disposition: defer
+    reason: >-
+      The chronological synthetic spectral baseline reports costed and compute
+      evidence, but it does not replace the unrun matched incremental-value
+      study against historical conventional baselines.
+    sources:
+      - path: configs/time_frequency_vision_benchmark.yaml
+        sha256: 3f388fe48fc8a78e446dc47243eb68afd62d2c701a338b80ef47ed02b696f8ca
+      - path: docs/sprint_3_time_frequency_report.md
+        sha256: 2d5251e29f0effa24b235990ee6fa84d5653a1865b2921fda8fbadfd04febe8d
+      - path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+        sha256: 03301d2611e9f54411d6334a001151ff65ac110e6f04d636f4eed26bd1b7f3aa
+      - path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+        sha256: c6cd60edec68e728c29e76359556a263f2b306a0ff4001f7b557d3b095de4f77
+      - path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+        sha256: 982ea9c4f2204148cd532824a807dcee4e9c769948c4ae29193d267c5b5d6391
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The synthetic representation study fixes chronological train,
+          validation, and test cutoffs and reports the spectral baseline on the
+          untouched test partition.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /split/train_end
+            observed: >-
+              The training partition ends on 2021-03-10 before validation and
+              test partitions.
+          - roles: [temporal_contract]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /split/test_end
+            observed: >-
+              The untouched synthetic test partition ends on 2021-04-23.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: test_rank_ic
+            observed: >-
+              The evaluated LightGBM spectral row reports test rank IC
+              0.6665209790209791 over 16 test dates.
+        residual_limitations:
+          - >-
+            The chronological result is a deliberately clean synthetic
+            engineering reference, not historical market evidence or the
+            deferred matched incremental-value study.
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The frozen reference charges a declared basis-point diagnostic and
+          reports net mean daily return while explicitly distinguishing it
+          from event-driven execution.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /study/transaction_cost_bps
+            observed: >-
+              The study charges a 5.5 basis-point simplified turnover cost.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: net_mean_daily_return
+            observed: >-
+              The spectral baseline row reports a net mean daily synthetic
+              return after the declared cost diagnostic.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/2
+            observed: >-
+              The source states that its simplified cost diagnostic is not the
+              event-driven execution simulator.
+        residual_limitations:
+          - >-
+            The synthetic costed diagnostic omits market impact, borrow,
+            funding, latency, partial fills, and current liquidity.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The reference identifies its CPU boundary and reports fit timing,
+          while disclosing that each fit has one measurement and no warmup.
+        facts:
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /environment/reference_device
+            observed: The bounded reference device is CPU.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: fit_wall_seconds
+            observed: >-
+              The spectral baseline row reports measured fit wall time.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /environment/measurement_samples_per_fit
+            observed: >-
+              Each candidate fit has one timing sample, so no timing variance
+              is estimated.
+        residual_limitations:
+          - >-
+            Single-sample laptop timings are descriptive and not a production
+            throughput or capacity claim.
+    out_of_sample: true
+    uncertainty: false
+    net_economics: true
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 1
+    blocked_or_failed_count: 0
+
+  - family: adaptive_decomposition
+    context: synthetic_engineering
+    evaluated: true
+    disposition: defer
+    reason: >-
+      The pinned Signalattice mechanisms establish reconstruction, failure,
+      stability, and bounded compute contracts, but no matched costed
+      predictive experiment was run.
+    sources:
+      - path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+        sha256: 982ea9c4f2204148cd532824a807dcee4e9c769948c4ae29193d267c5b5d6391
+    gate_support:
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          Independent review of the locally verified pinned Signalattice blobs
+          found measured adaptive-decomposition compute, refusal ceilings, and
+          explicit residual limitations, with bounded-resource tests.
+        facts:
+          - roles: [result, limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/4/claim_scope
+            observed: >-
+              The pinned adaptive-decomposition document records mechanism
+              compute accounting, limitations, and the explicitly deferred
+              matched incremental-value experiment.
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/5/claim_scope
+            observed: >-
+              The pinned test inventory covers reconstruction, permutation,
+              noise, failure, determinism, and bounded-resource behavior.
+        residual_limitations:
+          - >-
+            Evidence is synthetic laptop-scale mechanism evidence from a pinned
+            sibling-repository commit; no economic or historical market
+            experiment exists.
+    out_of_sample: false
+    uncertainty: false
+    net_economics: false
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 4
+    blocked_or_failed_count: 0
+
+  - family: regime_change_points
+    context: synthetic_engineering
+    evaluated: true
+    disposition: defer
+    reason: >-
+      Causal state contracts and planted-regime recovery are useful mechanism
+      evidence, but the matched out-of-sample economic and stability study was
+      not run.
+    sources:
+      - path: docs/regimes.md
+        sha256: fe3f4795f595216745bde2336c0f7490515707e9b4f2f76b60c8fd6aee194600
+    gate_support:
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The regime report publishes measured single-process timings,
+          algorithmic scaling, and hard refusal ceilings together with an
+          explicit residual-limitations boundary.
+        facts:
+          - roles: [resource_boundary, result]
+            source_path: docs/regimes.md
+            locator_kind: markdown_heading
+            locator: "## 5. Compute and bounds"
+            observed: >-
+              The section reports median timings for causal and retrospective
+              models and explicit state, iteration, series, and change-point
+              ceilings.
+          - roles: [limitation]
+            source_path: docs/regimes.md
+            locator_kind: markdown_heading
+            locator: "## 8. Residual limitations"
+            observed: >-
+              The report explicitly limits the evidence to planted synthetic
+              recovery and documents in-sample, calibration, staleness, state
+              count, and univariate limitations.
+        residual_limitations:
+          - >-
+            Planted-regime recovery is not matched regime stability, economic
+            value, or evidence that comparable regimes persist in markets.
+    out_of_sample: false
+    uncertainty: false
+    net_economics: false
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 5
+    blocked_or_failed_count: 0
+
+  - family: state_space
+    context: synthetic_engineering
+    evaluated: true
+    disposition: defer
+    reason: >-
+      The pinned Signalattice state-space baselines demonstrate synthetic
+      recovery, interval behavior, conditioning, and compute, but no market or
+      costed strategy evaluation.
+    sources:
+      - path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+        sha256: 982ea9c4f2204148cd532824a807dcee4e9c769948c4ae29193d267c5b5d6391
+    gate_support:
+      - gate: uncertainty
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          Independent review of the locally verified pinned benchmark found a
+          predeclared Gaussian interval diagnostic, empirical and nominal
+          coverage results, and explicit synthetic-evidence limitations.
+        facts:
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/7/claim_scope
+            observed: >-
+              The pinned deterministic aggregate benchmark reports recovery,
+              uncertainty-interval, compute, and environment evidence.
+          - roles: [uncertainty_method]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/8/claim_scope
+            observed: >-
+              The pinned test inventory covers interval and numerical-reference
+              behavior as well as causality and resource bounds.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/6/claim_scope
+            observed: >-
+              The pinned state-space document records the evidence boundary and
+              residual limitations for causal statistical baselines.
+        residual_limitations:
+          - >-
+            Interval coverage is deterministic synthetic implementation
+            recovery under fixed parameters, not calibrated market forecast
+            uncertainty.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          Independent review of the pinned state-space benchmark found seven
+          timing repetitions, throughput, memory, environment, and algorithmic
+          bounds with explicit laptop/synthetic limitations.
+        facts:
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/7/claim_scope
+            observed: >-
+              The pinned aggregate benchmark includes compute and environment
+              evidence for the deterministic recovery workload.
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/8/claim_scope
+            observed: >-
+              The pinned tests cover deterministic and resource-bounded
+              state-space behavior.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+            locator_kind: json_pointer
+            locator: /sources/6/claim_scope
+            observed: >-
+              The source document confines claims to bounded baseline
+              mathematics and records residual limitations.
+        residual_limitations:
+          - >-
+            The workload is a single-process synthetic laptop benchmark and is
+            not a production throughput, market, or portfolio-capacity claim.
+    out_of_sample: false
+    uncertainty: true
+    net_economics: false
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 4
+    blocked_or_failed_count: 0
+
+  - family: deep_sequence
+    context: historical_engineering
+    evaluated: true
+    disposition: reject
+    reason: >-
+      The single WIKI development fold does not establish persistent net
+      improvement, complete dependence-aware uncertainty, selection correction,
+      or complete resource accounting.
+    sources:
+      - path: configs/deep_sequence_benchmark.yaml
+        sha256: a3eeed9d20e2ff448d1d2b10902ec3fdaf27880b00cbbd3e45d3ea932b02d8c5
+      - path: docs/sprint_3_deep_sequence_report.md
+        sha256: 347e9f2bf68828f963bd6154ceee426399e48c46607a46f71ae4d42868c80e91
+      - path: docs/evidence/signal_foundry_sprint_3/deep_sequence/summary.json
+        sha256: ef7ff4211ba89863907c06110213319e43800e5758f16f203c13080049c70141
+      - path: docs/evidence/signal_foundry_sprint_3/deep_sequence/model_summary.csv
+        sha256: 6cbc82e6047893f3693b48471bef4a214024c74c9847577c2503d7f2e03c898b
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The report fixes one matched development fold with causal sequence
+          history and the aggregate table reports candidate OOS results.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/sprint_3_deep_sequence_report.md
+            locator_kind: markdown_heading
+            locator: "## Frozen run"
+            observed: >-
+              The frozen run compares six candidates on one matched
+              development fold and states that the protected final holdout was
+              not accessed.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/deep_sequence/model_summary.csv
+            locator_kind: csv_column
+            locator: rank_ic
+            observed: >-
+              Each candidate row reports rank IC over 1,134 OOS predictions
+              across 126 sessions.
+        residual_limitations:
+          - >-
+            One development fold on stale WIKI engineering data is not a
+            protected final-holdout or persistence result.
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The frozen study charges a declared basis-point turnover diagnostic,
+          publishes net mean daily results, and explicitly disclaims
+          event-driven execution equivalence.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/evidence/signal_foundry_sprint_3/deep_sequence/summary.json
+            locator_kind: json_pointer
+            locator: /study/transaction_cost_bps
+            observed: The development diagnostic charges 5.5 basis points.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/deep_sequence/model_summary.csv
+            locator_kind: csv_column
+            locator: net_mean_daily_return
+            observed: >-
+              Candidate rows report net mean daily diagnostic returns after
+              turnover costs.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/deep_sequence/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/1
+            observed: >-
+              The source states that the simple costed diagnostic is not the
+              event-driven execution simulator.
+        residual_limitations:
+          - >-
+            The diagnostic omits complete execution, financing, capacity, and
+            current-market calibration; four of six candidates were negative
+            after costs.
+    out_of_sample: true
+    uncertainty: false
+    net_economics: true
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: false
+    model_count: 6
+    blocked_or_failed_count: 0
+
+  - family: time_frequency_vision
+    context: synthetic_engineering
+    evaluated: true
+    disposition: reject
+    reason: >-
+      The mandatory small CNN failed its predeclared validation progression
+      gate against the spectral baseline, so ResNet and ViT were correctly
+      blocked.
+    sources:
+      - path: configs/time_frequency_vision_benchmark.yaml
+        sha256: 3f388fe48fc8a78e446dc47243eb68afd62d2c701a338b80ef47ed02b696f8ca
+      - path: docs/sprint_3_time_frequency_report.md
+        sha256: 2d5251e29f0effa24b235990ee6fa84d5653a1865b2921fda8fbadfd04febe8d
+      - path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+        sha256: 03301d2611e9f54411d6334a001151ff65ac110e6f04d636f4eed26bd1b7f3aa
+      - path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+        sha256: c6cd60edec68e728c29e76359556a263f2b306a0ff4001f7b557d3b095de4f77
+      - path: docs/evidence/signal_foundry_sprint_3/cross_repository_provenance.json
+        sha256: 982ea9c4f2204148cd532824a807dcee4e9c769948c4ae29193d267c5b5d6391
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The synthetic vision study fixes chronological train, validation, and
+          test partitions before progression and reports evaluated candidate
+          test results only after the validation gate was final.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /split/train_end
+            observed: >-
+              Training ends on 2021-03-10 before the validation and untouched
+              test partitions.
+          - roles: [temporal_contract]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /split/test_end
+            observed: The untouched synthetic test ends on 2021-04-23.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: test_rank_ic
+            observed: >-
+              Evaluated rows report test rank IC, while blocked ResNet and ViT
+              rows remain empty.
+        residual_limitations:
+          - >-
+            The chronological holdout is synthetic engineering evidence and the
+            small CNN failed progression; it is not a market final holdout.
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The frozen study charges a declared basis-point diagnostic and
+          reports candidate net mean daily values with an explicit execution
+          limitation.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /study/transaction_cost_bps
+            observed: The simplified cost diagnostic charges 5.5 basis points.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: net_mean_daily_return
+            observed: >-
+              Evaluated candidate rows report net mean daily synthetic return.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/2
+            observed: >-
+              The source states that the simplified costed diagnostic is not
+              the event-driven execution simulator.
+        residual_limitations:
+          - >-
+            The diagnostic omits realistic execution, financing, capacity, and
+            current-market calibration.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The reference fixes CPU execution, publishes candidate fit time and
+          neural parameter evidence, and discloses one timing sample per fit.
+        facts:
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /environment/reference_device
+            observed: The bounded reference device is CPU.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/model_summary.csv
+            locator_kind: csv_column
+            locator: fit_wall_seconds
+            observed: >-
+              Evaluated rows report fit wall seconds; neural rows also report
+              parameter counts and bytes.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/time_frequency_vision/summary.json
+            locator_kind: json_pointer
+            locator: /environment/measurement_samples_per_fit
+            observed: Each fit has one timing measurement and no timing variance.
+        residual_limitations:
+          - >-
+            Laptop single-sample timings are descriptive, and blocked
+            architectures have no fabricated resource result.
+    out_of_sample: true
+    uncertainty: false
+    net_economics: true
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 5
+    blocked_or_failed_count: 2
+
+  - family: latent_representations
+    context: synthetic_engineering
+    evaluated: true
+    disposition: reject
+    reason: >-
+      Validation selected PCA, which tied the raw control on test rank IC and
+      worsened prediction MSE; the synthetic split lacks costed,
+      dependence-aware, multiplicity-corrected market evidence.
+    sources:
+      - path: configs/latent_representation_benchmark.yaml
+        sha256: 308163c540c49ea026c04545488be972b7b8b1fb01dd63a6c583ab357d8b8c76
+      - path: docs/latent_representations.md
+        sha256: 2227d5da3850211e62cfa41eb29ffaa65c7ff58e01fb4304e2d9e38bbc32fd3f
+      - path: docs/evidence/signal_foundry_sprint_3/latent_representations/summary.json
+        sha256: d42455df8fd067c4f366d30cdf2b27a87a8d6b9984ca1e37bec6c8cefa8c974d
+      - path: docs/evidence/signal_foundry_sprint_3/latent_representations/candidate_summary.csv
+        sha256: a9d615ece13d8dd7aa063920181c5c5c87aadfa09fb14af0571c126cd91b37ee
+      - path: docs/evidence/signal_foundry_sprint_3/latent_representations/manifest.json
+        sha256: 67a72a3001b59942bef8ab626bfb2ccd6a29ec984e367555604241be4c1a7f11
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The representation contract fixes complete-date train, validation,
+          and test partitions before fitting and the aggregate table reports
+          one post-selection test summary per candidate.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/latent_representations.md
+            locator_kind: markdown_heading
+            locator: "## Leakage and causality boundary"
+            observed: >-
+              The contract fits on outer train, selects on validation, and
+              reserves outer test for one post-selection summary.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/latent_representations/candidate_summary.csv
+            locator_kind: csv_column
+            locator: test_rank_ic
+            observed: >-
+              Every candidate row reports test rank IC after validation-only
+              selection.
+        residual_limitations:
+          - >-
+            The test is one small planted synthetic split; it is not licensed
+            market evidence and cannot support tuning or promotion.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The typed representation contract imposes resource and optimization
+          limits, the aggregate table reports fit resources, and the source
+          discloses one timing sample per fit.
+        facts:
+          - roles: [resource_boundary]
+            source_path: docs/latent_representations.md
+            locator_kind: markdown_heading
+            locator: "## Public contract"
+            observed: >-
+              The strict representation configuration validates algorithm,
+              resource, and optimization limits and records fitted-state
+              resource evidence.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/latent_representations/candidate_summary.csv
+            locator_kind: csv_column
+            locator: fit_wall_seconds
+            observed: >-
+              Candidate rows report fit wall/CPU seconds, parameter counts and
+              bytes, iterations, convergence, and stopping reason.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/latent_representations/summary.json
+            locator_kind: json_pointer
+            locator: /environment/measurement_samples_per_fit
+            observed: Each fit has one timing sample and no timing variance.
+        residual_limitations:
+          - >-
+            Timings are environment-dependent, several neural candidates
+            reached the epoch ceiling, and this is not a scale benchmark.
+    out_of_sample: true
+    uncertainty: false
+    net_economics: false
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 9
+    blocked_or_failed_count: 4
+
+  - family: governed_ensembles
+    context: synthetic_engineering
+    evaluated: true
+    disposition: defer
+    reason: >-
+      Complementary synthetic experts produced favorable costed and
+      moving-block results, but no matched market evaluation, complete
+      selection correction, or regime-stability study exists.
+    sources:
+      - path: configs/ensemble_benchmark.yaml
+        sha256: 1c95f6133846ec672c438f11a986a002d39d8171c40c9c630240c86372effa17
+      - path: docs/sprint_3_ensemble_report.md
+        sha256: 71f41631719d792c8d90670dbcdc06011fca4331397502c45ffe553081a1c95c
+      - path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+        sha256: cea7394cc0c51b6947705dbcf748e045c08cdbdbc75b8feefd934ecfae6ba568
+      - path: docs/evidence/signal_foundry_sprint_3/ensembles/model_summary.csv
+        sha256: 4043c0804cee34c49f565174963b67409944d6c2c389c03a54016a257fef9ae7
+      - path: docs/evidence/signal_foundry_sprint_3/ensembles/turnover_costs.csv
+        sha256: 498a348f769b41ecccafac873ebeb7f82a67e49aa0f326ede9318050fdbf2c2f
+      - path: docs/evidence/signal_foundry_sprint_3/ensembles/uncertainty_diagnostics.csv
+        sha256: e5d527bf0b52c21c79647eb03eb412d617739de13f37a0039af8c36553e15910
+    gate_support:
+      - gate: out_of_sample
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The frozen reference fits temporal-OOF expert states before a
+          separate target-free holdout boundary and reports aggregate holdout
+          results only after state freeze.
+        facts:
+          - roles: [temporal_contract]
+            source_path: docs/sprint_3_ensemble_report.md
+            locator_kind: markdown_heading
+            locator: "## Frozen reference"
+            observed: >-
+              The reference fixes 96 training dates, four temporal OOF folds,
+              and 32 untouched synthetic holdout dates.
+          - roles: [temporal_contract]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+            locator_kind: json_pointer
+            locator: /training_boundary/holdout_start
+            observed: The aggregate source records holdout start 2021-05-18.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/model_summary.csv
+            locator_kind: csv_column
+            locator: mse
+            observed: >-
+              Six ensemble policies and four single experts report aggregate
+              holdout MSE over 256 synthetic rows.
+        residual_limitations:
+          - >-
+            The holdout belongs to a deliberately complementary synthetic
+            generator, not a market or cross-regime persistence test.
+      - gate: uncertainty
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The source fixes circular moving-block resampling over complete dates
+          and publishes interval, standard-error, and variance results while
+          naming excluded uncertainty sources.
+        facts:
+          - roles: [uncertainty_method]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+            locator_kind: json_pointer
+            locator: /metric_policy/resampling/method
+            observed: >-
+              The declared method is a 512-resample circular moving-block
+              bootstrap over five-date blocks.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/model_summary.csv
+            locator_kind: csv_column
+            locator: mse_ci_lower
+            observed: >-
+              Each evaluated model row publishes MSE interval bounds, standard
+              error, variance, and resampling policy fields.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/5
+            observed: >-
+              Moving-block intervals do not cover generator, selection, or
+              regime uncertainty.
+        residual_limitations:
+          - >-
+            The intervals describe one frozen synthetic holdout and do not
+            establish calibrated future-performance uncertainty.
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The reference charges a declared turnover cost, publishes gross and
+          net directional results with block intervals, and labels the
+          diagnostic as simpler than execution.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+            locator_kind: json_pointer
+            locator: /resolved_config/transaction_cost_bps
+            observed: The synthetic turnover diagnostic charges 5 basis points.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/turnover_costs.csv
+            locator_kind: csv_column
+            locator: net_directional_return
+            observed: >-
+              Every ensemble and single-expert row reports gross return, cost
+              drag, turnover, net return, and moving-block net-return evidence.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/ensembles/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/2
+            observed: >-
+              The turnover/cost diagnostic is simplified and is not the
+              event-driven execution engine.
+        residual_limitations:
+          - >-
+            Synthetic directional returns omit calibrated impact, borrow,
+            funding, liquidity, partial fills, and market capacity.
+    out_of_sample: true
+    uncertainty: true
+    net_economics: true
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: false
+    model_count: 10
+    blocked_or_failed_count: 0
+
+  - family: abstention_policy
+    context: synthetic_engineering
+    evaluated: true
+    disposition: reject
+    reason: >-
+      The policy reduced conditional loss frequency and demand proxies, but
+      always-trade produced higher total mean synthetic net value and the
+      thresholds were not selected on a protected holdout.
+    sources:
+      - path: configs/decision_policy.yaml
+        sha256: 7628fb948f4f5e6372f19616729f12de94425e7ab487798d759eff278ae9b85b
+      - path: docs/sprint_3_abstention_policy_report.md
+        sha256: bdb9c4ffadd6475430bbbf19944aea1fa75f3d3ced3f09817be4306ab8e37dbf
+      - path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+        sha256: 75d9d76983be1035c4b8a3f33a8219c51c364f784e82c7d57c5c8c6be4a25cb2
+      - path: docs/evidence/signal_foundry_sprint_3/abstention_policy/aggregate_metrics.csv
+        sha256: 8f20f4930fd2a6fa48ecc65114932c979fb3c89825db5f1fc842402324f9ee84
+    gate_support:
+      - gate: net_economics
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The strict policy includes expected-cost and cost-uncertainty charges
+          and the aggregate comparison publishes mean net synthetic value with
+          explicit non-calibration limitations.
+        facts:
+          - roles: [cost_policy]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+            locator_kind: json_pointer
+            locator: /configuration/policy/cost_multiplier
+            observed: >-
+              Eligibility charges 1.25 times expected cost plus the configured
+              cost-uncertainty add-on.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/aggregate_metrics.csv
+            locator_kind: csv_column
+            locator: mean_net_value
+            observed: >-
+              Abstention, always-trade, and never-trade rows report mean net
+              value per synthetic opportunity.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/1
+            observed: >-
+              The generator is not calibrated to historical execution or
+              forecast distributions.
+        residual_limitations:
+          - >-
+            Net value is synthetic and threshold-sensitive; it is not an order,
+            fill, realized profit, or evidence of an optimized market policy.
+      - gate: compute_accounting
+        verdict: supported
+        review_method: independent_manual_source_semantics
+        assertion: >-
+          The summary declares bounded linear evaluation and deterministic
+          ordering complexity, reports evaluated observations, and confines
+          the workload to synthetic CPU mechanics.
+        facts:
+          - roles: [resource_boundary]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+            locator_kind: json_pointer
+            locator: /compute/algorithmic_complexity
+            observed: >-
+              Evaluation is O(n), deterministic ordering is O(n log n), memory
+              is O(n), and batch size is bounded at 4,096.
+          - roles: [result]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+            locator_kind: json_pointer
+            locator: /compute/observations_evaluated
+            observed: The CPU reference evaluated 2,400 synthetic observations.
+          - roles: [limitation]
+            source_path: docs/evidence/signal_foundry_sprint_3/abstention_policy/summary.json
+            locator_kind: json_pointer
+            locator: /limitations/0
+            observed: >-
+              The evidence is synthetic policy mechanics, not market, backtest,
+              paper, or live evidence.
+        residual_limitations:
+          - >-
+            Algorithmic accounting lacks a timing distribution and production
+            service saturation evidence; it supports only the bounded reference
+            workload.
+    out_of_sample: false
+    uncertainty: false
+    net_economics: true
+    selection_correction: false
+    feature_ablation: false
+    randomized_control: false
+    regime_stability: false
+    year_stability: false
+    compute_accounting: true
+    model_count: 3
+    blocked_or_failed_count: 0
+
+global_evidence:
+  complete_point_in_time_data: false
+  current_market_data: false
+  complete_corporate_actions: false
+  complete_delistings_and_symbol_history: false
+  point_in_time_universe: false
+  calibrated_execution_costs: false
+  paper_shadow_period_complete: false
+  broker_failure_rehearsal_complete: false
+  executable_orders_emitted: false
+  capital_deployed: false

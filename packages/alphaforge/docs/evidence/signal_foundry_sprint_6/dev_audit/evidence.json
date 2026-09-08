@@ -1,0 +1,203 @@
+{
+  "after_findings": [],
+  "before_findings": [
+    {
+      "id": "PYSEC-2026-3721",
+      "name": "pip",
+      "version": "26.1.2"
+    }
+  ],
+  "changed_pip_records": 1,
+  "combined_audited_packages": 95,
+  "environment": {
+    "implementation_name": "cpython",
+    "implementation_version": "3.13.11",
+    "os_name": "posix",
+    "platform_machine": "arm64",
+    "platform_python_implementation": "CPython",
+    "platform_release": "24.5.0",
+    "platform_system": "Darwin",
+    "platform_version": "Darwin Kernel Version 24.5.0: Tue Apr 22 19:54:43 PDT 2025; root:xnu-11417.121.6~2/RELEASE_ARM64_T8132",
+    "python_full_version": "3.13.11",
+    "python_version": "3.13",
+    "sys_platform": "darwin"
+  },
+  "inputs_sha256": {
+    "after_audit": "5a9d55138172b24358213488cc5e711abd9477e2314ca999488f88049acbc057",
+    "after_lock": "a5e70875b612d5e13e95797e56a0fd6e2c94f5cacb04794dd90b42faafc63633",
+    "before_audit": "840d3467fc8d1035b443501a06c346691600d07ac1e485c3a880659afa88976e",
+    "before_lock": "348d69a0fd0c387f2ca30d966c4540f8341fa5d0e57ed78393674183951275e5",
+    "dev_export": "f3d1cd1e2ba788a85fba7145a7b92484095b95b9d6dd66c3a2d54108de5b3671"
+  },
+  "new_runtime_dev_packages": 78,
+  "newly_audited_dev_packages": 40,
+  "newly_audited_pins": [
+    {
+      "name": "ast-serialize",
+      "version": "0.6.0"
+    },
+    {
+      "name": "black",
+      "version": "26.5.1"
+    },
+    {
+      "name": "boolean-py",
+      "version": "5.0"
+    },
+    {
+      "name": "build",
+      "version": "1.5.0"
+    },
+    {
+      "name": "cachecontrol",
+      "version": "0.14.4"
+    },
+    {
+      "name": "cfgv",
+      "version": "3.5.0"
+    },
+    {
+      "name": "click",
+      "version": "8.4.2"
+    },
+    {
+      "name": "coverage",
+      "version": "7.15.2"
+    },
+    {
+      "name": "cyclonedx-python-lib",
+      "version": "11.11.0"
+    },
+    {
+      "name": "defusedxml",
+      "version": "0.7.1"
+    },
+    {
+      "name": "distlib",
+      "version": "0.4.3"
+    },
+    {
+      "name": "filelock",
+      "version": "3.32.0"
+    },
+    {
+      "name": "identify",
+      "version": "2.6.19"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0"
+    },
+    {
+      "name": "librt",
+      "version": "0.13.0"
+    },
+    {
+      "name": "license-expression",
+      "version": "30.4.4"
+    },
+    {
+      "name": "msgpack",
+      "version": "1.2.1"
+    },
+    {
+      "name": "mypy",
+      "version": "2.3.0"
+    },
+    {
+      "name": "mypy-extensions",
+      "version": "1.1.0"
+    },
+    {
+      "name": "nodeenv",
+      "version": "1.10.0"
+    },
+    {
+      "name": "packageurl-python",
+      "version": "0.17.6"
+    },
+    {
+      "name": "pathspec",
+      "version": "1.1.1"
+    },
+    {
+      "name": "pip",
+      "version": "26.2"
+    },
+    {
+      "name": "pip-api",
+      "version": "0.0.34"
+    },
+    {
+      "name": "pip-audit",
+      "version": "2.10.1"
+    },
+    {
+      "name": "pip-requirements-parser",
+      "version": "32.0.1"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "pre-commit",
+      "version": "4.6.1"
+    },
+    {
+      "name": "py-serializable",
+      "version": "2.1.0"
+    },
+    {
+      "name": "pybind11",
+      "version": "3.0.4"
+    },
+    {
+      "name": "pyproject-hooks",
+      "version": "1.2.0"
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1"
+    },
+    {
+      "name": "pytest-cov",
+      "version": "7.1.0"
+    },
+    {
+      "name": "python-discovery",
+      "version": "1.5.0"
+    },
+    {
+      "name": "pytokens",
+      "version": "0.4.1"
+    },
+    {
+      "name": "ruff",
+      "version": "0.16.0"
+    },
+    {
+      "name": "sortedcontainers",
+      "version": "2.4.0"
+    },
+    {
+      "name": "tomli",
+      "version": "2.4.1"
+    },
+    {
+      "name": "tomli-w",
+      "version": "1.2.0"
+    },
+    {
+      "name": "virtualenv",
+      "version": "21.7.0"
+    }
+  ],
+  "original_runtime_data_ml_packages": 55,
+  "patched_pip_versions": [
+    "26.2"
+  ],
+  "schema_version": 1,
+  "scope": "host known-advisory and audited-dependency surface; not a security proof",
+  "unchanged_third_party_package_records": 146
+}

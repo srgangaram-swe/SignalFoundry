@@ -1,0 +1,84 @@
+{
+  "data": {
+    "anomaly_rows": 47,
+    "dates": 72,
+    "embedding_rows_published": 0,
+    "features": 10,
+    "kind": "deterministic_synthetic_engineering_reference",
+    "model_weights_published": 0,
+    "raw_rows_published": 0,
+    "rows": 432,
+    "symbols": 6,
+    "target_rows_published": 0
+  },
+  "environment": {
+    "executable_platform": "darwin",
+    "logical_cpu_count": 10,
+    "machine": "arm64",
+    "measurement_samples_per_fit": 1,
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "platform": "macOS-15.5-arm64-arm-64bit-Mach-O",
+    "processor": "arm",
+    "python": "3.13.11",
+    "python_implementation": "CPython",
+    "reference_device": "cpu",
+    "scikit_learn": "1.9.0",
+    "seaborn": "0.13.2",
+    "torch": "2.13.0",
+    "warmup_runs": 0
+  },
+  "evidence": {
+    "aggregate_rows": 9,
+    "axes": [
+      "prediction",
+      "regime",
+      "similarity",
+      "anomaly",
+      "diversification",
+      "reconstruction",
+      "validation-only selection",
+      "compute"
+    ],
+    "plot": "plots/representation_comparison.png",
+    "summary": "candidate_summary.csv"
+  },
+  "limitations": [
+    "Synthetic engineering evidence is not evidence of market predictability.",
+    "The planted factors, regimes, and anomalies are cleaner than real markets.",
+    "Validation selects architecture; the test partition does not tune fitted state.",
+    "Rank-IC standard errors describe observed daily variation and do not correct for serial dependence.",
+    "No licensed row, target, embedding, model weight, tensor, or prediction is published.",
+    "No result authorizes paper or live trading or guarantees profit.",
+    "Licensed point-in-time evaluation with costs remains a later governed study."
+  ],
+  "schema_version": "1.0.0",
+  "split": {
+    "test_end": "2020-04-10T00:00:00",
+    "test_rows": 90,
+    "train_end": "2020-03-02T00:00:00",
+    "train_rows": 258,
+    "validation_end": "2020-03-20T00:00:00",
+    "validation_rows": 84
+  },
+  "study": {
+    "candidate_order": [
+      "raw",
+      "pca",
+      "incremental_pca",
+      "robust_pca",
+      "dense_autoencoder",
+      "sequence_autoencoder",
+      "denoising_autoencoder",
+      "variational_autoencoder",
+      "contrastive_timeseries"
+    ],
+    "config_id": "db5eb3efd5af60821ffe85d92fdf7e4a6215ae006f8d1e01ee15d31d981b36b1",
+    "interpretation": "Deterministic synthetic engineering evidence for leakage, resource, representation, transfer-task, and validation-only selection mechanics; not market evidence or trading authorization.",
+    "seed": 20260726,
+    "selected_candidate": "pca",
+    "selection_metric": "validation_rank_ic",
+    "test_prediction_mse_delta_vs_raw": 6.70752810421578e-05,
+    "test_rank_ic_delta_vs_raw": 0.0
+  }
+}

@@ -1,0 +1,71 @@
+# Frozen SF-S4-MR2 evidence profile.
+#
+# This profile generates redistribution-safe synthetic development data only.
+# The reserved holdout is a count, not generated observations. Results are
+# engineering evidence and cannot support candidate selection, profit, paper
+# trading, or live trading claims.
+
+schema_version: "1.0.0"
+profile_id: sf-s4-mr2-synthetic-development
+scope: synthetic_development_only
+
+synthetic:
+  seed: 20260801
+  start_date: 2018-01-02
+  n_assets: 8
+  n_factors: 3
+  history_observations: 270
+  development_observations: 24
+  reserved_holdout_observations: 63
+  periods_per_year: 252
+  factor_volatility: 0.006
+  specific_volatility: 0.008
+  signal_volatility: 0.001
+  signal_persistence: 0.35
+  planted_signal_strength: 0.50
+  average_daily_volume_dollars: 100000000.0
+
+constraints:
+  max_position: 0.30
+  max_gross: 1.0
+  max_net: 1.0
+  max_leverage: 1.0
+  cash_buffer: 0.0
+  long_only: true
+
+evidence:
+  folds: 2
+  capital_levels: [10000000.0]
+  turnover_budgets: [null, 0.25]
+  formulations:
+    - minimum_variance
+    - target_return
+    - maximum_utility
+    - alpha_risk_cost
+  perturbations: [0.0, 0.25, 0.50]
+  sensitivity_formulation: maximum_utility
+  cost_bps: 10.0
+  risk_aversion: 5.0
+  budget: 1.0
+  target_return: 0.00002
+  participation: 0.05
+  uncertainty_strength: 0.50
+  volatility_target: 0.10
+  regime_window: 20
+
+attribution:
+  initial_capital: 10000000.0
+  realized_cost_return: 0.001
+  factor_window: 252
+  factor_shrinkage: 0.20
+  specific_shrinkage: 0.20
+  broad_drawdown_return: -0.08
+  broad_rally_return: 0.04
+  factor_rotation_magnitude: 0.05
+
+publication:
+  max_solver_calls: 512
+  max_runtime_seconds: 120.0
+  max_artifacts: 8
+  max_output_bytes: 4194304
+  plot_dpi: 160

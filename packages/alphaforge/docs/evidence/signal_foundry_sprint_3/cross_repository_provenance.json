@@ -1,0 +1,85 @@
+{
+  "commit": "000ae12de3b409e5f409b53fb191aa003b105318",
+  "origin_url": "https://github.com/srgangaram-swe/Signalattice.git",
+  "repository": "srgangaram-swe/Signalattice",
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "bytes": 17505,
+      "claim_scope": "SF-S3-MR1 causal spectral mechanism, invariants, benchmark accounting, limitations, and explicitly deferred incremental-value experiment",
+      "family": "spectral_descriptors",
+      "git_blob_sha1": "5aaedd2853f3c59e182e1ccd7b201a3c79fe493c",
+      "path": "docs/spectral_features.md",
+      "sha256": "b87d2a3ee5e8fb12b918d741604ec0f84da523c364655f3c6e97f8551bc9083b"
+    },
+    {
+      "bytes": 31257,
+      "claim_scope": "SF-S3-MR1 mathematical, causality, malformed-input, deterministic, and resource-bound test inventory",
+      "family": "spectral_descriptors",
+      "git_blob_sha1": "cd12080ecec0a36baf796747db529e91b48eb75b",
+      "path": "tests/test_spectral_features.py",
+      "sha256": "72d510a79e146473fda29dc46046aea78e32a0477515f1da6af88324f7effc2f"
+    },
+    {
+      "bytes": 12173,
+      "claim_scope": "SF-S3-MR2 causal time-frequency tensor contract and explicitly deferred downstream representation comparison",
+      "family": "time_frequency_vision",
+      "git_blob_sha1": "8da49d57b405f3c106f053638d5577af8dd3598a",
+      "path": "docs/time_frequency_tensors.md",
+      "sha256": "771606c16d56e7f4a89183210adc433430dc2e350cd602318f8f398ebe940b4d"
+    },
+    {
+      "bytes": 22611,
+      "claim_scope": "SF-S3-MR2 tensor alignment, normalization, storage, plotting, and failure-boundary tests",
+      "family": "time_frequency_vision",
+      "git_blob_sha1": "20cb6d0864b4b2f36cac48f4474ac2614af794a1",
+      "path": "tests/test_time_frequency.py",
+      "sha256": "03512533496e008221bd49755f5186efa71274a46446f3729e3a67e1b1db8be8"
+    },
+    {
+      "bytes": 12906,
+      "claim_scope": "SF-S3-MR3 adaptive-decomposition mechanisms, compute accounting, limitations, and explicitly deferred matched incremental-value experiment",
+      "family": "adaptive_decomposition",
+      "git_blob_sha1": "3c58ad79a5b4575532ea21f2a7a53f469d5d9c2c",
+      "path": "docs/adaptive_decomposition.md",
+      "sha256": "4cbf7f53aafad0447615be18220c5dc080671827b1df8b55dfa1f10464bacdfc"
+    },
+    {
+      "bytes": 20922,
+      "claim_scope": "SF-S3-MR3 reconstruction, permutation, noise, failure, determinism, and bounded-resource test inventory",
+      "family": "adaptive_decomposition",
+      "git_blob_sha1": "9ddc94a6d194aca41d7b799bdee634d9ef6a8c1e",
+      "path": "tests/test_decomposition.py",
+      "sha256": "91352b65106ea9d4878fffcad8cdcfd939a384f613fe64ca85faeff3867ae9fe"
+    },
+    {
+      "bytes": 6131,
+      "claim_scope": "SF-S3-MR5 causal state-space and stochastic-volatility baseline mathematics, evidence boundary, and residual limitations",
+      "family": "state_space",
+      "git_blob_sha1": "d0e9fc5c68a98d16d24fd7b553b0fed002f37d25",
+      "path": "docs/state_space_volatility.md",
+      "sha256": "be0ec95a522492770f52e062eb1adb20d9c7d486d4cd95a4361578772977335b"
+    },
+    {
+      "bytes": 4352,
+      "claim_scope": "SF-S3-MR5 deterministic synthetic aggregate recovery, uncertainty interval, compute, and environment evidence",
+      "family": "state_space",
+      "git_blob_sha1": "9167f71defcf62df2f7a185cf0f5a878da603094",
+      "path": "docs/benchmarks/state_space_baselines_2026-07-26.json",
+      "sha256": "c980f6f1f05729dc4af7183735865c474aa29344b41287f110b5cffacc669dc0"
+    },
+    {
+      "bytes": 14721,
+      "claim_scope": "SF-S3-MR5 causality, numerical reference, interval, malformed-input, deterministic, and resource-bound test inventory",
+      "family": "state_space",
+      "git_blob_sha1": "fd95275a69201c0096dfc908a85f36df92ffdaaa",
+      "path": "tests/test_state_space_models.py",
+      "sha256": "bb3949f6f83dd02d1dfc2d629e798ee2a14ee2644a8f5803b8fd281ce9857875"
+    }
+  ],
+  "verification": {
+    "mode": "local_git_object_database",
+    "network_requests": 0,
+    "verified_at_utc": "2026-07-26T22:03:51Z"
+  }
+}

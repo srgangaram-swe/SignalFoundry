@@ -1,0 +1,52 @@
+study:
+  schema_version: "1.0.0"
+  seed: 20260726
+  train_fraction: 0.60
+  validation_fraction: 0.20
+  selection_metric: validation_rank_ic
+  prediction_alpha: 1.0
+  interpretation: >-
+    Deterministic synthetic engineering evidence for leakage, resource,
+    representation, transfer-task, and validation-only selection mechanics;
+    not market evidence or trading authorization.
+
+synthetic_reference:
+  dates: 72
+  symbols: 6
+  features: 10
+  noise_scale: 0.08
+  anomaly_fraction: 0.07
+  regime_period: 9
+
+representation:
+  candidates:
+    - raw
+    - pca
+    - incremental_pca
+    - robust_pca
+    - dense_autoencoder
+    - sequence_autoencoder
+    - denoising_autoencoder
+    - variational_autoencoder
+    - contrastive_timeseries
+  latent_dim: 4
+  hidden_dim: 16
+  sequence_length: 8
+  batch_size: 48
+  incremental_batch_size: 96
+  max_epochs: 10
+  patience: 3
+  learning_rate: 0.003
+  weight_decay: 0.00001
+  inner_validation_fraction: 0.20
+  corruption_std: 0.10
+  vae_beta: 0.01
+  contrastive_temperature: 0.20
+  augmentation_jitter_std: 0.03
+  augmentation_scale_std: 0.05
+  augmentation_mask_probability: 0.10
+  min_embedding_variance: 0.00000001
+  max_samples: 2000
+  max_features: 32
+  max_tensor_bytes: 67108864
+  max_parameters: 200000

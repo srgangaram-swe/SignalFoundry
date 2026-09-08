@@ -1,0 +1,26 @@
+# Predeclared SF-S2-MR6 calibration and uncertainty policy.
+version: 1.0.0
+
+probability:
+  method: platt
+  reliability_bins: 10
+
+bootstrap:
+  n_resamples: 2000
+  block_length: 20
+  confidence_level: 0.95
+  seed: 42
+  circular: true
+
+conformal:
+  alpha: 0.10
+  block_length: 20
+  min_blocks: 5
+
+quantile_regression:
+  lower_quantile: 0.10
+  upper_quantile: 0.90
+  alpha: 0.001
+  max_iter: 10000
+  max_samples: 1000000
+  max_features: 10000

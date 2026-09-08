@@ -1,0 +1,185 @@
+{
+  "artifacts": {
+    "README.md": {
+      "bytes": 2014,
+      "sha256": "77217731d1454a01ea140f703d1cc4d762ae6d715e1df2dc6b34a76e30718148"
+    },
+    "ensemble_evidence.png": {
+      "bytes": 218278,
+      "sha256": "c5c5daae5d5834bae26b863242513a0c0cd77c9e818c82c77687a45439b9af20"
+    },
+    "marginal_contribution.csv": {
+      "bytes": 5456,
+      "sha256": "d93b3e87ec2a1701857b180508c7a1290c6d8fda387f3957c6a092e41c7b47e0"
+    },
+    "model_summary.csv": {
+      "bytes": 7463,
+      "sha256": "4043c0804cee34c49f565174963b67409944d6c2c389c03a54016a257fef9ae7"
+    },
+    "prediction_error_correlations.csv": {
+      "bytes": 11271,
+      "sha256": "e77905d6f58923e4aa25ac1a756bd633c740ab3e81ebc086ed849a2e87f70307"
+    },
+    "regime_overlap.csv": {
+      "bytes": 11605,
+      "sha256": "e11a25c3374edf127086fc6dca1d7293b09365b9ab474c017a7549e529b3b00b"
+    },
+    "turnover_costs.csv": {
+      "bytes": 2428,
+      "sha256": "498a348f769b41ecccafac873ebeb7f82a67e49aa0f326ede9318050fdbf2c2f"
+    },
+    "uncertainty_diagnostics.csv": {
+      "bytes": 1033,
+      "sha256": "e5d527bf0b52c21c79647eb03eb412d617739de13f37a0039af8c36553e15910"
+    }
+  },
+  "config_id": "4e232078f02d6420453c34e3dc4ba326d12b214ac3db61b26697a0917fd5e086",
+  "environment": {
+    "logical_cpu_count": 10,
+    "machine": "arm64",
+    "matplotlib": "3.11.1",
+    "numpy": "2.5.1",
+    "pandas": "3.0.5",
+    "platform": "macOS-15.5-arm64-arm-64bit-Mach-O",
+    "processor": "arm",
+    "python": "3.13.11",
+    "python_implementation": "CPython",
+    "reference_device": "cpu",
+    "seaborn": "0.13.2"
+  },
+  "holdout": {
+    "dates": 32,
+    "row_predictions_published": 0,
+    "row_targets_published": 0,
+    "rows_evaluated_in_memory": 256
+  },
+  "limitations": [
+    "Deterministic synthetic engineering evidence is not market evidence.",
+    "No raw observations, row predictions, targets, fitted state, or model weights are published.",
+    "The turnover/cost diagnostic is simplified and is not the event-driven execution engine.",
+    "Final-holdout outcomes are evaluated outside the immutable target-free inference boundary.",
+    "Dispersion and interval coverage are heuristic, not calibrated predictive uncertainty.",
+    "Moving-block intervals do not cover generator, selection, or regime uncertainty.",
+    "No result authorizes paper/live trading or implies persistent profitability."
+  ],
+  "metric_policy": {
+    "assumptions": [
+      "observations are ordered by date before resampling",
+      "prediction statistics retain complete within-date cross-sections",
+      "contiguous date blocks represent material short-range dependence",
+      "the evaluated synthetic process is sufficiently stable over the holdout",
+      "intervals are descriptive evidence, not future-performance guarantees"
+    ],
+    "dispersion": "Heuristic combination of supplied expert dispersion, training-OOF residual MSE, and expert disagreement; not a calibrated predictive standard deviation and not comparable to single-expert noise scales.",
+    "rank_ic": "Spearman rank correlation within each date, arithmetic mean over non-constant valid dates; valid and total date counts are published.",
+    "resampling": {
+      "block_length_dates": 5,
+      "circular": true,
+      "confidence_level": 0.95,
+      "interval": "equal-tailed empirical quantiles",
+      "method": "moving_block_bootstrap",
+      "n_resamples": 512,
+      "seed": 97531,
+      "standard_error": "sample standard deviation across bootstrap statistics",
+      "variance": "sample variance across bootstrap statistics"
+    },
+    "undefined": "Undefined correlations are published with an explicit status and a blank numeric CSV value; they are never replaced by zero.",
+    "variability": "MSE, paired MSE differences, rank IC, and mean net directional-return intervals use the predeclared moving-block bootstrap over complete dates."
+  },
+  "resolved_config": {
+    "bayesian_temperature": 1.0,
+    "bootstrap_block_length": 5,
+    "bootstrap_circular": true,
+    "bootstrap_confidence_level": 0.95,
+    "bootstrap_resamples": 512,
+    "bootstrap_seed": 97531,
+    "dynamic_decay": 0.94,
+    "dynamic_temperature": 1.0,
+    "fallback_prediction": 0.0,
+    "folds": 4,
+    "holdout_dates": 32,
+    "interpretation": "synthetic_engineering_only",
+    "max_audit_records": 10000,
+    "max_prediction_records": 100000,
+    "min_regime_rows": 32,
+    "min_weight": 1e-06,
+    "regime_min_confidence": 0.1,
+    "regime_threshold": 0.5,
+    "ridge_penalty": 1.0,
+    "seed": 3519,
+    "symbols": 8,
+    "training_dates": 96,
+    "transaction_cost_bps": 5.0
+  },
+  "schema_version": "1.0.0",
+  "scope": "synthetic_engineering_only",
+  "seed_map": {
+    "bootstrap_seed": 97531,
+    "children": {
+      "expert:defensive": 12699992385012230978,
+      "expert:redundant": 7408069990648801909,
+      "expert:stable": 15806900489183969258,
+      "expert:trend": 10318262681226915420,
+      "target": 79934251562427913
+    },
+    "derivation": "unsigned big-endian integer from the first eight bytes of SHA-256('<root-seed>:<stream-name>')",
+    "generator_root_seed": 3519
+  },
+  "states": {
+    "bayesian": {
+      "audit_records": 0,
+      "condition_number": 1.0,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "76401f47e1eaa386a8501b45fdf2bfbfc4e4ff9b2abb34ebe60f368fa47284bc"
+    },
+    "dynamic": {
+      "audit_records": 96,
+      "condition_number": 1.0,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "50d463adcb8aadccd20714b9f486b5df43ec17eaa095d8ef3a521de1d6746063"
+    },
+    "rank_vote": {
+      "audit_records": 0,
+      "condition_number": 1.0,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "104c81e7c7a48c1ef3864d833978a2724e14a89f641f889469a6aa80e8c89a49"
+    },
+    "regime_gate": {
+      "audit_records": 0,
+      "condition_number": 1.0,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "b046af80602f52f04176e337943e79506a00c09560aa31f6b6aba77aff719439"
+    },
+    "stacking": {
+      "audit_records": 4,
+      "condition_number": 796.3758404810693,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "65a7a47f4c9f25a3e378e2b62382b2ad5b4c4b7a15fe02c41b59a9f4a8fe3460"
+    },
+    "static": {
+      "audit_records": 0,
+      "condition_number": 1.0,
+      "fallback_reason": null,
+      "fit_status": "fitted",
+      "state_id": "0fd0872614c9af535a64759a7009c706cf0a67d7d82da388c11434afda081e07"
+    }
+  },
+  "training_boundary": {
+    "complete_experts": [
+      "defensive",
+      "redundant",
+      "stable",
+      "trend"
+    ],
+    "folds": 4,
+    "holdout_start": "2021-05-18",
+    "panel_id": "a0de737aa76c2b992e4935e3ecc4b06f3ff43f7f48b45093dab5d8701f7e4839",
+    "training_dates": 96,
+    "training_oof_rows": 3072
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "scope": "Synthetic local browser resource samples and reviewed visual baselines",
+  "files": [
+    {
+      "path": "apps/nexus/e2e/workstation.spec.ts-snapshots/nexus-1440-dark-chromium-darwin.png",
+      "sha256": "59de8d9ef6eec1384d5b5fd40b6d75f84209a6a3c64188c8d3704d26a8e6e45d"
+    },
+    {
+      "path": "apps/nexus/e2e/workstation.spec.ts-snapshots/nexus-1440-light-chromium-darwin.png",
+      "sha256": "35403b0115a8df4fd108d35bcccd82609ba4c0b10de95f3fc380a5bd29f84db6"
+    },
+    {
+      "path": "apps/nexus/e2e/workstation.spec.ts-snapshots/nexus-390-dark-chromium-darwin.png",
+      "sha256": "0cbbdfdc25dc5c5119dc75b4f9787228d62c11275c9c99c56deeb510e84814bd"
+    },
+    {
+      "path": "apps/nexus/e2e/workstation.spec.ts-snapshots/nexus-390-light-chromium-darwin.png",
+      "sha256": "0926d4f11ae2a61c82db9232cd7c230b4438691721126e8113be6ddafa0cf19e"
+    },
+    {
+      "path": "docs/evidence/nexus/resources.json",
+      "sha256": "e95f1381554c68a90c3af5975c362b0b4edb179ccff269713a206c09d8c1b8fb"
+    },
+    {
+      "path": "docs/evidence/nexus/resources.png",
+      "sha256": "1a86e90efb911959cbf277c9c81e9e57a879f3a9c8e4872529483d2a8992cb58"
+    },
+    {
+      "path": "docs/evidence/nexus/four-series.png",
+      "sha256": "19a8981a7321e93b9f2d691dd12b30683c70c8bd11fde1b68f045d5211eb8685"
+    }
+  ]
+}

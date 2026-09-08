@@ -1,0 +1,93 @@
+# Frozen SF-S3-MR6 development-only engineering benchmark.
+# This profile uses the stale WIKI bootstrap and therefore cannot qualify
+# paper or live readiness, regardless of measured historical performance.
+
+study:
+  schema_version: "1.0.0"
+  benchmark_symbol: AAPL
+  target: fwd_ret_5
+  horizons: [1, 5, 20]
+  transaction_cost_bps: 5.5
+  selection_fraction: 0.20
+  seed: 42
+  interpretation: "Development-only architecture control; not a final-holdout or trading-readiness result."
+
+models:
+  - name: lightgbm
+    params:
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.05
+      min_samples_leaf: 20
+      l2_regularization: 1.0
+      n_jobs: 1
+      random_state: 42
+  - name: sequence_cnn
+    params: &sequence_params
+      seq_len: 20
+      hidden_size: 16
+      n_layers: 2
+      kernel_size: 3
+      n_heads: 4
+      dropout: 0.0
+      learning_rate: 0.001
+      weight_decay: 0.00001
+      max_epochs: 4
+      patience: 2
+      batch_size: 256
+      validation_fraction: 0.15
+      gradient_clip: 1.0
+      clip_z: 8.0
+      max_parameters: 500000
+      max_windows: 100000
+      max_tensor_bytes: 536870912
+      seed: 42
+      device: cpu
+  - name: sequence_tcn
+    params: *sequence_params
+  - name: sequence_lstm
+    params: *sequence_params
+  - name: sequence_gru
+    params: *sequence_params
+  - name: sequence_transformer
+    params: *sequence_params
+
+features:
+  registry_version: "1.0.0"
+  cache_dir: null
+  fitted_transform:
+    version: "1.0.0"
+    enabled: false
+    imputation: median
+    standardize: true
+    variance_threshold: null
+    pca_components: null
+    pca_whiten: false
+    min_fit_rows: 64
+  return_lags: [1, 2, 3, 5, 10, 20]
+  vol_windows: [5, 20, 60]
+  ma_windows: [10, 20, 50, 200]
+  momentum_windows: [20, 60, 120]
+  rsi_window: 14
+  macd: {fast: 12, slow: 26, signal: 9}
+  bollinger_window: 20
+  mean_reversion_window: 5
+  volume_window: 20
+  beta_window: 60
+  rolling_sharpe_window: 60
+  drawdown_window: 252
+  regime_vol_window: 20
+  regime_trend_fast: 50
+  regime_trend_slow: 200
+  hmm_regime: false
+  hmm_refit_every: 63
+  hmm_min_train: 252
+  cross_sectional: true
+
+walk_forward:
+  scheme: expanding
+  min_train_days: 756
+  test_days: 126
+  step_days: 126
+  embargo_days: 20
+  max_windows: 1

@@ -1,0 +1,127 @@
+{
+  "identity": "e6eedb99ae73e9f775d51997636be9799a34b25dfa9ebd33423cc13527f66b3c",
+  "item_count": 17,
+  "items": [
+    {
+      "attestation_only": false,
+      "category": "operational",
+      "key": "audit_and_tax_export",
+      "requirement": "Order, fill, and position history exports in a form suitable for audit and tax reporting",
+      "verified_by": "a generated export over the paper period"
+    },
+    {
+      "attestation_only": false,
+      "category": "operational",
+      "key": "broker_failure_drill",
+      "requirement": "Behaviour under broker outage and rejected orders has been exercised",
+      "verified_by": "fault-injection record showing halt rather than retry"
+    },
+    {
+      "attestation_only": false,
+      "category": "reconciliation",
+      "key": "broker_state_known",
+      "requirement": "Broker positions, cash, and open orders are currently known and match local state",
+      "verified_by": "a passing reconciliation report dated within the freshness bound"
+    },
+    {
+      "attestation_only": false,
+      "category": "security",
+      "key": "capital_cap_enforced",
+      "requirement": "A capital-at-risk cap is set and enforced in code",
+      "verified_by": "configuration plus the test proving a breach is refused"
+    },
+    {
+      "attestation_only": false,
+      "category": "evidence",
+      "key": "cost_model_validated",
+      "requirement": "Modelled costs are validated against observed paper fills",
+      "verified_by": "slippage and commission comparison over the paper period"
+    },
+    {
+      "attestation_only": false,
+      "category": "security",
+      "key": "credential_custody",
+      "requirement": "Credentials are in the secret store only, with rotation recorded",
+      "verified_by": "custody policy plus a negative test that environment credentials are refused"
+    },
+    {
+      "attestation_only": false,
+      "category": "operational",
+      "key": "deactivation_procedure",
+      "requirement": "A deactivation and rollback procedure exists and has been exercised",
+      "verified_by": "runbook plus an execution record"
+    },
+    {
+      "attestation_only": true,
+      "category": "policy",
+      "key": "employment_policy_review",
+      "requirement": "Personal-trading and outside-activity policy has been reviewed and permits this activity",
+      "verified_by": "dated attestation by the owner naming the policy reviewed"
+    },
+    {
+      "attestation_only": false,
+      "category": "operational",
+      "key": "kill_switch_verified",
+      "requirement": "The kill switch stops submission within the declared bound",
+      "verified_by": "kill-switch test record with measured latency"
+    },
+    {
+      "attestation_only": true,
+      "category": "legal",
+      "key": "legal_regulatory_review",
+      "requirement": "Applicable legal, regulatory, and tax obligations have been reviewed",
+      "verified_by": "dated attestation by the owner naming the review performed"
+    },
+    {
+      "attestation_only": false,
+      "category": "operational",
+      "key": "operational_rehearsal",
+      "requirement": "An operational rehearsal including a deliberate failure drill has been performed",
+      "verified_by": "rehearsal record with injected failure and observed recovery"
+    },
+    {
+      "attestation_only": true,
+      "category": "policy",
+      "key": "owner_approval",
+      "requirement": "The owner has approved this deployment, naming the cap and the date",
+      "verified_by": "written approval referencing every other item"
+    },
+    {
+      "attestation_only": false,
+      "category": "evidence",
+      "key": "paper_duration",
+      "requirement": "Paper trading has run for the declared minimum duration with no gaps",
+      "verified_by": "paper run records covering the whole interval"
+    },
+    {
+      "attestation_only": false,
+      "category": "evidence",
+      "key": "paper_stability",
+      "requirement": "Paper results are stable across the evaluation period",
+      "verified_by": "per-period evidence with dependence-aware uncertainty"
+    },
+    {
+      "attestation_only": false,
+      "category": "evidence",
+      "key": "qualified_candidate",
+      "requirement": "A strategy holds a QUALIFIED_FOR_PAPER verdict under a frozen rubric",
+      "verified_by": "qualification dossier with rubric identity and evidence hashes"
+    },
+    {
+      "attestation_only": false,
+      "category": "reconciliation",
+      "key": "reconciliation_clean",
+      "requirement": "Every reconciliation over the paper period passed with zero unexplained divergence",
+      "verified_by": "reconciliation log across the paper period"
+    },
+    {
+      "attestation_only": false,
+      "category": "security",
+      "key": "risk_limits_enforced",
+      "requirement": "Position, notional, drawdown, and daily-loss limits are enforced in code",
+      "verified_by": "configuration plus enforcement tests"
+    }
+  ],
+  "policy": "Every item is required. There is no score, no weighting, and no override; removing an item requires publishing a new checklist version.",
+  "version": "minimal-capital-1"
+}

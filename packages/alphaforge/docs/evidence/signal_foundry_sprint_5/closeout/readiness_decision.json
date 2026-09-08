@@ -1,0 +1,165 @@
+{
+  "authorization": "NOT_READY. No capital deployment is authorized.",
+  "checklist_identity": "e6eedb99ae73e9f775d51997636be9799a34b25dfa9ebd33423cc13527f66b3c",
+  "checklist_version": "minimal-capital-1",
+  "decided_at": "2026-08-08T00:00:00+00:00",
+  "ready": false,
+  "results": [
+    {
+      "category": "operational",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "audit_and_tax_export",
+      "satisfied": false
+    },
+    {
+      "category": "operational",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "broker_failure_drill",
+      "satisfied": false
+    },
+    {
+      "category": "reconciliation",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "broker_state_known",
+      "satisfied": false
+    },
+    {
+      "category": "security",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "capital_cap_enforced",
+      "satisfied": false
+    },
+    {
+      "category": "evidence",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "cost_model_validated",
+      "satisfied": false
+    },
+    {
+      "category": "security",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "credential_custody",
+      "satisfied": false
+    },
+    {
+      "category": "operational",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "deactivation_procedure",
+      "satisfied": false
+    },
+    {
+      "category": "policy",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "employment_policy_review",
+      "satisfied": false
+    },
+    {
+      "category": "operational",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "kill_switch_verified",
+      "satisfied": false
+    },
+    {
+      "category": "legal",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "legal_regulatory_review",
+      "satisfied": false
+    },
+    {
+      "category": "operational",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "operational_rehearsal",
+      "satisfied": false
+    },
+    {
+      "category": "policy",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "owner_approval",
+      "satisfied": false
+    },
+    {
+      "category": "evidence",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "paper_duration",
+      "satisfied": false
+    },
+    {
+      "category": "evidence",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "paper_stability",
+      "satisfied": false
+    },
+    {
+      "category": "evidence",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "qualified_candidate",
+      "satisfied": false
+    },
+    {
+      "category": "reconciliation",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "reconciliation_clean",
+      "satisfied": false
+    },
+    {
+      "category": "security",
+      "detail": "no evidence supplied; readiness is demonstrated, not assumed",
+      "key": "risk_limits_enforced",
+      "satisfied": false
+    }
+  ],
+  "satisfied_count": 0,
+  "simulation_only": true,
+  "total_count": 17,
+  "unmet": [
+    "audit_and_tax_export",
+    "broker_failure_drill",
+    "broker_state_known",
+    "capital_cap_enforced",
+    "cost_model_validated",
+    "credential_custody",
+    "deactivation_procedure",
+    "employment_policy_review",
+    "kill_switch_verified",
+    "legal_regulatory_review",
+    "operational_rehearsal",
+    "owner_approval",
+    "paper_duration",
+    "paper_stability",
+    "qualified_candidate",
+    "reconciliation_clean",
+    "risk_limits_enforced"
+  ],
+  "unmet_by_category": {
+    "evidence": [
+      "cost_model_validated",
+      "paper_duration",
+      "paper_stability",
+      "qualified_candidate"
+    ],
+    "legal": [
+      "legal_regulatory_review"
+    ],
+    "operational": [
+      "audit_and_tax_export",
+      "broker_failure_drill",
+      "deactivation_procedure",
+      "kill_switch_verified",
+      "operational_rehearsal"
+    ],
+    "policy": [
+      "employment_policy_review",
+      "owner_approval"
+    ],
+    "reconciliation": [
+      "broker_state_known",
+      "reconciliation_clean"
+    ],
+    "security": [
+      "capital_cap_enforced",
+      "credential_custody",
+      "risk_limits_enforced"
+    ]
+  },
+  "verdict": "NOT_READY"
+}

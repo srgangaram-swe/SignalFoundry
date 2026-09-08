@@ -1,0 +1,146 @@
+# Pre-registered seven-candidate Sprint 2 study on the stale Nasdaq WIKI
+# engineering bootstrap. This profile cannot qualify paper or live readiness
+# because point-in-time universe, revision, and corporate-action evidence is
+# incomplete. All optional estimators are CPU-only and single-threaded.
+
+research:
+  holdout_start: "2017-01-03"
+  benchmark_symbol: AAPL
+  target: fwd_ret_5
+  horizons: [1, 5, 20]
+  selection_metric: rank_ic
+  seed: 42
+
+readiness:
+  rubric_version: "1.0.0"
+  minimum_holdout_days: 252
+  minimum_deflated_sharpe_probability: 0.95
+  maximum_probability_of_backtest_overfitting: 0.50
+  maximum_drawdown: 0.25
+  minimum_annual_excess_return: 0.0
+  maximum_average_turnover: 0.50
+  require_complete_point_in_time: true
+
+# Order is a contract: the first candidate is the naive reference and the
+# remaining six are tested as matched-fold increments over that reference.
+models:
+  - name: momentum_baseline
+    params: {feature: momentum_20, scale: 0.05}
+  - name: linear
+    params: {fit_intercept: true, positive: false}
+  - name: random_forest
+    params:
+      n_estimators: 120
+      max_depth: 6
+      min_samples_leaf: 50
+      max_features: 1.0
+      n_jobs: 1
+  - name: lightgbm
+    params:
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.05
+      min_samples_leaf: 20
+      l2_regularization: 1.0
+      n_jobs: 1
+  - name: xgboost
+    params:
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.05
+      min_child_weight: 5.0
+      l2_regularization: 1.0
+      n_jobs: 1
+  - name: catboost
+    params:
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.05
+      min_samples_leaf: 20
+      l2_regularization: 1.0
+      n_jobs: 1
+  - name: small_mlp
+    params:
+      hidden_layer_sizes: [32, 16]
+      alpha: 0.0001
+      learning_rate_init: 0.001
+      batch_size: 128
+      max_iter: 300
+      tol: 0.0001
+
+features:
+  registry_version: "1.0.0"
+  cache_dir: null
+  fitted_transform:
+    version: "1.0.0"
+    enabled: false
+    imputation: median
+    standardize: true
+    variance_threshold: null
+    pca_components: null
+    pca_whiten: false
+    min_fit_rows: 64
+  return_lags: [1, 2, 3, 5, 10, 20]
+  vol_windows: [5, 20, 60]
+  ma_windows: [10, 20, 50, 200]
+  momentum_windows: [20, 60, 120]
+  rsi_window: 14
+  macd: {fast: 12, slow: 26, signal: 9}
+  bollinger_window: 20
+  mean_reversion_window: 5
+  volume_window: 20
+  beta_window: 60
+  rolling_sharpe_window: 60
+  drawdown_window: 252
+  regime_vol_window: 20
+  regime_trend_fast: 50
+  regime_trend_slow: 200
+  hmm_regime: true
+  hmm_refit_every: 63
+  hmm_min_train: 252
+  cross_sectional: true
+
+walk_forward:
+  scheme: expanding
+  min_train_days: 504
+  test_days: 63
+  step_days: 63
+  embargo_days: 21
+
+backtest:
+  strategy: long_short
+  strategy_params: {quantile: 0.20}
+  rebalance_frequency: 5
+  execution_lag: 1
+  liquidate_at_end: true
+  initial_capital: 1000000
+  execution:
+    price_field: open
+    adv_lookback: 20
+    volatility_lookback: 20
+    max_participation_rate: 0.05
+    impact_coefficient: 0.10
+    missing_price_policy: raise
+  costs:
+    commission_bps: 1.0
+    half_spread_bps: 2.5
+    slippage_bps: 2.0
+  portfolio:
+    max_weight: 0.20
+    max_gross_exposure: 1.0
+    max_net_exposure: 0.20
+    inverse_vol_scaling: true
+    turnover_cap: 0.50
+  risk:
+    vol_target: 0.10
+    vol_lookback: 20
+    max_leverage: 1.0
+    drawdown_deleverage: 0.15
+    drawdown_cut: 0.50
+  capacity:
+    aum_multiples: [0.5, 1.0, 2.0, 5.0, 10.0]
+    max_participation_rate: 0.05
+    minimum_fill_ratio: 0.95
+  borrow_financing:
+    short_borrow_bps_annual: 1000.0
+    cash_financing_bps_annual: 500.0

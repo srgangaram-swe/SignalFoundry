@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, prod]
+  pull_request:
+    branches: [main, dev, prod]
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+
+      - name: Install locked environment
+        run: uv sync --locked --extra dev --extra data
+
+      - name: Repository policy hooks
+        run: uv run python -m pre_commit run --all-files
+
+      - name: Validate committed configurations
+        run: uv run python scripts/validate_configs.py
+
+      - name: Type check (mypy)
+        run: uv run python -m mypy alphaforge tests scripts apps benchmarks
+
+      - name: Build and install wheel
+        run: |
+          uv run python -m build --wheel --sdist
+          python -m venv /tmp/alphaforge-wheel-smoke
+          /tmp/alphaforge-wheel-smoke/bin/pip install --no-deps dist/*.whl
+          /tmp/alphaforge-wheel-smoke/bin/python -c "from importlib.metadata import version; import alphaforge; assert version('alphaforge') == alphaforge.__version__ == '0.3.0'"
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # Sprint 5 provenance verification resolves frozen delivery commits.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+
+      - name: Install locked environment
+        run: uv sync --locked --extra dev --extra data --extra torch
+
+      - name: Build C++ execution core
+        run: uv run python scripts/build_native.py
+
+      - name: Tests (network tests excluded; includes C++/Python parity)
+        run: uv run python -m pytest -m "not network" --cov=alphaforge --cov-branch --cov-report=term-missing --cov-fail-under=78
+
+  optional-extras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: data
+            imports: "import pyarrow, yfinance"
+          - extra: ml
+            imports: "import catboost, lightgbm, xgboost"
+          - extra: app
+            imports: "import fastapi, plotly, streamlit, uvicorn"
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+
+      - name: Install locked ${{ matrix.extra }} extra
+        run: uv sync --locked --extra dev --extra "${{ matrix.extra }}"
+
+      - name: Import optional dependency boundary
+        env:
+          OPTIONAL_IMPORTS: ${{ matrix.imports }}
+        run: uv run python -c "$OPTIONAL_IMPORTS"
+
+      - name: Governed optional model contract
+        if: matrix.extra == 'ml'
+        run: uv run python -m pytest tests/test_optional_boosters.py
+
+      - name: Application API and version contract
+        if: matrix.extra == 'app'
+        run: uv run python -m pytest tests/test_backtest_ui.py
+
+  smoke-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+      - name: Install locked environment
+        run: uv sync --locked
+      - name: End-to-end synthetic pipeline
+        run: |
+          uv run python scripts/run_walk_forward.py --synthetic --fast
+          uv run python scripts/run_backtest.py --latest
+          uv run python scripts/generate_report.py
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Build hardened data-excluding image
+        run: docker build --tag alphaforge:ci .
+      - name: Verify package and native core
+        run: |
+          docker run --rm --entrypoint python alphaforge:ci -c \
+            "import alphaforge; from alphaforge.execution import NATIVE_AVAILABLE; assert alphaforge.__version__ == '0.3.0'; assert NATIVE_AVAILABLE"

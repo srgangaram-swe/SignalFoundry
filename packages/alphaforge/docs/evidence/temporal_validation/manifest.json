@@ -1,0 +1,42 @@
+{
+  "artifacts": {
+    "fold_assignments.csv": {
+      "bytes": 77491,
+      "sha256": "47ab123a4d8d4e25cffd6c5d60ae31ef510677373b2677670b727e162b520a55"
+    },
+    "fold_metadata.csv": {
+      "bytes": 1321,
+      "sha256": "adf4acf6c805a626b865eaf250bcba6dfef4817374d433f682b7c3bea77c8739"
+    },
+    "temporal_folds.png": {
+      "bytes": 31604,
+      "sha256": "ca64b6f09784bcf7044bb43d177dfe1985eca482f26f1dd3285d2609dac5632d"
+    }
+  },
+  "configuration": {
+    "embargo_sessions": 5,
+    "final_holdout_sessions": 126,
+    "min_train_sessions": 252,
+    "purge_sessions": 20,
+    "scheme": "expanding",
+    "step_sessions": 63,
+    "test_sessions": 63,
+    "validation_sessions": 63
+  },
+  "data": {
+    "licensed_observations": false,
+    "market_evidence": false,
+    "seed": 20260725,
+    "sessions": 756,
+    "source": "alphaforge synthetic market"
+  },
+  "evidence_type": "deterministic synthetic temporal validation",
+  "folds": 4,
+  "limitations": [
+    "Synthetic folds prove temporal mechanics, not predictive or trading value.",
+    "Session-count gaps complement exact supplied label intervals.",
+    "The final holdout is visualized only as an inaccessible boundary."
+  ],
+  "plan_identity": "cfd2a8264a7a5189205944eb0835a9c2d8115e53cb2c765b79f53598606414cd",
+  "schema_version": "1.0.0"
+}
