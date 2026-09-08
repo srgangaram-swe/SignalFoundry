@@ -20,11 +20,15 @@
     },
     {
       "path": "docs/evidence/nexus/resources.json",
-      "sha256": "221d6bc41aec887b1eaff3d321af4cfd9cf7756c118223291d0943ca5a01c211"
+      "sha256": "e95f1381554c68a90c3af5975c362b0b4edb179ccff269713a206c09d8c1b8fb"
     },
     {
       "path": "docs/evidence/nexus/resources.png",
-      "sha256": "7e52e5df531f886976f4b04f0c126768463e0f0992498849874a497ccd9d1f89"
+      "sha256": "1a86e90efb911959cbf277c9c81e9e57a879f3a9c8e4872529483d2a8992cb58"
+    },
+    {
+      "path": "docs/evidence/nexus/four-series.png",
+      "sha256": "19a8981a7321e93b9f2d691dd12b30683c70c8bd11fde1b68f045d5211eb8685"
     }
   ]
 }

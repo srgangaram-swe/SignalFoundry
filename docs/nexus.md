@@ -99,8 +99,9 @@ uv run python apps/nexus/scripts/plot-evidence.py \
 ![Local browser resource samples](evidence/nexus/resources.png)
 
 Local validation: 60 focused Python boundary/CLI/API/real-worker integration tests;
-38 frontend tests with 92.02% branch coverage; real-worker browser workflow,
-axe, four theme/viewport visual goldens, and bounded-table resource checks.
+39 frontend tests with 92.02% branch coverage; real-worker browser workflow,
+axe, four theme/viewport visual goldens, bounded-table resource checks, and a
+four-series chart/legend boundary test (four browser tests total).
 Ten retained AlphaForge dashboard tests and 82 Signalattice console tests passed
 in their independent environments. The first dashboard invocation used the root
 environment and failed to import scikit-learn; the package environment corrected
@@ -111,3 +112,21 @@ reported on the MR, independently of these local results.
 The additional CLI-before-start regression and assembly checks passed together
 (77 tests, including overlapping asset cases). Black, Ruff, strict mypy,
 contract/workflow drift checks and wheel/sdist builds passed.
+
+### Catalog readiness in browser tests
+
+The catalog starts two isolated package workers; initial dependency imports can
+be slower than an ordinary DOM update on shared runners. Real-service tests
+observe the catalog response within the existing 30-second transport deadline,
+check its HTTP success, then assert rendered readiness. The generic DOM timeout
+remains 10 seconds and retries remain disabled. Synthetic browser-resource
+fixtures retain their separate 5-second cold-navigation budget. CI retains
+catalog status/timing, browser JSON and failure traces for seven days.
+
+### Four-series chart accessibility
+
+The request allows one strategy and up to three baselines. All four lines use
+distinct solid/dash/dot/dash-dot patterns, with matching SVG legend swatches.
+The browser regression checks computed patterns and swatch dimensions, plus axe.
+The [inspected four-series fixture](evidence/nexus/four-series.png) and refreshed
+resource samples are synthetic; the evidence manifest binds their bytes.

@@ -17,6 +17,7 @@ import yaml
 CHECKOUT = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
 PYTHON = "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97"
 UV = "astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9"
+UPLOAD = "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
 NODE = "actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903"
 
 
@@ -247,6 +248,16 @@ def generate(root: Path) -> dict[str, Any]:
                 "working-directory": "apps/nexus",
             },
             {"run": "npm run e2e", "working-directory": "apps/nexus"},
+            {
+                "uses": UPLOAD,
+                "if": "always()",
+                "with": {
+                    "name": "nexus-browser-evidence",
+                    "path": "apps/nexus/test-results",
+                    "retention-days": 7,
+                    "if-no-files-found": "error",
+                },
+            },
         ],
     }
     jobs["security"] = {

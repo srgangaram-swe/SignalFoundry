@@ -86,7 +86,7 @@ export function EquityChart({
           <path
             key={item.name}
             d={item.path}
-            className={`series series-${String(index % 3)}`}
+            className={`series series-${String(index % 4)}`}
           />
         ))}
         <text x="70" y="235">
@@ -99,7 +99,12 @@ export function EquityChart({
       <ul className="chart-legend">
         {chart.series.map((item, index) => (
           <li key={item.name}>
-            <span className={`swatch series-${String(index % 3)}`} />
+            <svg className="swatch" viewBox="0 0 26 8" aria-hidden="true">
+              <path
+                d="M0,4 H26"
+                className={`series series-${String(index % 4)}`}
+              />
+            </svg>
             {item.name} · {item.values.length} retained sessions
           </li>
         ))}

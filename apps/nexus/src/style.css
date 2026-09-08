@@ -22,7 +22,7 @@
 .chart {
   margin: 24px 0;
 }
-.chart svg {
+.chart > svg {
   width: 100%;
   min-height: 180px;
 }
@@ -42,13 +42,15 @@
   stroke: var(--text);
   stroke-dasharray: 8 4;
   border-color: var(--text);
-  border-top-style: dashed !important;
 }
 .series-2 {
   stroke: var(--muted);
   stroke-dasharray: 2 4;
   border-color: var(--muted);
-  border-top-style: dotted !important;
+}
+.series-3 {
+  stroke: var(--accent);
+  stroke-dasharray: 12 3 2 3;
 }
 .zero-line {
   stroke: var(--line);
@@ -62,8 +64,7 @@
 .swatch {
   display: inline-block;
   width: 26px;
-  border-top-width: 2px;
-  border-top-style: solid;
+  height: 8px;
   margin-right: 8px;
 }
 * {
