@@ -1,4 +1,4 @@
-"""Versioned simulation-only HTTP routes; application owns no domain math."""
+"""Versioned research and optional paper HTTP routes; no domain math."""
 
 from __future__ import annotations
 
@@ -28,6 +28,13 @@ from signal_foundry.contracts import (
 from signal_foundry.http_security import LocalBoundary
 from signal_foundry.manager import Manager
 from signal_foundry.nexus import NexusBundle, mount
+from signal_foundry.trading.models import PaperStatus
+from signal_foundry.trading.service import (
+    Action,
+    PaperResult,
+    PaperService,
+    unavailable,
+)
 
 BODY_SCHEMA = {
     "requestBody": {
@@ -61,6 +68,7 @@ def create_app(
     *,
     port: int = 8765,
     nexus: NexusBundle | None = None,
+    paper_factory: Callable[[], PaperService] | None = None,
 ) -> FastAPI:
     """Create without IO; only the lifespan acquires state and worker ownership."""
     if not 1024 <= port <= 65535:
@@ -71,6 +79,9 @@ def create_app(
         manager = await run_in_threadpool(factory)
         app.state.manager = manager
         try:
+            app.state.paper = (
+                await run_in_threadpool(paper_factory) if paper_factory else None
+            )
             yield
         finally:
             await run_in_threadpool(manager.close)
@@ -79,8 +90,8 @@ def create_app(
         title="Signal Foundry research control plane",
         version="1.0.0",
         description=(
-            "Local development simulations only. No broker or live-order operation"
-            " exists."
+            "Local research and explicit Alpaca paper operations."
+            " Live-order capability is absent."
         ),
         lifespan=lifespan,
         docs_url=None,
@@ -122,6 +133,22 @@ def create_app(
     def owner(request: Request) -> Manager:
         manager: Manager = request.app.state.manager
         return manager
+
+    @app.get("/api/v1/paper", response_model=PaperStatus, operation_id="paper_status")
+    def paper_status(request: Request) -> PaperStatus:
+        service: PaperService | None = request.app.state.paper
+        return service.status() if service else unavailable()
+
+    @app.post("/api/v1/paper", response_model=PaperResult, operation_id="paper_action")
+    def paper_action(request: Request, action: Action) -> PaperResult:
+        service: PaperService | None = request.app.state.paper
+        if service is None:
+            raise FoundryError(
+                "paper_unavailable",
+                "Configure the local paper service explicitly before operating it.",
+                409,
+            )
+        return service.action(action)
 
     @app.get("/api/v1/catalog", response_model=Catalog, operation_id="catalog")
     def catalog(request: Request) -> Catalog:

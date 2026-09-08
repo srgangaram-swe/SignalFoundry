@@ -1,5 +1,10 @@
 /** Bounded same-origin transport. No retries, credentials or executable inputs. */
 import * as guards from "./generated/validators.cjs";
+import type { components } from "../../../contracts/research-v1";
+import type { Resolved } from "./types";
+export type PaperStatus = Resolved<components["schemas"]["PaperStatus"]>;
+export type PaperResult = Resolved<components["schemas"]["PaperResult"]>;
+export type PaperAction = Resolved<components["schemas"]["Action"]>;
 import type {
   AuditTrail,
   Catalog,
@@ -193,6 +198,18 @@ async function boundedJson(
 }
 
 export class ResearchClient {
+  async paperStatus(signal: AbortSignal): Promise<PaperStatus> {
+    return this.request("paper", guards.isPaperStatus, signal);
+  }
+
+  async paperAction(
+    action: PaperAction,
+    signal: AbortSignal,
+  ): Promise<PaperResult> {
+    return this.request("paper", guards.isPaperResult, signal, {
+      body: action,
+    });
+  }
   private active = 0;
 
   constructor(
@@ -206,7 +223,10 @@ export class ResearchClient {
     path: string,
     guard: Guard<T>,
     signal: AbortSignal,
-    mutation?: { body: ResearchRequest | Record<string, never>; key?: string },
+    mutation?: {
+      body: ResearchRequest | PaperAction | Record<string, never>;
+      key?: string;
+    },
   ): Promise<T> {
     if (this.active >= MAX_IN_FLIGHT) {
       throw new ApiError(
