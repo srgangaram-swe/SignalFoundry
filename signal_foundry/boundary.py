@@ -136,13 +136,17 @@ def private_directory(path: Path, *, create: bool = False) -> Path:
 def code_identity(root: Path) -> str:
     """Hash bounded control-plane source bytes in stable path order, O(source bytes)."""
     digest = hashlib.sha256()
-    paths = sorted((root / "signal_foundry").glob("*.py"))
-    if not 1 <= len(paths) <= 32:
+    paths = sorted((root / "signal_foundry").rglob("*.py"))
+    if not 1 <= len(paths) <= 128:
         raise FoundryError(
             "code_identity", "Control-plane source inventory is invalid.", 500
         )
     for path in paths:
-        digest.update(path.name.encode() + b"\0" + read_file(path, 128 * 1024))
+        digest.update(
+            path.relative_to(root).as_posix().encode()
+            + b"\0"
+            + read_file(path, 128 * 1024)
+        )
     return digest.hexdigest()
 
 

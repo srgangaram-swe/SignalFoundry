@@ -1,4 +1,4 @@
-"""Local-only entry point; no credentials, broker actions or automatic downloads."""
+"""Local research and explicit paper operations; no live-order capability."""
 
 from __future__ import annotations
 
@@ -16,12 +16,21 @@ from signal_foundry.manager import Manager
 from signal_foundry.nexus import load_bundle
 from signal_foundry.runner import Runner
 from signal_foundry.store import Store
+from signal_foundry.trading.service import Action, PaperService
+from signal_foundry.trading.session import run_session
+from signal_foundry.trading.store import Journal
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--state", type=Path, default=Path("var/research"))
+    parser.add_argument(
+        "--paper-config",
+        type=Path,
+        help="Explicit local paper configuration; never credentials",
+    )
+    parser.add_argument("--paper-state", type=Path, default=Path("var/paper"))
     parser.add_argument(
         "--bundles",
         type=Path,
@@ -35,6 +44,37 @@ def main(argv: list[str] | None = None) -> int:
     )
     commands.add_parser("catalog")
     commands.add_parser("example", help="Print the complete default synthetic request")
+    paper = commands.add_parser(
+        "paper", help="Explicit bounded Alpaca paper/data operations"
+    )
+    paper.add_argument(
+        "operation",
+        choices=[
+            "status",
+            "initialize",
+            "probe",
+            "acquire",
+            "research",
+            "qualify",
+            "start",
+            "cycle",
+            "reconcile",
+            "record-session",
+            "campaign",
+            "stop",
+            "cancel",
+            "show-artifact",
+            "audit",
+            "import-evidence",
+            "run",
+        ],
+    )
+    paper.add_argument("--symbol")
+    paper.add_argument("--artifact")
+    paper.add_argument("--file", type=Path)
+    paper.add_argument("--cycles", type=int, default=1)
+    paper.add_argument("--after", type=int, default=0)
+    paper.add_argument("--limit", type=int, default=100)
     for name in ("validate", "run"):
         command = commands.add_parser(name)
         command.add_argument("request", type=Path)
@@ -47,6 +87,66 @@ def main(argv: list[str] | None = None) -> int:
         return Manager(Store(args.state), runner)
 
     try:
+
+        def paper_factory() -> PaperService:
+            if args.paper_config is None:
+                raise FoundryError(
+                    "paper_configuration",
+                    "Supply --paper-config for explicit paper operations.",
+                )
+            return PaperService(args.root, args.paper_state, args.paper_config)
+
+        if args.command == "paper":
+            service = paper_factory()
+            if args.operation == "status":
+                print(encode(service.status().wire()).decode())
+            elif args.operation == "run":
+                print(encode(run_session(service, args.cycles).wire()).decode())
+            elif args.operation in {"show-artifact", "import-evidence", "audit"}:
+                journal = Journal(args.paper_state)
+                try:
+                    if args.operation == "audit":
+                        print(encode(journal.audit(args.after, args.limit)).decode())
+                    elif args.operation == "show-artifact":
+                        print(
+                            encode(journal.read_artifact(args.artifact or "")).decode()
+                        )
+                    else:
+                        if args.file is None:
+                            raise FoundryError(
+                                "paper_evidence",
+                                "Supply --file to import private evidence.",
+                            )
+                        value = decode(read_file(args.file), 4 << 20)
+                        if (
+                            not isinstance(value, dict)
+                            or value.get("config_identity") != service.config.identity
+                            or value.get("plan_identity")
+                            != service.config.plan.identity
+                        ):
+                            raise FoundryError(
+                                "paper_evidence",
+                                "Evidence must bind the frozen plan and configuration.",
+                            )
+                        with journal.exclusive():
+                            identity = journal.artifact(value)
+                            journal.append("evidence_import", {"identity": identity})
+                        print(
+                            encode(
+                                {"artifact": identity, "qualification_implied": False}
+                            ).decode()
+                        )
+                finally:
+                    journal.close()
+            else:
+                print(
+                    encode(
+                        service.action(
+                            Action(operation=args.operation, symbol=args.symbol)
+                        ).wire()
+                    ).decode()
+                )
+            return 0
         if args.command == "serve":
             import uvicorn
 
@@ -59,7 +159,12 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             )
             uvicorn.run(
-                create_app(factory, port=args.port, nexus=bundle),
+                create_app(
+                    factory,
+                    port=args.port,
+                    nexus=bundle,
+                    paper_factory=paper_factory if args.paper_config else None,
+                ),
                 host="127.0.0.1",
                 port=args.port,
                 workers=1,

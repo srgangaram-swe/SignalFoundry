@@ -124,6 +124,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/paper": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paper Status */
+        get: operations["paper_status"];
+        put?: never;
+        /** Paper Action */
+        post: operations["paper_action"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/validate": {
         parameters: {
             query?: never;
@@ -145,6 +163,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Action */
+        Action: {
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "initialize" | "probe" | "acquire" | "research" | "qualify" | "start" | "cycle" | "reconcile" | "record-session" | "campaign" | "stop" | "cancel";
+            /** Symbol */
+            symbol?: string | null;
+        };
         /** AuditEvent */
         AuditEvent: {
             /** At */
@@ -465,6 +493,73 @@ export interface components {
              */
             parameters: components["schemas"]["Parameter"][];
         };
+        /** PaperResult */
+        PaperResult: {
+            /** Account Digest */
+            account_digest?: string | null;
+            /** Artifact */
+            artifact?: string | null;
+            status: components["schemas"]["PaperStatus"];
+        };
+        /** PaperStatus */
+        PaperStatus: {
+            /** Account Observed At */
+            account_observed_at?: string | null;
+            /** Blockers */
+            blockers: string[];
+            /** Cash */
+            cash?: string | null;
+            /** Config Identity */
+            config_identity: string;
+            /** Configured */
+            configured: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Environment
+             * @default alpaca-paper
+             * @constant
+             */
+            environment: "alpaca-paper";
+            /** Equity */
+            equity?: string | null;
+            /** Events */
+            events: number;
+            /**
+             * Feed
+             * @enum {string}
+             */
+            feed: "iex" | "sip" | "none";
+            /** Last Action */
+            last_action: string;
+            /**
+             * Live Authorized
+             * @default false
+             * @constant
+             */
+            live_authorized: false;
+            /** Maximum Order Notional */
+            maximum_order_notional: string;
+            /** Maximum Position Notional */
+            maximum_position_notional: string;
+            /** Maximum Session Loss */
+            maximum_session_loss: string;
+            /** Orders */
+            orders: number;
+            /** Paper Sessions */
+            paper_sessions: number;
+            /**
+             * Positions
+             * @default []
+             */
+            positions: components["schemas"]["Position"][];
+            /** State */
+            state: string;
+            /** Stopped */
+            stopped: boolean;
+            /** Symbols */
+            symbols: string[];
+        };
         /**
          * Parameter
          * @description One scalar hyperparameter; executable/path parameters are not supported.
@@ -474,6 +569,15 @@ export interface components {
             name: string;
             /** Value */
             value: number | boolean | string;
+        };
+        /** Position */
+        Position: {
+            /** Market Value */
+            market_value: string;
+            /** Quantity */
+            quantity: string;
+            /** Symbol */
+            symbol: string;
         };
         /** Problem */
         Problem: {
@@ -1687,6 +1791,284 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResearchEvidence"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Insufficient Storage */
+            507: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    paper_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperStatus"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Content Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description Insufficient Storage */
+            507: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Problem"];
+                };
+            };
+        };
+    };
+    paper_action: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Action"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperResult"];
                 };
             };
             /** @description Bad Request */

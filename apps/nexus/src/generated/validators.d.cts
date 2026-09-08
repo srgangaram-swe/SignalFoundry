@@ -10,3 +10,5 @@ export declare function isResearchEvidence(value: unknown): value is Resolved<co
 export declare function isComparison(value: unknown): value is Resolved<components["schemas"]["Comparison"]>;
 export declare function isAuditTrail(value: unknown): value is Resolved<components["schemas"]["AuditTrail"]>;
 export declare function isProblem(value: unknown): value is Resolved<components["schemas"]["Problem"]>;
+export declare function isPaperStatus(value: unknown): value is Resolved<components["schemas"]["PaperStatus"]>;
+export declare function isPaperResult(value: unknown): value is Resolved<components["schemas"]["PaperResult"]>;

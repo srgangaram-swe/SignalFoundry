@@ -22,6 +22,7 @@ Tree equality proves preservation, not that an existing source defect is fixed.
 | Regime performance, stress, capacity, holdings and concentration | Nexus evidence tables; original Risk & Regimes tab | Real-worker evidence; capacity is a proxy |
 | Latest-run artifacts, deflated Sharpe, PBO and detailed fills | Retained AlphaForge dashboard | Exact source tree and dashboard tests; not all projected by API v1 |
 | Simulated paper orders and execution/native core | Original AlphaForge CLI/dashboard/core | Exact source and historical qualification; no real brokerage |
+| Concrete Alpaca paper/data lifecycle | Optional root CLI and Nexus Paper operations | Additive fixed-host adapter, focused fixture/worker/HTTP tests; actual broker acceptance remains pending |
 | Signalattice liveness, readiness and degraded states | Retained `/console` | 82 console boundary/integration/HTTP tests |
 | Run catalog with keyset pagination | Retained `/console/runs` | Same console tests and unchanged route implementation |
 | Artifact lineage, integrity and evidence state | Retained `/console/evidence`; Nexus research hashes | Console tests plus browser evidence inspection |
