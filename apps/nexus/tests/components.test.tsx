@@ -67,6 +67,26 @@ describe("evidence projections", () => {
     render(<EquityChart tables={[]} title="Net return" metric="return" />);
     expect(screen.getByText("Net return: unavailable.")).toBeVisible();
   });
+  it("distinguishes the strategy and all three allowed baselines in chart and legend", () => {
+    const tables = Array.from({ length: 4 }, (_, index) => ({
+      name: `equity_model${String(index)}`,
+      description: "Four-series boundary",
+      columns: [{ name: "return", unit: "fraction" }],
+      rows: [[0], [index + 1]],
+      total_rows: 2,
+    }));
+    const { container } = render(
+      <EquityChart tables={tables} title="Net return" metric="return" />,
+    );
+    const paths = [...container.querySelectorAll('svg[role="img"] path')];
+    const legends = [...container.querySelectorAll(".chart-legend path")];
+    expect(new Set(paths.map((path) => path.getAttribute("class"))).size).toBe(
+      4,
+    );
+    expect(legends.map((path) => path.getAttribute("class"))).toEqual(
+      paths.map((path) => path.getAttribute("class")),
+    );
+  });
   it("windows 2048 records, preserves missing values and bounds DOM rows", () => {
     render(
       <TableView
