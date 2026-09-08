@@ -20,14 +20,17 @@ LOGGER = logging.getLogger(__name__)
 
 SECURITY_HEADERS = {
     "content-security-policy": (
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self';"
         " connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none';"
-        " frame-ancestors 'none'; form-action 'self'"
+        " frame-ancestors 'none'; form-action 'none'; worker-src 'none'"
     ),
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
     "cache-control": "no-store",
     "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-resource-policy": "same-origin",
+    "x-frame-options": "DENY",
 }
 
 

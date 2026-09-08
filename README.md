@@ -6,8 +6,8 @@ This repository assembles [AlphaForge](https://github.com/srgangaram-swe/AlphaFo
 and [Signalattice](https://github.com/srgangaram-swe/Signalattice) without rewriting
 their histories or merging their dependency environments. Both source repositories
 remain intact. A typed, loopback-only control plane now runs bounded research jobs
-and publishes immutable diagnostic evidence. The Nexus workstation is the next
-delivery; it is not yet included on this branch.
+and publishes immutable diagnostic evidence. The Nexus workstation adds a typed,
+accessible browser workflow for configuring, comparing and inspecting research.
 
 **Research and simulation only. No broker connection or live-order route.**
 The recorded capital-readiness verdict remains `NOT_READY`. Tests establish
@@ -24,7 +24,7 @@ software properties, not a profitable trading strategy.
 - `contracts`: generated OpenAPI and TypeScript bindings from one schema.
 - `provenance/assembly.json`: frozen source identities, object hashes, namespaced
   ref mappings and the recorded historical-license determination.
-- `apps/nexus`: planned in [AlphaForge #81](https://github.com/srgangaram-swe/AlphaForge/issues/81).
+- `apps/nexus`: opt-in local React/TypeScript research workstation.
 
 ## Verify a checkout
 
@@ -49,6 +49,11 @@ Open `http://127.0.0.1:8765/api/v1/catalog` to inspect the actual model/strategy
 registries. See the [research workflow and launch guide](docs/control-plane.md)
 for validated configuration, historical bundles, jobs, cancellation and evidence.
 No credentials belong in the browser. Original dashboards remain available.
+
+For the workstation, install Node 24, run `npm --prefix apps/nexus ci --ignore-scripts`
+and `npm --prefix apps/nexus run build`, then launch `uv run signal-foundry serve --nexus`.
+Open `http://127.0.0.1:8765/nexus`. See the [Nexus guide and evidence](docs/nexus.md)
+and [source capability parity matrix](docs/nexus-parity.md).
 
 The context commands generate ignored package-local `.git` pointers backed by
 independent object copies inside the unified `.git` directory. They do not clone

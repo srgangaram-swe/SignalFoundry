@@ -13,6 +13,7 @@ from signal_foundry.api import create_app
 from signal_foundry.boundary import FoundryError, decode, encode, read_file
 from signal_foundry.contracts import JobState, Problem, ResearchRequest
 from signal_foundry.manager import Manager
+from signal_foundry.nexus import load_bundle
 from signal_foundry.runner import Runner
 from signal_foundry.store import Store
 
@@ -29,6 +30,9 @@ def main(argv: list[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve", help="Serve only http://127.0.0.1:8765")
     serve.add_argument("--port", type=int, default=8765)
+    serve.add_argument(
+        "--nexus", action="store_true", help="Mount the verified local Nexus build"
+    )
     commands.add_parser("catalog")
     commands.add_parser("example", help="Print the complete default synthetic request")
     for name in ("validate", "run"):
@@ -46,8 +50,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "serve":
             import uvicorn
 
+            bundle = (
+                load_bundle(
+                    args.root / "apps/nexus/dist",
+                    contract=args.root / "contracts/openapi-v1.json",
+                )
+                if args.nexus
+                else None
+            )
             uvicorn.run(
-                create_app(factory, port=args.port),
+                create_app(factory, port=args.port, nexus=bundle),
                 host="127.0.0.1",
                 port=args.port,
                 workers=1,

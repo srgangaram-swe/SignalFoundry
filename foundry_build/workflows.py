@@ -170,6 +170,7 @@ def generate(root: Path) -> dict[str, Any]:
         }
     jobs["assembly"] = {
         "name": "assembly",
+        "needs": ["nexus"],
         "runs-on": "ubuntu-latest",
         "timeout-minutes": 15,
         "steps": [
@@ -209,6 +210,43 @@ def generate(root: Path) -> dict[str, Any]:
             {"run": "npm --prefix contracts audit"},
             {"run": "uv build --no-sources"},
             {"run": "uv run python -m foundry_build.assembly verify"},
+        ],
+    }
+    jobs["nexus"] = {
+        "name": "nexus",
+        "runs-on": "macos-15",
+        "timeout-minutes": 20,
+        "steps": [
+            {
+                "uses": CHECKOUT,
+                "with": {"fetch-depth": 0, "persist-credentials": False},
+            },
+            {"uses": PYTHON, "with": {"python-version": "3.13"}},
+            {"uses": UV, "with": {"version": "0.11.32"}},
+            {"uses": NODE, "with": {"node-version": "24"}},
+            {"run": "uv sync --locked --extra dev"},
+            {
+                "run": (
+                    "uv sync --project packages/alphaforge --locked --extra dev "
+                    "--extra data"
+                )
+            },
+            {"run": "uv sync --project packages/signalattice --locked --extra dev"},
+            {"run": "uv run python -m foundry_build.context alphaforge"},
+            {"run": "uv run python -m foundry_build.context signalattice"},
+            {"run": "npm ci --ignore-scripts", "working-directory": "apps/nexus"},
+            {
+                "run": (
+                    "npm run format:check && npm run lint && npm run build && "
+                    "npm run test:coverage && npm audit"
+                ),
+                "working-directory": "apps/nexus",
+            },
+            {
+                "run": "npx playwright install chromium",
+                "working-directory": "apps/nexus",
+            },
+            {"run": "npm run e2e", "working-directory": "apps/nexus"},
         ],
     }
     jobs["security"] = {
