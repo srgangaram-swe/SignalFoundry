@@ -33,6 +33,7 @@ from signal_foundry.trading.service import (
     Action,
     PaperResult,
     PaperService,
+    StopRequest,
     unavailable,
 )
 
@@ -149,6 +150,13 @@ def create_app(
                 409,
             )
         return service.action(action)
+
+    @app.post(
+        "/api/v1/paper/stop", response_model=PaperResult, operation_id="paper_stop"
+    )
+    def paper_stop(request: Request, body: StopRequest) -> PaperResult:
+        """Persist stop through the same service, using reserved HTTP admission."""
+        return paper_action(request, Action(operation="stop"))
 
     @app.get("/api/v1/catalog", response_model=Catalog, operation_id="catalog")
     def catalog(request: Request) -> Catalog:

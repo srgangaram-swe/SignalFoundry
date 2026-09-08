@@ -154,7 +154,9 @@ Open Paper operations. The panel shows the feed, limits, blockers, last reconcil
 cash/equity/positions, observation count and private artifact identity. It exposes
 bounded actions and a universe selector; configuration paths, raw history,
 credentials and order quantities never come from the browser. Refresh explicitly
-while a CLI session runs. Emergency stop remains available during an operation.
+while a CLI session runs. Emergency stop has one reserved browser and HTTP admission, so ordinary request
+saturation cannot consume its slot. A second concurrent stop remains bounded.
+The exact stop route retains all origin/header/body checks.
 
 ```bash
 paper stop

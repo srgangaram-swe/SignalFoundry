@@ -206,11 +206,18 @@ export class ResearchClient {
     action: PaperAction,
     signal: AbortSignal,
   ): Promise<PaperResult> {
-    return this.request("paper", guards.isPaperResult, signal, {
-      body: action,
-    });
+    const emergency = action.operation === "stop";
+    return this.request(
+      emergency ? "paper/stop" : "paper",
+      guards.isPaperResult,
+      signal,
+      {
+        body: emergency ? {} : action,
+      },
+    );
   }
   private active = 0;
+  private stopActive = 0;
 
   constructor(
     private readonly transport: typeof globalThis.fetch = globalThis.fetch.bind(
@@ -228,13 +235,17 @@ export class ResearchClient {
       key?: string;
     },
   ): Promise<T> {
-    if (this.active >= MAX_IN_FLIGHT) {
+    const emergency = path === "paper/stop";
+    if (emergency ? this.stopActive >= 1 : this.active >= MAX_IN_FLIGHT) {
       throw new ApiError(
         "client_busy",
-        "Four local requests are already in progress.",
+        emergency
+          ? "An emergency stop is already in progress."
+          : "Four local requests are already in progress.",
       );
     }
-    this.active += 1;
+    if (emergency) this.stopActive += 1;
+    else this.active += 1;
     const deadline = new AbortController();
     const timer = setTimeout(() => {
       deadline.abort();
@@ -305,7 +316,8 @@ export class ResearchClient {
     } finally {
       clearTimeout(timer);
       deadline.abort();
-      this.active -= 1;
+      if (emergency) this.stopActive -= 1;
+      else this.active -= 1;
     }
   }
 

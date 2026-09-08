@@ -42,6 +42,7 @@ class LocalBoundary:
         self.hosts = frozenset({f"127.0.0.1:{port}", f"localhost:{port}"})
         self.origins = frozenset("http://" + host for host in self.hosts)
         self._active = 0
+        self._stop_active = 0
 
     def _headers(self, scope: Scope) -> None:
         headers = Headers(scope=scope)
@@ -145,15 +146,20 @@ class LocalBoundary:
             await send(message)
 
         admitted = False
+        emergency = scope["method"] == "POST" and scope["path"] == "/api/v1/paper/stop"
         try:
             self._headers(scope)
-            if self._active >= 8:
+            occupied = self._stop_active >= 1 if emergency else self._active >= 8
+            if occupied:
                 raise FoundryError(
                     "http_capacity",
                     "Local request capacity is occupied; retry later.",
                     429,
                 )
-            self._active += 1
+            if emergency:
+                self._stop_active += 1
+            else:
+                self._active += 1
             admitted = True
             body = await self._body(scope, receive)
             consumed = False
@@ -194,4 +200,7 @@ class LocalBoundary:
             await response(scope, receive, secured)
         finally:
             if admitted:
-                self._active -= 1
+                if emergency:
+                    self._stop_active -= 1
+                else:
+                    self._active -= 1

@@ -60,7 +60,7 @@ test("paper fixture remains legible and stoppable at both viewport widths", asyn
   await page.route("**/api/v1/jobs", (route) =>
     route.fulfill({ json: { schema_version: "1.0.0", jobs: [] } }),
   );
-  await page.route("**/api/v1/paper", (route) =>
+  await page.route("**/api/v1/paper{,/stop}", (route) =>
     route.fulfill({
       json:
         route.request().method() === "GET"

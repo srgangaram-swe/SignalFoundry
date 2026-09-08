@@ -40,7 +40,7 @@ three evidence-tool checks, strict Python typing/lint/format, generated contract
 checks, wheel/sdist builds, and exact source-object/tree verification. The existing
 Starlette TestClient/AnyIO alias deprecation warning remains visible.
 
-Nexus component/transport validation: 45 tests, 91.29% branch coverage. Five browser
+Nexus component/transport validation: 48 tests, 91.59% branch coverage. Five browser
 scenarios exercise real research workers, default unavailable paper HTTP state,
 fixture paper positions/stopping, WCAG checks, keyboard/reduced-motion/theme/
 viewport behavior and four-series chart distinction. Four existing full-page
@@ -51,11 +51,17 @@ labeled fixture balances, not a real account.
 - [Desktop paper panel](evidence/paper/paper-1440.png)
 - [Mobile paper panel](evidence/paper/paper-390.png)
 
-Nexus build: 83,176 bytes gzipped JavaScript, 1,712 bytes gzipped CSS, 407,465 total
+Nexus build: 83,252 bytes gzipped JavaScript, 1,712 bytes gzipped CSS, 407,656 total
 bytes; existing budgets remain unchanged. Required remote gates are reported on
 the implementation/promotion PRs, separately from these local observations.
 The pre-existing non-required Signalattice container defect remains tracked as
 [Signalattice #67](https://github.com/srgangaram-swe/Signalattice/issues/67).
+
+The follow-up emergency admission correction (#16) reserves one browser and one
+HTTP stop slot while keeping the four/eight ordinary limits unchanged. Focused
+tests hold every ordinary slot, verify the real persistent stop, reject duplicate
+stop/origin/schema abuse and prove counters release after faults. This closes a
+saturation gap; it does not add live authority or recall in-flight orders.
 
 ## Remaining evidence by work item
 
