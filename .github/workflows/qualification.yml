@@ -1303,6 +1303,8 @@ jobs:
         == "skipped") for k,v in r.items()), r'
   assembly:
     name: assembly
+    needs:
+    - nexus
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -1340,6 +1342,37 @@ jobs:
     - run: npm --prefix contracts audit
     - run: uv build --no-sources
     - run: uv run python -m foundry_build.assembly verify
+  nexus:
+    name: nexus
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: '3.13'
+    - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+      with:
+        version: 0.11.32
+    - uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903
+      with:
+        node-version: '24'
+    - run: uv sync --locked --extra dev
+    - run: uv sync --project packages/alphaforge --locked --extra dev --extra data
+    - run: uv sync --project packages/signalattice --locked --extra dev
+    - run: uv run python -m foundry_build.context alphaforge
+    - run: uv run python -m foundry_build.context signalattice
+    - run: npm ci --ignore-scripts
+      working-directory: apps/nexus
+    - run: npm run format:check && npm run lint && npm run build && npm run test:coverage && npm audit
+      working-directory: apps/nexus
+    - run: npx playwright install chromium
+      working-directory: apps/nexus
+    - run: npm run e2e
+      working-directory: apps/nexus
   security:
     name: security
     runs-on: ubuntu-latest

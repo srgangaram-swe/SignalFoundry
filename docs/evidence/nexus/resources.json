@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0.0",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "24.5.0",
+    "browser": "151.0.7922.34",
+    "node": "v26.5.0"
+  },
+  "fixture": "synthetic 2048 rows; seed not applicable",
+  "samples": [
+    {
+      "cold_load_ms": 104.77370800000006,
+      "interaction_ms": 37.86512499999992,
+      "renderer_cpu_s": 0.006142999999999996,
+      "javascript_heap_bytes": 5517108,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 329039872
+    },
+    {
+      "cold_load_ms": 35.66279199999997,
+      "interaction_ms": 37.75979099999995,
+      "renderer_cpu_s": 0.005720999999999997,
+      "javascript_heap_bytes": 7268972,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 362741760
+    },
+    {
+      "cold_load_ms": 34.7482500000001,
+      "interaction_ms": 38.87391600000001,
+      "renderer_cpu_s": 0.005992000000000004,
+      "javascript_heap_bytes": 11354004,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 396607488
+    },
+    {
+      "cold_load_ms": 33.07895800000006,
+      "interaction_ms": 35.73004199999991,
+      "renderer_cpu_s": 0.0055529999999999954,
+      "javascript_heap_bytes": 12003816,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 425279488
+    },
+    {
+      "cold_load_ms": 36.20387500000015,
+      "interaction_ms": 38.667667000000165,
+      "renderer_cpu_s": 0.005930999999999999,
+      "javascript_heap_bytes": 14161764,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 457031680
+    },
+    {
+      "cold_load_ms": 32.48329100000001,
+      "interaction_ms": 37.642250000000104,
+      "renderer_cpu_s": 0.006154,
+      "javascript_heap_bytes": 15935052,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 487931904
+    },
+    {
+      "cold_load_ms": 35.97920900000008,
+      "interaction_ms": 39.13254099999995,
+      "renderer_cpu_s": 0.006442000000000003,
+      "javascript_heap_bytes": 18036268,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 521666560
+    },
+    {
+      "cold_load_ms": 33.09725000000003,
+      "interaction_ms": 35.885208999999804,
+      "renderer_cpu_s": 0.006971999999999999,
+      "javascript_heap_bytes": 20190048,
+      "rendered_rows": 41,
+      "browser_process_rss_bytes": 529858560
+    }
+  ],
+  "budgets": {
+    "cold_load_ms": 5000,
+    "interaction_ms": 1000,
+    "renderer_cpu_s": 2,
+    "javascript_heap_bytes": 134217728,
+    "rendered_rows": 41,
+    "browser_process_rss_bytes": 1073741824
+  },
+  "limitations": [
+    "Local Chromium only; renderer task time is not total host CPU.",
+    "Process RSS sums browser processes, counts shared pages repeatedly, and is sampled rather than peak RSS.",
+    "Cold navigation disables HTTP cache; operating-system and browser startup caches are not reset.",
+    "No exchange latency or trading-capacity inference."
+  ]
+}

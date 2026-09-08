@@ -27,6 +27,7 @@ from signal_foundry.contracts import (
 )
 from signal_foundry.http_security import LocalBoundary
 from signal_foundry.manager import Manager
+from signal_foundry.nexus import NexusBundle, mount
 
 BODY_SCHEMA = {
     "requestBody": {
@@ -55,7 +56,12 @@ async def parsed(request: Request) -> ResearchRequest:
         ) from exc
 
 
-def create_app(factory: Callable[[], Manager], *, port: int = 8765) -> FastAPI:
+def create_app(
+    factory: Callable[[], Manager],
+    *,
+    port: int = 8765,
+    nexus: NexusBundle | None = None,
+) -> FastAPI:
     """Create without IO; only the lifespan acquires state and worker ownership."""
     if not 1024 <= port <= 65535:
         raise FoundryError("port_policy", "Choose an unprivileged local port.")
@@ -203,4 +209,6 @@ def create_app(factory: Callable[[], Manager], *, port: int = 8765) -> FastAPI:
     def compare(request: Request, left: str, right: str) -> Comparison:
         return owner(request).compare(left, right)
 
+    if nexus is not None:
+        mount(app, nexus)
     return app
