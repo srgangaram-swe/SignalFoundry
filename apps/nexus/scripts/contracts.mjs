@@ -18,6 +18,8 @@ const names = [
   "Comparison",
   "AuditTrail",
   "Problem",
+  "PaperStatus",
+  "PaperResult",
 ];
 
 function references(value) {

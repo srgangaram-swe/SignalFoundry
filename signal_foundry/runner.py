@@ -55,6 +55,7 @@ class Runner:
             "catalog",
             "validate",
             "run",
+            "paper-qualification",
         }:
             raise FoundryError("unknown_operation", "Unregistered worker request.")
         if not self._capacity.acquire(blocking=False):

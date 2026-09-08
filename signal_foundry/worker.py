@@ -40,6 +40,10 @@ def dispatch(source: str, operation: str, payload: dict[str, Any], root: Path) -
         if operation == "validate" and bundles is not None:
             return inspect_bundle(bundles, payload["bundle_id"]).model_dump(mode="json")
     elif source == "alphaforge":
+        if operation == "paper-qualification":
+            from signal_foundry.worker_qualification import verify
+
+            return verify(payload["request"])
         if operation == "catalog":
             from signal_foundry.worker_catalog import catalog
 

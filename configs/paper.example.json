@@ -1,0 +1,26 @@
+{
+  "schema_version": "paper-config-1",
+  "environment": "alpaca-paper",
+  "enabled": false,
+  "account_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "candidate": "momentum",
+  "quantity": "1",
+  "maximum_order_notional": "100",
+  "maximum_position_notional": "500",
+  "maximum_session_loss": "25",
+  "plan": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "SPY"
+    ],
+    "feed": "iex",
+    "start": "2026-08-03T13:30:00Z",
+    "selection_end": "2026-08-17T13:30:00Z",
+    "end": "2026-08-28T20:00:00Z",
+    "window": 20,
+    "threshold_bps": 10,
+    "cost_bps_per_side": 10,
+    "seed": 17
+  }
+}

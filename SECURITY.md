@@ -30,7 +30,9 @@ code, Actions, native libraries or future resolutions are safe.
 The [control-plane boundary](docs/control-plane.md#security-boundary-and-remote-exposure)
 and [ADR 0001](docs/adr/0001-isolated-research-control-plane.md) define its authority.
 Browser requests cannot select executables, imports, provider URLs, filesystem
-paths, credentials or broker actions. Fixed worker commands run without inherited
+paths or credentials. Explicit paper actions are available only when the
+operator supplies a local paper configuration; see the
+[paper authority decision](docs/adr/0003-bounded-paper-operations.md). Fixed worker commands run without inherited
 secrets, with bounded output, CPU/wall time, threads, descriptors and sampled RSS.
 The process boundary contains a native crash; it is not an untrusted-code sandbox.
 
